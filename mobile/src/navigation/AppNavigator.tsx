@@ -32,10 +32,10 @@ export default function AppNavigator() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#000",
+          backgroundColor: "#FAF7F4",
         }}
       >
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator size="large" color="#C9897A" />
       </View>
     );
   }
@@ -45,7 +45,7 @@ export default function AppNavigator() {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: "#000" },
+          contentStyle: { backgroundColor: "#FAF7F4" },
         }}
       >
         {token ? (

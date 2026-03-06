@@ -1,32 +1,58 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { colors, spacing, typography } from '../../theme/tokens';
+import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { useTheme } from '../../theme/useTheme';
 
 interface AppBackButtonProps {
   label?: string;
   onPress: () => void;
   disabled?: boolean;
+  style?: ViewStyle;
 }
 
-export default function AppBackButton({ label = 'Back', onPress, disabled }: AppBackButtonProps) {
+export default function AppBackButton({ label, onPress, disabled, style }: AppBackButtonProps) {
+  const theme = useTheme();
+
   return (
-    <TouchableOpacity onPress={onPress} disabled={disabled} style={styles.touch}>
-      <Text style={[styles.text, disabled && styles.disabled]}>← {label}</Text>
-    </TouchableOpacity>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
+        },
+        style,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label ?? 'Back'}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Text style={[styles.arrow, { color: theme.textPrimary }]}>←</Text>
+      {label ? <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text> : null}
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  touch: {
-    alignSelf: 'flex-start',
-    marginBottom: spacing.lg,
+  button: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
-  text: {
-    color: colors.primary,
-    fontSize: typography.bodySmall,
-    fontWeight: '700',
+  arrow: {
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 20,
   },
-  disabled: {
-    opacity: 0.6,
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
   },
 });

@@ -15,4 +15,4 @@ async function bootstrap() {
 
   await app.listen(appConfig.apiPort);
 }
-bootstrap();
+void bootstrap();

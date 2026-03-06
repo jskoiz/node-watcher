@@ -2,6 +2,10 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
+interface EventWithRsvps {
+  rsvps?: { id: string }[];
+}
+
 @Injectable()
 export class EventsService {
   private readonly logger = new Logger(EventsService.name);
@@ -39,7 +43,9 @@ export class EventsService {
       endsAt: event.endsAt,
       host: event.host,
       attendeesCount: event._count.rsvps,
-      joined: userId ? (event as any).rsvps?.length > 0 : false,
+      joined: userId
+        ? ((event as unknown as EventWithRsvps).rsvps?.length ?? 0) > 0
+        : false,
     }));
   }
 
@@ -75,7 +81,9 @@ export class EventsService {
       endsAt: event.endsAt,
       host: event.host,
       attendeesCount: event._count.rsvps,
-      joined: userId ? (event as any).rsvps?.length > 0 : false,
+      joined: userId
+        ? ((event as unknown as EventWithRsvps).rsvps?.length ?? 0) > 0
+        : false,
     };
   }
 

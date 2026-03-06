@@ -8,6 +8,27 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
+export interface SignupDto {
+  email: string;
+  password: string;
+  firstName: string;
+  birthdate: string;
+  gender: string;
+}
+
+export interface LoginDto {
+  id?: string;
+  email?: string | null;
+  password?: string;
+  passwordHash?: string | null;
+  isOnboarded?: boolean;
+}
+
+export interface AuthResult {
+  access_token: string;
+  user: { id: string; email: string; isOnboarded: boolean };
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -17,7 +38,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signup(data: any) {
+  async signup(data: SignupDto): Promise<AuthResult> {
     const { email, password, firstName, birthdate, gender } = data;
 
     try {
@@ -50,18 +71,15 @@ export class AuthService {
 
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(
-        `Signup failed for email=${email}: ${message}`,
-        stack,
-      );
+      this.logger.error(`Signup failed for email=${email}: ${message}`, stack);
       throw error;
     }
   }
 
-  async login(user: any) {
-    let userId = user.id;
-    let userEmail = user.email;
-    let isOnboarded = user.isOnboarded || false;
+  async login(user: LoginDto): Promise<AuthResult> {
+    let userId = user.id ?? '';
+    let userEmail = user.email ?? '';
+    let isOnboarded = user.isOnboarded ?? false;
 
     try {
       if (!userId && user.email && user.password) {
@@ -72,6 +90,7 @@ export class AuthService {
           this.logger.warn(`Login rejected for email=${user.email}`);
           throw new UnauthorizedException('Invalid credentials');
         }
+
         const isMatch = await bcrypt.compare(
           user.password,
           foundUser.passwordHash,
@@ -81,7 +100,7 @@ export class AuthService {
           throw new UnauthorizedException('Invalid credentials');
         }
         userId = foundUser.id;
-        userEmail = foundUser.email;
+        userEmail = foundUser.email ?? '';
         isOnboarded = foundUser.isOnboarded;
       }
 
@@ -102,7 +121,10 @@ export class AuthService {
       const loginEmail = user?.email ?? userEmail;
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Login failed for email=${loginEmail}: ${message}`, stack);
+      this.logger.error(
+        `Login failed for email=${loginEmail}: ${message}`,
+        stack,
+      );
       throw error;
     }
   }

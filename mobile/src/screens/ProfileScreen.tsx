@@ -1,35 +1,162 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, RefreshControl } from 'react-native';
+import {
+  Dimensions,
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import client from '../api/client';
 import { normalizeApiError } from '../api/errors';
 import type { User } from '../api/types';
-import AppButton from '../components/ui/AppButton';
-import AppCard from '../components/ui/AppCard';
-import AppInput from '../components/ui/AppInput';
 import AppState from '../components/ui/AppState';
-import { colors, spacing, typography } from '../theme/tokens';
+import { radii, spacing, typography } from '../theme/tokens';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+const BASE = '#0D1117';
+const SURFACE = '#161B22';
+const SURFACE_ELEVATED = '#1C2128';
+const BORDER = 'rgba(255,255,255,0.07)';
+const PRIMARY = '#7C6AF7';
+const ACCENT = '#34D399';
+const ENERGY = '#F59E0B';
+const DANGER = '#F87171';
+const TEXT_PRIMARY = '#F0F6FC';
+const TEXT_SECONDARY = 'rgba(240,246,252,0.6)';
+const TEXT_MUTED = 'rgba(240,246,252,0.35)';
+
+// ─── Activity Data ────────────────────────────────────────────────────────────
+const ACTIVITY_OPTIONS = [
+  { label: '🏃 Running', color: ACCENT },
+  { label: '🧘 Yoga', color: PRIMARY },
+  { label: '🏋️ Lifting', color: '#F87171' },
+  { label: '🥾 Hiking', color: ENERGY },
+  { label: '🏖️ Beach', color: '#60A5FA' },
+  { label: '🚴 Cycling', color: ACCENT },
+  { label: '🏄 Surfing', color: '#38BDF8' },
+  { label: '🧗 Climbing', color: '#FB923C' },
+  { label: '🥊 Boxing', color: '#F87171' },
+  { label: '🏊 Swimming', color: '#60A5FA' },
+  { label: '🎾 Tennis', color: ENERGY },
+  { label: '⛷️ Skiing', color: '#93C5FD' },
+];
+
+const SCHEDULE_OPTIONS = ['Morning', 'Midday', 'Afternoon', 'Evening', 'Weekends'];
+const ENVIRONMENT_OPTIONS = ['Outdoors', 'Gym', 'Home', 'Studio', 'Pool'];
+
+// ─── Tag Cloud Pill ───────────────────────────────────────────────────────────
+function TagPill({
+  label,
+  selected,
+  onPress,
+  color = PRIMARY,
+  interactive = true,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  color?: string;
+  interactive?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={interactive ? onPress : undefined}
+      style={[
+        styles.tagPill,
+        selected
+          ? { backgroundColor: color + '22', borderColor: color + '70' }
+          : { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: BORDER },
+      ]}
+    >
+      <Text style={[styles.tagPillText, { color: selected ? color : TEXT_MUTED }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+// ─── Editable Field ───────────────────────────────────────────────────────────
+function EditableField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  editMode,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder: string;
+  editMode: boolean;
+}) {
+  return (
+    <View style={styles.fieldRow}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      {editMode ? (
+        <TextInput
+          style={styles.fieldInput}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={TEXT_MUTED}
+          autoCapitalize="none"
+        />
+      ) : (
+        <Text style={[styles.fieldValue, { color: value ? TEXT_PRIMARY : TEXT_MUTED }]}>
+          {value || placeholder}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+// ─── Settings Row ─────────────────────────────────────────────────────────────
+function SettingsRow({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.settingsRow} onPress={onPress} activeOpacity={0.7}>
+      <Text style={styles.settingsIcon}>{icon}</Text>
+      <Text style={styles.settingsLabel}>{label}</Text>
+      <Text style={styles.settingsArrow}>›</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const navigation = useNavigation<any>();
+
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigation = useNavigation<any>();
   const [saving, setSaving] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [verifyCode, setVerifyCode] = useState('');
+  const [editMode, setEditMode] = useState(false);
 
   const [intensityLevel, setIntensityLevel] = useState('');
   const [weeklyFrequencyBand, setWeeklyFrequencyBand] = useState('');
   const [primaryGoal, setPrimaryGoal] = useState('');
-  const [favoriteActivities, setFavoriteActivities] = useState('');
 
-  useEffect(() => { if (user) fetchProfile(); else setLoading(false); }, [user]);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>(['🏃 Running', '🧘 Yoga']);
+  const [selectedSchedule, setSelectedSchedule] = useState<string[]>(['Morning']);
+  const [selectedEnvironment, setSelectedEnvironment] = useState<string[]>(['Outdoors', 'Gym']);
+
+  useEffect(() => {
+    if (user) fetchProfile();
+    else setLoading(false);
+  }, [user]);
 
   const fetchProfile = async (silent = false) => {
     if (silent) setRefreshing(true);
@@ -37,12 +164,11 @@ export default function ProfileScreen() {
     setError(null);
     try {
       const response = await client.get<User>('/profile');
-      const nextProfile = response.data;
-      setProfile(nextProfile);
-      setIntensityLevel(nextProfile.fitnessProfile?.intensityLevel || '');
-      setWeeklyFrequencyBand(nextProfile.fitnessProfile?.weeklyFrequencyBand || '');
-      setPrimaryGoal(nextProfile.fitnessProfile?.primaryGoal || '');
-      setFavoriteActivities(nextProfile.fitnessProfile?.favoriteActivities || '');
+      const next = response.data;
+      setProfile(next);
+      setIntensityLevel(next.fitnessProfile?.intensityLevel || '');
+      setWeeklyFrequencyBand(next.fitnessProfile?.weeklyFrequencyBand || '');
+      setPrimaryGoal(next.fitnessProfile?.primaryGoal || '');
     } catch (err) {
       setError(normalizeApiError(err).message);
     } finally {
@@ -51,39 +177,12 @@ export default function ProfileScreen() {
     }
   };
 
-  const startVerification = async (channel: 'email' | 'phone', target?: string) => {
-    if (!target) return;
-    try {
-      const response = await client.post('/verification/start', { channel, target });
-      setError(`Verification started. Dev code: ${response.data?.devCode ?? 'sent'}`);
-    } catch (err) {
-      setError(normalizeApiError(err).message);
-    }
-  };
-
-  const confirmVerification = async (channel: 'email' | 'phone') => {
-    try {
-      await client.post('/verification/confirm', { channel, code: verifyCode });
-      setVerifyCode('');
-      await fetchProfile(true);
-    } catch (err) {
-      setError(normalizeApiError(err).message);
-    }
-  };
-
   const saveFitness = async () => {
-    const nextErrors: Record<string, string> = {};
-    if (!intensityLevel.trim()) nextErrors.intensityLevel = 'Intensity is required.';
-    if (!weeklyFrequencyBand.trim()) nextErrors.weeklyFrequencyBand = 'Weekly frequency is required.';
-    if (!primaryGoal.trim()) nextErrors.primaryGoal = 'Primary goal is required.';
-    if (!favoriteActivities.trim()) nextErrors.favoriteActivities = 'Add at least one activity.';
-    setFieldErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
     setSaving(true);
     setError(null);
     try {
-      await client.put('/profile/fitness', { intensityLevel, weeklyFrequencyBand, primaryGoal, favoriteActivities });
+      await client.put('/profile/fitness', { intensityLevel, weeklyFrequencyBand, primaryGoal });
+      setEditMode(false);
       await fetchProfile(true);
     } catch (err) {
       setError(normalizeApiError(err).message);
@@ -92,80 +191,482 @@ export default function ProfileScreen() {
     }
   };
 
+  const toggle = (arr: string[], val: string, set: (a: string[]) => void) => {
+    set(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
+  };
+
   if (loading) return <AppState title="Loading your profile" loading />;
-  if (error && !profile) return <AppState title="Couldn’t load profile" description={error} actionLabel="Retry" onAction={fetchProfile} />;
+  if (error && !profile)
+    return <AppState title="Couldn't load profile" description={error} actionLabel="Retry" onAction={fetchProfile} isError />;
   if (!profile) return <AppState title="No profile found" actionLabel="Refresh" onAction={fetchProfile} />;
 
   const primaryPhoto = profile.photos?.find((p) => p.isPrimary)?.storageKey || profile.photoUrl;
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Full-bleed violet glow behind avatar */}
+      <View style={styles.heroBg} pointerEvents="none" />
+
       <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchProfile(true)} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => fetchProfile(true)} tintColor={PRIMARY} />
+        }
       >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.kicker}>Personal space</Text>
-            <Text style={styles.headerTitle}>You</Text>
+
+        {/* ── Hero ── */}
+        <View style={styles.hero}>
+          {/* Avatar with glow ring */}
+          <View style={styles.avatarGlowWrap}>
+            <LinearGradient
+              colors={[PRIMARY, ACCENT]}
+              style={styles.avatarGlowRing}
+            >
+              <View style={styles.avatarInnerWrap}>
+                <Image
+                  source={{ uri: primaryPhoto || 'https://via.placeholder.com/120' }}
+                  style={styles.avatar}
+                />
+              </View>
+            </LinearGradient>
           </View>
-          <View style={{ flexDirection: 'row', gap: spacing.xs }}>
-            <AppButton label="Alerts" variant="ghost" onPress={() => navigation.navigate('Notifications')} />
-            <AppButton label="Log out" variant="ghost" onPress={logout} />
+
+          <Text style={styles.heroName}>
+            {profile.firstName}{profile.age ? `, ${profile.age}` : ''}
+          </Text>
+
+          <View style={styles.intentBadge}>
+            <Text style={styles.intentBadgeText}>🏃 Active Mover</Text>
+          </View>
+
+          <Text style={styles.heroLocation}>
+            📍 {profile.profile?.city || 'Location not set'}
+          </Text>
+
+          {/* Ambient stat strip — no grid lines, just numbers floating */}
+          <View style={styles.ambientStats}>
+            <View style={styles.ambientStat}>
+              <Text style={[styles.ambientStatNum, { color: PRIMARY }]}>12</Text>
+              <Text style={styles.ambientStatLabel}>matches</Text>
+            </View>
+            <View style={styles.ambientStatDot} />
+            <View style={styles.ambientStat}>
+              <Text style={[styles.ambientStatNum, { color: ACCENT }]}>8</Text>
+              <Text style={styles.ambientStatLabel}>activities</Text>
+            </View>
+            <View style={styles.ambientStatDot} />
+            <View style={styles.ambientStat}>
+              <Text style={[styles.ambientStatNum, { color: ENERGY }]}>5</Text>
+              <Text style={styles.ambientStatLabel}>connections</Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.profileHeader}>
-          <Image source={{ uri: primaryPhoto || 'https://via.placeholder.com/150' }} style={styles.avatar} />
-          <Text style={styles.name}>{profile.firstName}, {profile.age ?? '--'}</Text>
-          <Text style={styles.location}>{profile.profile?.city || 'Location not set'}</Text>
+        {/* ── Edit / Save bar ── */}
+        <View style={styles.editBar}>
+          <Pressable
+            onPress={() => editMode ? saveFitness() : setEditMode(true)}
+            disabled={saving}
+            style={styles.editBtnWrap}
+          >
+            <LinearGradient
+              colors={editMode ? [PRIMARY, PRIMARY + 'AA'] : ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.04)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.editBtn}
+            >
+              <Text style={[styles.editBtnText, { color: editMode ? '#FFFFFF' : TEXT_SECONDARY }]}>
+                {saving ? 'Saving...' : editMode ? '✓ Save Changes' : '✏️ Edit Profile'}
+              </Text>
+            </LinearGradient>
+          </Pressable>
+          {editMode && (
+            <Pressable onPress={() => setEditMode(false)} style={styles.cancelBtn}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </Pressable>
+          )}
         </View>
 
-        <AppCard style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>About</Text>
-          <Text style={styles.bio}>{profile.profile?.bio || 'No bio yet.'}</Text>
-        </AppCard>
-
-        <AppCard style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Edit fitness profile</Text>
-          <AppInput label="Intensity" value={intensityLevel} onChangeText={(v) => { setIntensityLevel(v); if (fieldErrors.intensityLevel) setFieldErrors((p) => ({ ...p, intensityLevel: '' })); }} placeholder="moderate" error={fieldErrors.intensityLevel} />
-          <AppInput label="Weekly frequency" value={weeklyFrequencyBand} onChangeText={(v) => { setWeeklyFrequencyBand(v); if (fieldErrors.weeklyFrequencyBand) setFieldErrors((p) => ({ ...p, weeklyFrequencyBand: '' })); }} placeholder="3-4" error={fieldErrors.weeklyFrequencyBand} />
-          <AppInput label="Primary goal" value={primaryGoal} onChangeText={(v) => { setPrimaryGoal(v); if (fieldErrors.primaryGoal) setFieldErrors((p) => ({ ...p, primaryGoal: '' })); }} placeholder="health" error={fieldErrors.primaryGoal} />
-          <AppInput label="Favorite activities" value={favoriteActivities} onChangeText={(v) => { setFavoriteActivities(v); if (fieldErrors.favoriteActivities) setFieldErrors((p) => ({ ...p, favoriteActivities: '' })); }} placeholder="running, yoga" error={fieldErrors.favoriteActivities} />
-          <AppButton label="Save changes" onPress={saveFitness} loading={saving} />
-        </AppCard>
-
-        <AppCard style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Verification</Text>
-          <Text style={styles.bio}>Email: {profile.hasVerifiedEmail ? 'Verified' : 'Not verified'}</Text>
-          <Text style={styles.bio}>Phone: {profile.hasVerifiedPhone ? 'Verified' : 'Not verified'}</Text>
-          <AppButton label="Verify email" variant="secondary" onPress={() => startVerification('email', profile.email || undefined)} />
-          <AppButton label="Verify phone" variant="secondary" onPress={() => startVerification('phone', profile.phoneNumber || undefined)} />
-          <AppInput label="Verification code" value={verifyCode} onChangeText={setVerifyCode} placeholder="Enter 6-digit code" />
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <AppButton label="Confirm email" variant="ghost" onPress={() => confirmVerification('email')} />
-            <AppButton label="Confirm phone" variant="ghost" onPress={() => confirmVerification('phone')} />
+        {/* ── Movement Identity — organic tag cloud ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrow}>Movement Identity</Text>
+          <View style={styles.tagCloud}>
+            {ACTIVITY_OPTIONS.map(({ label, color }) => (
+              <TagPill
+                key={label}
+                label={label}
+                selected={selectedActivities.includes(label)}
+                onPress={() => editMode && toggle(selectedActivities, label, setSelectedActivities)}
+                color={color}
+                interactive={editMode}
+              />
+            ))}
           </View>
-        </AppCard>
+        </View>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {/* ── Fitness Fields ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrow}>Fitness Profile</Text>
+          <View style={styles.fieldsCard}>
+            <EditableField label="Intensity" value={intensityLevel} onChangeText={setIntensityLevel} placeholder="moderate" editMode={editMode} />
+            <View style={styles.fieldDivider} />
+            <EditableField label="Days / week" value={weeklyFrequencyBand} onChangeText={setWeeklyFrequencyBand} placeholder="3-4" editMode={editMode} />
+            <View style={styles.fieldDivider} />
+            <EditableField label="Primary goal" value={primaryGoal} onChangeText={setPrimaryGoal} placeholder="health" editMode={editMode} />
+          </View>
+        </View>
+
+        {/* ── Schedule ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrow}>Schedule</Text>
+          <View style={styles.tagCloud}>
+            {SCHEDULE_OPTIONS.map((tag) => (
+              <TagPill
+                key={tag}
+                label={tag}
+                selected={selectedSchedule.includes(tag)}
+                onPress={() => editMode && toggle(selectedSchedule, tag, setSelectedSchedule)}
+                color={ACCENT}
+                interactive={editMode}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* ── Environment ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrow}>Environment</Text>
+          <View style={styles.tagCloud}>
+            {ENVIRONMENT_OPTIONS.map((tag) => (
+              <TagPill
+                key={tag}
+                label={tag}
+                selected={selectedEnvironment.includes(tag)}
+                onPress={() => editMode && toggle(selectedEnvironment, tag, setSelectedEnvironment)}
+                color={ENERGY}
+                interactive={editMode}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* ── Settings ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrow}>Settings</Text>
+          <View style={styles.settingsCard}>
+            <SettingsRow icon="👤" label="Account" onPress={() => {}} />
+            <View style={styles.fieldDivider} />
+            <SettingsRow icon="🔒" label="Privacy" onPress={() => {}} />
+            <View style={styles.fieldDivider} />
+            <SettingsRow icon="🔔" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
+          </View>
+        </View>
+
+        {/* Error banner */}
+        {!!error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {/* ── Logout ── */}
+        <Pressable onPress={logout} style={styles.logoutBtn}>
+          <Text style={styles.logoutText}>Log out</Text>
+        </Pressable>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: spacing.xl, paddingBottom: spacing.xxxl },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
-  kicker: { color: colors.accentSoft, fontSize: typography.caption, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '700' },
-  headerTitle: { fontSize: typography.h2, fontWeight: '800', color: colors.textPrimary },
-  profileHeader: { alignItems: 'center', marginBottom: spacing.xl },
-  avatar: { width: 122, height: 122, borderRadius: 61, marginBottom: spacing.md, borderWidth: 2, borderColor: colors.border },
-  name: { fontSize: typography.h1, fontWeight: '800', color: colors.textPrimary, marginBottom: spacing.xs },
-  location: { fontSize: typography.body, color: colors.textSecondary },
-  sectionCard: { marginBottom: spacing.md },
-  sectionTitle: { fontSize: typography.h3, fontWeight: '700', color: colors.textPrimary, marginBottom: spacing.md },
-  bio: { fontSize: typography.body, color: colors.textSecondary, lineHeight: 22 },
-  errorText: { color: colors.danger, textAlign: 'center', marginTop: spacing.sm },
+  container: {
+    flex: 1,
+    backgroundColor: BASE,
+  },
+  heroBg: {
+    position: 'absolute',
+    top: -80,
+    left: SCREEN_WIDTH / 2 - 150,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: PRIMARY,
+    opacity: 0.08,
+  },
+  scrollContent: {
+    paddingTop: spacing.lg,
+    paddingBottom: 100,
+  },
+
+  // Hero
+  hero: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.xxl,
+    marginBottom: spacing.lg,
+  },
+  avatarGlowWrap: {
+    marginBottom: spacing.lg,
+    shadowColor: PRIMARY,
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 16,
+  },
+  avatarGlowRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    padding: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInnerWrap: {
+    width: 98,
+    height: 98,
+    borderRadius: 49,
+    overflow: 'hidden',
+    backgroundColor: SURFACE,
+    borderWidth: 2,
+    borderColor: BASE,
+  },
+  avatar: {
+    width: '100%',
+    height: '100%',
+  },
+  heroName: {
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+    color: TEXT_PRIMARY,
+    marginBottom: spacing.sm,
+  },
+  intentBadge: {
+    backgroundColor: 'rgba(124,106,247,0.15)',
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(124,106,247,0.4)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    marginBottom: spacing.sm,
+  },
+  intentBadgeText: {
+    fontSize: typography.bodySmall,
+    fontWeight: '800',
+    color: PRIMARY,
+  },
+  heroLocation: {
+    fontSize: typography.bodySmall,
+    color: TEXT_MUTED,
+    marginBottom: spacing.xl,
+    fontWeight: '500',
+  },
+
+  // Ambient stats (no card, just floating numbers)
+  ambientStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  ambientStat: {
+    alignItems: 'center',
+  },
+  ambientStatNum: {
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: -1,
+    lineHeight: 36,
+  },
+  ambientStatLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: 2,
+  },
+  ambientStatDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: BORDER,
+  },
+
+  // Edit bar
+  editBar: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.xxl,
+    marginBottom: spacing.xxl,
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
+  editBtnWrap: {
+    flex: 1,
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  editBtn: {
+    paddingVertical: 11,
+    alignItems: 'center',
+    borderRadius: radii.pill,
+  },
+  editBtnText: {
+    fontSize: typography.bodySmall,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+  },
+  cancelBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 11,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  cancelBtnText: {
+    fontSize: typography.bodySmall,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+  },
+
+  // Sections
+  section: {
+    paddingHorizontal: spacing.xxl,
+    marginBottom: spacing.xxl,
+  },
+  sectionEyebrow: {
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    color: TEXT_MUTED,
+    marginBottom: spacing.md,
+  },
+
+  // Tag cloud — variable gap for organic feel
+  tagCloud: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tagPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  tagPillText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // Fitness fields card
+  fieldsCard: {
+    backgroundColor: SURFACE_ELEVATED,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    gap: spacing.md,
+  },
+  fieldLabel: {
+    fontSize: typography.bodySmall,
+    fontWeight: '700',
+    width: 100,
+    color: TEXT_MUTED,
+    textTransform: 'capitalize',
+  },
+  fieldValue: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+    color: TEXT_PRIMARY,
+  },
+  fieldInput: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    borderWidth: 1,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    borderColor: 'rgba(124,106,247,0.4)',
+    backgroundColor: 'rgba(124,106,247,0.08)',
+    color: TEXT_PRIMARY,
+  },
+  fieldDivider: {
+    height: 1,
+    backgroundColor: BORDER,
+  },
+
+  // Settings card
+  settingsCard: {
+    backgroundColor: SURFACE_ELEVATED,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    gap: spacing.md,
+  },
+  settingsIcon: {
+    fontSize: 18,
+    width: 24,
+    textAlign: 'center',
+  },
+  settingsLabel: {
+    flex: 1,
+    fontSize: typography.body,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  settingsArrow: {
+    fontSize: 22,
+    fontWeight: '300',
+    color: TEXT_MUTED,
+  },
+
+  // Error banner
+  errorBanner: {
+    marginHorizontal: spacing.xxl,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    backgroundColor: 'rgba(248,113,113,0.1)',
+    borderColor: 'rgba(248,113,113,0.3)',
+  },
+  errorText: {
+    fontSize: typography.bodySmall,
+    fontWeight: '600',
+    color: DANGER,
+  },
+
+  // Logout
+  logoutBtn: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+    marginTop: spacing.sm,
+  },
+  logoutText: {
+    fontSize: typography.body,
+    fontWeight: '800',
+    color: DANGER,
+    letterSpacing: 0.2,
+  },
 });

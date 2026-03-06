@@ -25,7 +25,7 @@ From repo root:
 
 This verifies:
 1. Backend deterministic bootstrap (`db up -> wait -> migrate -> seed`)
-2. Backend starts and responds on `http://127.0.0.1:3000`
+2. Backend starts and responds on `http://127.0.0.1:3010`
 3. Mobile launch prerequisites (`expo-doctor` + `typecheck`)
 
 ## Validation commands used before ship
@@ -71,6 +71,6 @@ npm run typecheck
 ### Mobile can't hit backend from device
 
 Use the correct API URL for your target:
-- iOS simulator: `http://localhost:3000`
-- Android emulator: `http://10.0.2.2:3000`
-- Physical device: `http://<your-mac-ip>:3000`
+- iOS simulator: `http://localhost:3010`
+- Android emulator: `http://10.0.2.2:3010`
+- Physical device: `http://<your-mac-ip>:3010`

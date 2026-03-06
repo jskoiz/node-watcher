@@ -25,15 +25,15 @@ npx prisma migrate deploy
 
 # seed demo users + profile pictures
 # BASE_URL is used to generate seeded photo URLs.
-# - iOS Simulator: http://localhost:3000
-# - Physical device: http://<your-mac-ip>:3000
-BASE_URL=http://localhost:3000 npx prisma db seed
+# - iOS Simulator: http://localhost:3010
+# - Physical device: http://<your-mac-ip>:3010
+BASE_URL=http://localhost:3010 npx prisma db seed
 
 # run API
 npm run start:dev
 ```
 Backend serves profile images at:
-- `http://localhost:3000/pfps/...`
+- `http://localhost:3010/pfps/...`
 
 ## 3) Mobile (Expo)
 ```sh
@@ -41,10 +41,10 @@ cd mobile
 npm i
 
 # API base for the app:
-# - iOS Simulator: http://localhost:3000
-# - Android Emulator: http://10.0.2.2:3000
-# - Physical device: http://<your-mac-ip>:3000
-EXPO_PUBLIC_API_URL=http://localhost:3000 npm run ios
+# - iOS Simulator: http://localhost:3010
+# - Android Emulator: http://10.0.2.2:3010
+# - Physical device: http://<your-mac-ip>:3010
+EXPO_PUBLIC_API_URL=http://localhost:3010 npm run ios
 ```
 
 ## Notes

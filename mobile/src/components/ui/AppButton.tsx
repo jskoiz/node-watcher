@@ -1,8 +1,9 @@
-import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
-import { colors, radii, shadows, spacing, typography } from '../../theme/tokens';
+import React, { useRef } from 'react';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { useTheme } from '../../theme/useTheme';
+import { radii, spacing, typography } from '../../theme/tokens';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'accent' | 'ghost' | 'danger';
 
 interface AppButtonProps {
   label: string;
@@ -14,69 +15,113 @@ interface AppButtonProps {
 }
 
 export default function AppButton({ label, onPress, disabled, loading, variant = 'primary', style }: AppButtonProps) {
+  const theme = useTheme();
+  const scale = useRef(new Animated.Value(1)).current;
   const isDisabled = disabled || loading;
+
+  const handlePressIn = () => {
+    Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 50, bounciness: 2 }).start();
+  };
+  const handlePressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 4 }).start();
+  };
+
+  const getContainerStyle = (): ViewStyle => {
+    switch (variant) {
+      case 'primary':
+        return {
+          backgroundColor: theme.primary,
+          borderColor: theme.primary,
+          shadowColor: theme.primary,
+          shadowOpacity: 0.45,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 8,
+        };
+      case 'secondary':
+        return {
+          backgroundColor: 'transparent',
+          borderColor: theme.primary,
+        };
+      case 'accent':
+        return {
+          backgroundColor: theme.accent,
+          borderColor: theme.accent,
+          shadowColor: theme.accent,
+          shadowOpacity: 0.35,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 6,
+        };
+      case 'ghost':
+        return {
+          backgroundColor: 'transparent',
+          borderColor: theme.border,
+        };
+      case 'danger':
+        return {
+          backgroundColor: theme.danger,
+          borderColor: theme.danger,
+          shadowColor: theme.danger,
+          shadowOpacity: 0.30,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 5,
+        };
+    }
+  };
+
+  const getLabelColor = () => {
+    switch (variant) {
+      case 'primary': return theme.white;
+      case 'secondary': return theme.primary;
+      case 'accent': return '#0D1117'; // dark text on mint green
+      case 'ghost': return theme.textSecondary;
+      case 'danger': return theme.white;
+    }
+  };
 
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={isDisabled}
-      style={({ pressed }) => [
-        styles.base,
-        styles[variant],
-        variant === 'primary' && shadows.glow,
-        isDisabled && styles.disabled,
-        pressed && !isDisabled && styles.pressed,
-        style,
-      ]}
+      style={({ pressed }) => [{ opacity: isDisabled ? 0.48 : pressed ? 0.88 : 1 }]}
     >
-      {loading ? (
-        <ActivityIndicator color={variant === 'secondary' || variant === 'ghost' ? colors.textPrimary : colors.black} />
-      ) : (
-        <Text style={[styles.label, (variant === 'secondary' || variant === 'ghost') && styles.altLabel]}>{label}</Text>
-      )}
+      <Animated.View
+        style={[
+          styles.base,
+          getContainerStyle(),
+          style,
+          { transform: [{ scale }] },
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator
+            color={variant === 'primary' || variant === 'danger' || variant === 'accent' ? theme.white : theme.primary}
+            size="small"
+          />
+        ) : (
+          <Text style={[styles.label, { color: getLabelColor() }]}>{label}</Text>
+        )}
+      </Animated.View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 52,
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.xl,
+    height: 56,
+    borderRadius: 16,
+    paddingHorizontal: spacing.xxl,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-  },
-  primary: {
-    backgroundColor: colors.primary,
-    borderColor: '#B2A5FF',
-  },
-  secondary: {
-    backgroundColor: colors.surface,
-    borderColor: colors.borderSoft,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-    borderColor: 'transparent',
-  },
-  danger: {
-    backgroundColor: colors.danger,
-    borderColor: colors.danger,
-  },
-  disabled: {
-    opacity: 0.58,
-  },
-  pressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.94,
+    borderWidth: 1.5,
   },
   label: {
-    color: colors.black,
     fontSize: typography.body,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  altLabel: {
-    color: colors.textPrimary,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

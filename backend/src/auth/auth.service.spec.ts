@@ -51,7 +51,10 @@ describe('AuthService', () => {
       isOnboarded: true,
     });
 
-    expect(jwtServiceMock.sign).toHaveBeenCalledWith({ email: 'test@example.com', sub: 'user-1' });
+    expect(jwtServiceMock.sign).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      sub: 'user-1',
+    });
     expect(result).toEqual({
       access_token: 'signed-token',
       user: {

@@ -1,25 +1,72 @@
-import React from 'react';
-import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
-import { colors, radii, spacing, typography } from '../../theme/tokens';
+import React, { useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
+import { useTheme } from '../../theme/useTheme';
+import { radii, spacing, typography } from '../../theme/tokens';
 
 interface AppInputProps extends TextInputProps {
   label?: string;
   error?: string;
 }
 
-export default function AppInput({ label, style, multiline, error, ...props }: AppInputProps) {
+export default function AppInput({ label, style, multiline, error, onFocus, onBlur, ...props }: AppInputProps) {
+  const theme = useTheme();
+  const [focused, setFocused] = useState(false);
+  const focusAnim = useRef(new Animated.Value(0)).current;
+
+  const handleFocus = (e: any) => {
+    setFocused(true);
+    Animated.timing(focusAnim, { toValue: 1, duration: 180, useNativeDriver: false }).start();
+    onFocus?.(e);
+  };
+  const handleBlur = (e: any) => {
+    setFocused(false);
+    Animated.timing(focusAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start();
+    onBlur?.(e);
+  };
+
+  const borderColor = focusAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [error ? theme.danger : theme.border, error ? theme.danger : theme.primary],
+  });
+
   return (
     <View style={styles.wrapper}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
-      <TextInput
-        style={[styles.input, multiline && styles.multiline, !!error && styles.inputError, style]}
-        placeholderTextColor={colors.textMuted}
-        selectionColor={colors.primary}
-        multiline={multiline}
-        textAlignVertical={multiline ? 'top' : 'center'}
-        {...props}
-      />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {label ? (
+        <Text style={[styles.label, { color: theme.textMuted }]}>
+          {label}
+        </Text>
+      ) : null}
+      <Animated.View
+        style={[
+          styles.inputWrapper,
+          {
+            backgroundColor: theme.surfaceElevated,
+            borderColor,
+            shadowColor: focused ? theme.primary : 'transparent',
+            shadowOpacity: focused ? 0.20 : 0,
+            shadowRadius: focused ? 8 : 0,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: focused ? 3 : 0,
+          },
+        ]}
+      >
+        <TextInput
+          style={[
+            styles.input,
+            { color: theme.textPrimary },
+            multiline && styles.multiline,
+            style,
+          ]}
+          placeholderTextColor={theme.textMuted}
+          selectionColor={theme.primary}
+          multiline={multiline}
+          textAlignVertical={multiline ? 'top' : 'center'}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          {...props}
+        />
+      </Animated.View>
+      {error ? <Text style={[styles.errorText, { color: theme.danger }]}>{error}</Text> : null}
     </View>
   );
 }
@@ -29,33 +76,30 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   label: {
-    color: colors.textSecondary,
     marginBottom: spacing.sm,
-    marginLeft: spacing.sm,
-    fontSize: typography.bodySmall,
+    marginLeft: 2,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 1.0,
+    textTransform: 'uppercase',
+  },
+  inputWrapper: {
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
   },
   input: {
-    backgroundColor: colors.surface,
-    color: colors.textPrimary,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.md + 2,
     fontSize: typography.body,
+    minHeight: 52,
   },
   multiline: {
     minHeight: 110,
-  },
-  inputError: {
-    borderColor: colors.danger,
+    paddingTop: spacing.md,
   },
   errorText: {
-    color: colors.danger,
     marginTop: spacing.xs,
-    marginLeft: spacing.sm,
+    marginLeft: 2,
     fontSize: typography.caption,
     fontWeight: '600',
   },

@@ -1,42 +1,70 @@
 import React, { useMemo, useState } from 'react';
-import { Text, StyleSheet, ScrollView, Alert } from 'react-native';
-import { useAuthStore } from '../store/authStore';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '../store/authStore';
 import { normalizeApiError } from '../api/errors';
 import AppButton from '../components/ui/AppButton';
 import AppInput from '../components/ui/AppInput';
-import AppCard from '../components/ui/AppCard';
 import AppBackButton from '../components/ui/AppBackButton';
-import { colors, spacing, typography } from '../theme/tokens';
+import { useTheme } from '../theme/useTheme';
+import { spacing, typography } from '../theme/tokens';
+
+const STEPS = 3;
+const STEP_LABELS = ['Account', 'Profile', 'Done'];
 
 export default function SignupScreen({ navigation }: any) {
+  const theme = useTheme();
+  const [step, setStep] = useState(0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [birthdate, setBirthdate] = useState('1995-01-01');
-  const [gender, setGender] = useState('male');
+  const [gender, setGender] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const signup = useAuthStore((state) => state.signup);
 
-  const validate = () => {
-    const nextErrors: Record<string, string> = {};
-    if (!firstName.trim()) nextErrors.firstName = 'First name is required.';
-    if (!email.trim()) nextErrors.email = 'Email is required.';
-    else if (!/^\S+@\S+\.\S+$/.test(email.trim())) nextErrors.email = 'Enter a valid email address.';
-    if (!password.trim()) nextErrors.password = 'Password is required.';
-    else if (password.trim().length < 8) nextErrors.password = 'Use at least 8 characters.';
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthdate.trim())) nextErrors.birthdate = 'Use YYYY-MM-DD format.';
-    if (!gender.trim()) nextErrors.gender = 'Gender is required.';
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+  const stepTitles = ["Let's start with you.", 'Secure your account.', 'One last thing.'];
+  const stepSubtitles = [
+    'Your name, so we can greet you right.',
+    'Your email and a strong password.',
+    'Your birthday and how you identify.',
+  ];
+
+  const validateStep = () => {
+    const next: Record<string, string> = {};
+    if (step === 0 && !firstName.trim()) next.firstName = 'First name is required.';
+    if (step === 1) {
+      if (!email.trim()) next.email = 'Email is required.';
+      else if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email.';
+      if (!password.trim()) next.password = 'Password is required.';
+      else if (password.trim().length < 8) next.password = 'Use at least 8 characters.';
+    }
+    if (step === 2) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(birthdate.trim())) next.birthdate = 'Use YYYY-MM-DD format.';
+      if (!gender.trim()) next.gender = 'How do you identify?';
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
-  const canSubmit = useMemo(() => !!email.trim() && !!password.trim() && !!firstName.trim(), [email, password, firstName]);
+  const handleNext = () => {
+    if (!validateStep()) return;
+    if (step < STEPS - 1) {
+      setStep(step + 1);
+    } else {
+      handleSignup();
+    }
+  };
+
+  const canProceed = useMemo(() => {
+    if (step === 0) return !!firstName.trim();
+    if (step === 1) return !!email.trim() && !!password.trim();
+    if (step === 2) return !!birthdate.trim() && !!gender.trim();
+    return false;
+  }, [step, firstName, email, password, birthdate, gender]);
 
   const handleSignup = async () => {
-    if (!validate()) return;
-
     setSubmitting(true);
     try {
       await signup({
@@ -47,44 +75,217 @@ export default function SignupScreen({ navigation }: any) {
         gender,
       });
     } catch (error) {
-      Alert.alert('Couldn\'t create account', normalizeApiError(error).message);
+      Alert.alert("Couldn't create account", normalizeApiError(error).message);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <AppBackButton label="Back to login" onPress={() => navigation.goBack()} disabled={submitting} />
+    <SafeAreaView style={[styles.container, { backgroundColor: '#0D1117' }]}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Back */}
+          <AppBackButton
+            onPress={() => step > 0 ? setStep(step - 1) : navigation.goBack()}
+            disabled={submitting}
+          />
 
-        <Text style={styles.title}>Create your BRDG profile</Text>
-        <Text style={styles.subtitle}>A few details now, we\'ll tune your matches next.</Text>
+          {/* Progress dots with step labels */}
+          <View style={styles.progressRow}>
+            {Array.from({ length: STEPS }).map((_, i) => (
+              <View key={i} style={styles.progressItem}>
+                <View
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: i < step ? theme.primary : i === step ? theme.primary : theme.border,
+                      width: i === step ? 28 : 8,
+                      opacity: i < step ? 0.5 : 1,
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.dotLabel,
+                    {
+                      color: i === step ? theme.primary : theme.textMuted,
+                      fontWeight: i === step ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {STEP_LABELS[i]}
+                </Text>
+              </View>
+            ))}
+          </View>
 
-        <AppCard>
-          <AppInput label="First name" placeholder="Alex" value={firstName} onChangeText={(v) => { setFirstName(v); if (errors.firstName) setErrors((p) => ({ ...p, firstName: '' })); }} editable={!submitting} error={errors.firstName} />
-          <AppInput label="Email" placeholder="you@example.com" value={email} onChangeText={(v) => { setEmail(v); if (errors.email) setErrors((p) => ({ ...p, email: '' })); }} autoCapitalize="none" keyboardType="email-address" editable={!submitting} error={errors.email} />
-          <AppInput label="Password" placeholder="At least 8 characters" value={password} onChangeText={(v) => { setPassword(v); if (errors.password) setErrors((p) => ({ ...p, password: '' })); }} secureTextEntry editable={!submitting} error={errors.password} />
-          <AppInput label="Birthdate (YYYY-MM-DD)" placeholder="1995-01-01" value={birthdate} onChangeText={(v) => { setBirthdate(v); if (errors.birthdate) setErrors((p) => ({ ...p, birthdate: '' })); }} editable={!submitting} error={errors.birthdate} />
-          <AppInput label="Gender" placeholder="male / female / other" value={gender} onChangeText={(v) => { setGender(v); if (errors.gender) setErrors((p) => ({ ...p, gender: '' })); }} editable={!submitting} error={errors.gender} />
+          {/* Step header */}
+          <View style={styles.stepHeader}>
+            <Text style={[styles.stepNum, { color: theme.accent }]}>
+              Step {step + 1} of {STEPS}
+            </Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>{stepTitles[step]}</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{stepSubtitles[step]}</Text>
+          </View>
 
-          <AppButton label="Continue" onPress={handleSignup} loading={submitting} disabled={!canSubmit || submitting} style={styles.submitButton} />
-          <AppButton label="Already have an account? Log in" variant="ghost" onPress={() => navigation.goBack()} disabled={submitting} />
-        </AppCard>
-      </ScrollView>
+          {/* Form section */}
+          <View style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {step === 0 && (
+              <AppInput
+                label="First name"
+                placeholder="Alex"
+                value={firstName}
+                onChangeText={(v) => { setFirstName(v); if (errors.firstName) setErrors((p) => ({ ...p, firstName: '' })); }}
+                editable={!submitting}
+                error={errors.firstName}
+                autoFocus
+              />
+            )}
+            {step === 1 && (
+              <>
+                <AppInput
+                  label="Email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChangeText={(v) => { setEmail(v); if (errors.email) setErrors((p) => ({ ...p, email: '' })); }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  editable={!submitting}
+                  error={errors.email}
+                  autoFocus
+                />
+                <AppInput
+                  label="Password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChangeText={(v) => { setPassword(v); if (errors.password) setErrors((p) => ({ ...p, password: '' })); }}
+                  secureTextEntry
+                  editable={!submitting}
+                  error={errors.password}
+                />
+              </>
+            )}
+            {step === 2 && (
+              <>
+                <AppInput
+                  label="Birthday"
+                  placeholder="YYYY-MM-DD"
+                  value={birthdate}
+                  onChangeText={(v) => { setBirthdate(v); if (errors.birthdate) setErrors((p) => ({ ...p, birthdate: '' })); }}
+                  editable={!submitting}
+                  error={errors.birthdate}
+                  autoFocus
+                />
+                <AppInput
+                  label="I identify as"
+                  placeholder="e.g. woman, man, non-binary"
+                  value={gender}
+                  onChangeText={(v) => { setGender(v); if (errors.gender) setErrors((p) => ({ ...p, gender: '' })); }}
+                  editable={!submitting}
+                  error={errors.gender}
+                />
+              </>
+            )}
+
+            <AppButton
+              label={step < STEPS - 1 ? 'Continue' : 'Create my account'}
+              onPress={handleNext}
+              loading={submitting}
+              disabled={!canProceed || submitting}
+              style={styles.ctaButton}
+            />
+          </View>
+
+          {step === 0 && (
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: theme.textMuted }]}>Already have an account? </Text>
+              <Pressable onPress={() => navigation.goBack()}>
+                <Text style={[styles.footerLink, { color: theme.accent }]}>Sign in</Text>
+              </Pressable>
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: spacing.xl, paddingBottom: spacing.xxxxl, justifyContent: 'center', minHeight: '100%' },
+  container: { flex: 1 },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxxl,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
+    marginBottom: spacing.xxl,
+  },
+  progressItem: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+  },
+  dotLabel: {
+    fontSize: 10,
+    letterSpacing: 0.3,
+  },
+  stepHeader: {
+    marginBottom: spacing.xxl,
+  },
+  stepNum: {
+    fontSize: typography.caption,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: spacing.xs,
+  },
   title: {
     fontSize: typography.h1,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    fontWeight: '800',
+    letterSpacing: -0.5,
     marginBottom: spacing.sm,
+    lineHeight: 38,
   },
-  subtitle: { color: colors.textSecondary, fontSize: typography.body, marginBottom: spacing.xl },
-  submitButton: { marginTop: spacing.sm, marginBottom: spacing.sm },
+  subtitle: {
+    fontSize: typography.body,
+    lineHeight: 24,
+  },
+  formCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: spacing.xxl,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  ctaButton: {
+    marginTop: spacing.sm,
+    width: '100%',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: spacing.xxxl,
+  },
+  footerText: {
+    fontSize: typography.body,
+  },
+  footerLink: {
+    fontSize: typography.body,
+    fontWeight: '700',
+  },
 });

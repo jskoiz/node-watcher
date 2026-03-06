@@ -110,7 +110,7 @@ h3 {
 }
 
 .topbar-actions {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
 }
 
@@ -624,6 +624,35 @@ h3 {
 }
 
 @media (max-width: 960px) {
+  .topbar {
+    gap: 12px;
+    padding: 6px 0 16px;
+  }
+
+  .topbar-actions {
+    gap: 8px;
+  }
+
+  .topbar-actions a {
+    padding: 8px 14px;
+    font-size: 0.88rem;
+  }
+
+  .hero-actions {
+    gap: 10px;
+  }
+
+  .hero-actions a.large {
+    padding: 12px 22px;
+    font-size: 0.95rem;
+  }
+
+  .hero-actions .solid-button,
+  .hero-actions .soft-button {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
   .hero,
   .steps,
   .feature-grid {
@@ -662,34 +691,30 @@ h3 {
 
   .topbar {
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     padding: 4px 0 10px;
-    text-align: center;
   }
 
   .topbar-actions {
-    width: auto;
     display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
   .topbar-actions a {
-    min-height: 46px;
-    padding: 10px 18px;
-    font-size: 0.92rem;
+    padding: 8px 14px;
+    font-size: 0.85rem;
   }
 
   .hero {
-    gap: 18px;
-    padding: 14px 0 22px;
+    gap: 20px;
+    padding: 10px 0 18px;
   }
 
   .eyebrow {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     letter-spacing: 0.1em;
-    padding: 7px 12px;
+    padding: 6px 12px;
   }
 
   .hero h1 {
@@ -703,7 +728,7 @@ h3 {
   .section-head p:last-child,
   .feature-card p,
   .cta-panel p:not(.section-kicker) {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   .hero-copy {
@@ -716,8 +741,9 @@ h3 {
   }
 
   .hero-text {
-    margin-top: 14px;
+    margin-top: 12px;
     max-width: none;
+    line-height: 1.6;
   }
 
   .hero-actions {
@@ -725,23 +751,21 @@ h3 {
     flex-wrap: wrap;
     gap: 10px;
     align-items: center;
+    margin-top: 20px;
   }
 
   .hero-actions a {
-    min-height: 50px;
-    padding: 12px 18px;
+    padding: 12px 22px;
+    font-size: 0.95rem;
     width: auto;
   }
 
   .hero-actions .solid-button {
-    flex: 1 1 180px;
+    flex: 0 0 auto;
   }
 
   .hero-actions .soft-button {
     flex: 0 0 auto;
-    padding-inline: 0;
-    border: 0;
-    background: transparent;
   }
 
   .hero-signals {
@@ -749,12 +773,12 @@ h3 {
   }
 
   .signal-list {
-    gap: 12px;
-    margin-top: 10px;
+    gap: 10px;
+    margin-top: 8px;
   }
 
   .signal-list li {
-    font-size: 0.98rem;
+    font-size: 0.92rem;
     line-height: 1.4;
   }
 
@@ -769,42 +793,42 @@ h3 {
   }
 
   .phone-stage {
-    width: min(100%, 390px);
-    padding: 6px 0 2px;
+    width: min(100%, 340px);
+    padding: 4px 0 0;
   }
 
   .hero-orbit-one {
-    width: 92px;
-    height: 92px;
+    width: 80px;
+    height: 80px;
     top: 4px;
     right: 10px;
   }
 
   .hero-orbit-two {
-    width: 84px;
-    height: 84px;
+    width: 72px;
+    height: 72px;
     left: 0;
-    bottom: 26px;
+    bottom: 20px;
   }
 
   .phone {
     width: 100%;
-    padding: 10px;
-    border-radius: 28px;
+    padding: 8px;
+    border-radius: 24px;
   }
 
   .phone-screen {
-    min-height: 470px;
-    border-radius: 22px;
+    min-height: 420px;
+    border-radius: 20px;
   }
 
   .phone-screen-content {
-    min-height: 470px;
-    padding: 18px;
+    min-height: 420px;
+    padding: 16px;
   }
 
   .phone-screen h2 {
-    font-size: 2.2rem;
+    font-size: 2rem;
   }
 
   .hero-profile-copy {
@@ -812,108 +836,109 @@ h3 {
   }
 
   .action-card {
-    margin-top: 16px;
-    padding: 16px;
+    margin-top: 14px;
+    padding: 14px;
     max-width: 100%;
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 8px;
   }
 
   .action-time {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 
   .status-card {
-    border-radius: 18px;
+    border-radius: 16px;
   }
 
   .status-card-top {
-    top: 12px;
-    left: 12px;
+    top: 10px;
+    left: 10px;
     right: auto;
-    max-width: calc(100% - 96px);
-    padding: 11px 13px;
+    max-width: calc(100% - 80px);
+    padding: 10px 12px;
   }
 
   .status-card-bottom {
     position: static;
-    margin-top: 10px;
+    margin-top: 8px;
     width: 100%;
     min-width: 0;
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
 
   .steps {
-    padding: 18px;
-    gap: 14px;
-  }
-
-  .feature-card,
-  .cta-panel {
-    padding: 22px;
-  }
-}
-
-@media (max-width: 520px) {
-  .topbar {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .topbar-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .topbar-actions a {
-    min-height: 42px;
-    padding: 10px 16px;
-  }
-
-  .hero-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .hero-actions a,
-  .hero-actions .solid-button,
-  .hero-actions .soft-button {
-    width: 100%;
-  }
-
-  .hero-actions .soft-button {
-    justify-content: center;
-    padding-inline: 16px;
-    border: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.68);
-  }
-
-  .hero-text {
-    line-height: 1.52;
-  }
-
-  .interest-row {
-    gap: 8px;
-  }
-
-  .interest-row span {
-    font-size: 0.84rem;
-  }
-
-  .phone-screen {
-    min-height: 440px;
-  }
-
-  .phone-screen-content {
-    min-height: 440px;
-  }
-
-  .phone-screen h2 {
-    font-size: 2rem;
+    padding: 16px;
+    gap: 12px;
+    margin-top: 8px;
   }
 
   .section-head {
-    margin-top: 56px;
+    margin-top: 48px;
+  }
+
+  .feature-grid {
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .feature-card {
+    padding: 20px;
+  }
+
+  .feature-card h3 {
+    margin-top: 12px;
+    font-size: 1.5rem;
+  }
+
+  .cta-panel {
+    margin-top: 24px;
+    padding: 24px 20px;
+  }
+
+  .cta-panel h2 {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand {
+    font-size: 1.7rem;
+  }
+
+  .brand-note {
+    font-size: 0.8rem;
+  }
+
+  .topbar-actions a {
+    padding: 7px 12px;
+    font-size: 0.82rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.1rem, 11vw, 2.8rem);
+  }
+
+  .hero-text {
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .interest-row {
+    gap: 6px;
+  }
+
+  .interest-row span {
+    font-size: 0.82rem;
+    padding: 8px 12px;
+  }
+
+  .phone-screen h2 {
+    font-size: 1.8rem;
+  }
+
+  .phone-screen p {
+    font-size: 0.92rem;
   }
 }

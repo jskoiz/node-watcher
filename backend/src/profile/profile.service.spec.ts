@@ -42,7 +42,9 @@ describe('ProfileService', () => {
     const profile = { userId: 'user-1', intensityLevel: 'high' };
     prismaMock.userFitnessProfile.upsert.mockResolvedValue(profile);
 
-    const result = await service.updateFitnessProfile('user-1', { intensityLevel: 'high' });
+    const result = await service.updateFitnessProfile('user-1', {
+      intensityLevel: 'high',
+    });
 
     expect(result).toEqual(profile);
     expect(prismaMock.user.update).toHaveBeenCalledWith({

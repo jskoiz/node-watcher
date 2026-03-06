@@ -1,47 +1,591 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import {
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Pressable,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AppInput from '../components/ui/AppInput';
-import AppCard from '../components/ui/AppCard';
-import AppButton from '../components/ui/AppButton';
-import { colors, spacing, typography } from '../theme/tokens';
+import { radii, spacing, typography } from '../theme/tokens';
 
-export default function CreateScreen() {
-  const [activity, setActivity] = useState('');
-  const [location, setLocation] = useState('');
-  const [time, setTime] = useState('');
-  const [description, setDescription] = useState('');
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+// ─── Mock global post store ────────────────────────────────────────────────────
+export const mockCommunityPosts: Array<{
+  id: string;
+  user: string;
+  activity: string;
+  text: string;
+  spots: number;
+  initial: string;
+  color: string;
+}> = [];
+
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+const BASE = '#0D1117';
+const SURFACE = '#161B22';
+const SURFACE_ELEVATED = '#1C2128';
+const BORDER = 'rgba(255,255,255,0.07)';
+const PRIMARY = '#7C6AF7';
+const ACCENT = '#34D399';
+const TEXT_PRIMARY = '#F0F6FC';
+const TEXT_SECONDARY = 'rgba(240,246,252,0.6)';
+const TEXT_MUTED = 'rgba(240,246,252,0.38)';
+const ENERGY = '#F59E0B';
+
+// ─── Data ─────────────────────────────────────────────────────────────────────
+
+const ACTIVITY_TYPES = [
+  { emoji: '🏃', label: 'Run', color: ACCENT },
+  { emoji: '🧘', label: 'Yoga', color: PRIMARY },
+  { emoji: '🏋️', label: 'Lift', color: '#F87171' },
+  { emoji: '🥾', label: 'Hike', color: ENERGY },
+  { emoji: '🏖️', label: 'Beach', color: '#60A5FA' },
+  { emoji: '🚴', label: 'Cycle', color: '#34D399' },
+  { emoji: '🏄', label: 'Surf', color: '#38BDF8' },
+  { emoji: '🧗', label: 'Climb', color: '#FB923C' },
+  { emoji: '🥊', label: 'Box', color: '#F87171' },
+  { emoji: '🏊', label: 'Swim', color: '#60A5FA' },
+];
+
+const WHEN_OPTIONS = ['Today', 'Tomorrow', 'This Weekend', 'Next Week'];
+const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening'];
+const SKILL_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'];
+
+// ─── Activity Tile ────────────────────────────────────────────────────────────
+function ActivityTile({
+  activity,
+  selected,
+  onPress,
+}: {
+  activity: typeof ACTIVITY_TYPES[0];
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.activityTileWrap}>
+      <View
+        style={[
+          styles.activityTile,
+          selected
+            ? { borderColor: activity.color, backgroundColor: activity.color + '20' }
+            : { borderColor: BORDER, backgroundColor: SURFACE },
+        ]}
+      >
+        <Text style={styles.activityEmoji}>{activity.emoji}</Text>
+      </View>
+      <Text style={[styles.activityLabel, { color: selected ? activity.color : TEXT_MUTED }]}>
+        {activity.label}
+      </Text>
+    </Pressable>
+  );
+}
+
+// ─── Pill ─────────────────────────────────────────────────────────────────────
+function Pill({
+  label,
+  active,
+  onPress,
+  accentColor = PRIMARY,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  accentColor?: string;
+}) {
+  if (active) {
+    return (
+      <Pressable onPress={onPress} style={styles.pillWrap}>
+        <LinearGradient
+          colors={[accentColor + 'CC', accentColor + '88']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.pillActive}
+        >
+          <Text style={styles.pillTextActive}>{label}</Text>
+        </LinearGradient>
+      </Pressable>
+    );
+  }
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.pillInactive]}
+    >
+      <Text style={styles.pillTextInactive}>{label}</Text>
+    </Pressable>
+  );
+}
+
+// ─── Section Label ────────────────────────────────────────────────────────────
+function SectionLabel({ label }: { label: string }) {
+  return <Text style={styles.sectionLabel}>{label}</Text>;
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+export default function CreateScreen({ navigation }: any) {
+  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+  const [selectedWhen, setSelectedWhen] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [where, setWhere] = useState('');
+  const [skillLevel, setSkillLevel] = useState<string | null>(null);
+  const [spots, setSpots] = useState(2);
+  const [note, setNote] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  const activityObj = ACTIVITY_TYPES.find((a) => a.label === selectedActivity);
+  const selectedColor = activityObj?.color ?? PRIMARY;
+
+  const handlePost = () => {
+    if (!selectedActivity) {
+      Alert.alert('Pick an activity', 'Choose what you want to do first.');
+      return;
+    }
+    if (!selectedWhen) {
+      Alert.alert('When?', 'Choose a time for your activity.');
+      return;
+    }
+
+    setPosting(true);
+    setTimeout(() => {
+      mockCommunityPosts.unshift({
+        id: String(Date.now()),
+        user: 'You',
+        activity: `${activityObj?.emoji ?? '🏃'} ${selectedActivity}`,
+        text: note || `${selectedActivity} ${selectedWhen?.toLowerCase()} ${selectedTime ? `(${selectedTime.toLowerCase()})` : ''}${where ? ` at ${where}` : ''}`,
+        spots,
+        initial: 'Y',
+        color: PRIMARY,
+      });
+
+      setPosting(false);
+
+      Alert.alert(
+        '🎉 Activity Posted!',
+        'Your invite is live. People can see and join it now.',
+        [
+          {
+            text: 'View in Explore',
+            onPress: () => {
+              if (navigation) navigation.navigate('Explore');
+            },
+          },
+        ],
+      );
+    }, 800);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.kicker}>Host mode</Text>
-        <Text style={styles.title}>Create</Text>
-        <Text style={styles.subtitle}>Styled placeholder flow ready for backend wiring.</Text>
+      {/* Ambient glow that matches selected activity */}
+      <View style={[styles.ambientGlow, { backgroundColor: selectedColor }]} pointerEvents="none" />
 
-        <AppCard>
-          <AppInput label="Activity" placeholder="Hiking, lifting, tennis" value={activity} onChangeText={setActivity} />
-          <AppInput label="Location" placeholder="Gym, park, neighborhood" value={location} onChangeText={setLocation} />
-          <AppInput label="Time" placeholder="Tomorrow at 6 PM" value={time} onChangeText={setTime} />
-          <AppInput label="Description" placeholder="Pace, level, and details" value={description} onChangeText={setDescription} multiline />
-          <AppButton label="Posting soon" onPress={() => {}} disabled />
-          <View style={styles.noteWrap}>
-            <Text style={styles.noteTitle}>Coming soon</Text>
-            <Text style={styles.note}>The visual treatment is final-ready; publishing behavior is intentionally unchanged.</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* ── Hero Header ── */}
+        <View style={styles.header}>
+          <Text style={styles.eyebrow}>CREATE</Text>
+          <Text style={styles.title}>Start{'\n'}Something.</Text>
+          <Text style={styles.subtitle}>Invite people to move with you</Text>
+        </View>
+
+        {/* ── Activity Selector — full-bleed feel ── */}
+        <View style={styles.activitySection}>
+          {/* Selected preview */}
+          {activityObj ? (
+            <View style={styles.selectedPreview}>
+              <LinearGradient
+                colors={[selectedColor + '40', selectedColor + '10', 'transparent']}
+                style={styles.selectedPreviewGradient}
+              >
+                <Text style={styles.selectedPreviewEmoji}>{activityObj.emoji}</Text>
+                <Text style={[styles.selectedPreviewLabel, { color: selectedColor }]}>
+                  {activityObj.label}
+                </Text>
+              </LinearGradient>
+            </View>
+          ) : (
+            <View style={styles.selectedPreviewEmpty}>
+              <Text style={styles.selectedPreviewEmptyText}>Pick an activity ↓</Text>
+            </View>
+          )}
+
+          {/* Activity grid — no box borders, flat large tiles */}
+          <View style={styles.activityGrid}>
+            {ACTIVITY_TYPES.map((a) => (
+              <ActivityTile
+                key={a.label}
+                activity={a}
+                selected={selectedActivity === a.label}
+                onPress={() => setSelectedActivity(a.label)}
+              />
+            ))}
           </View>
-        </AppCard>
+        </View>
+
+        {/* ── When? ── */}
+        <View style={styles.formSection}>
+          <SectionLabel label="When?" />
+          <View style={styles.pillRow}>
+            {WHEN_OPTIONS.map((w) => (
+              <Pill
+                key={w}
+                label={w}
+                active={selectedWhen === w}
+                onPress={() => setSelectedWhen(w)}
+                accentColor={PRIMARY}
+              />
+            ))}
+          </View>
+          <View style={[styles.pillRow, { marginTop: spacing.sm }]}>
+            {TIME_OPTIONS.map((t) => (
+              <Pill
+                key={t}
+                label={t}
+                active={selectedTime === t}
+                onPress={() => setSelectedTime(t)}
+                accentColor={ENERGY}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* ── Where? ── */}
+        <View style={styles.formSection}>
+          <SectionLabel label="Where?" />
+          <TextInput
+            style={styles.textInput}
+            placeholder="Runyon Canyon, Venice Beach..."
+            placeholderTextColor={TEXT_MUTED}
+            value={where}
+            onChangeText={setWhere}
+          />
+        </View>
+
+        {/* ── Skill Level ── */}
+        <View style={styles.formSection}>
+          <SectionLabel label="Skill level" />
+          <View style={styles.pillRow}>
+            {SKILL_OPTIONS.map((s) => (
+              <Pill
+                key={s}
+                label={s}
+                active={skillLevel === s}
+                onPress={() => setSkillLevel(s)}
+                accentColor={ACCENT}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* ── Spots Available ── */}
+        <View style={styles.formSection}>
+          <SectionLabel label="Spots available" />
+          <View style={styles.stepperRow}>
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              onPress={() => setSpots(Math.max(1, spots - 1))}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.stepperBtnText}>−</Text>
+            </TouchableOpacity>
+            <View style={styles.stepperValueWrap}>
+              <Text style={styles.stepperValue}>{spots}</Text>
+              <Text style={styles.stepperSub}>open spots</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              onPress={() => setSpots(Math.min(10, spots + 1))}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.stepperBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ── Add a Note ── */}
+        <View style={styles.formSection}>
+          <SectionLabel label="Add a note" />
+          <TextInput
+            style={[styles.textInput, styles.textArea]}
+            placeholder="Easy pace, bring water, no experience needed..."
+            placeholderTextColor={TEXT_MUTED}
+            value={note}
+            onChangeText={setNote}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
+        </View>
+
+        {/* ── Post Button ── */}
+        <Pressable
+          onPress={handlePost}
+          disabled={posting}
+          style={styles.postBtnWrap}
+        >
+          <LinearGradient
+            colors={posting ? [ACCENT + '80', ACCENT + '40'] : [selectedColor, selectedColor + 'BB']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.postBtn}
+          >
+            <Text style={styles.postBtnText}>
+              {posting ? 'Posting...' : `🚀  Post ${selectedActivity ?? 'Activity'}`}
+            </Text>
+          </LinearGradient>
+        </Pressable>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: spacing.xl },
-  kicker: { color: colors.accentSoft, fontSize: typography.caption, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '700' },
-  title: { fontSize: typography.h1, color: colors.textPrimary, fontWeight: '800', marginTop: spacing.xs },
-  subtitle: { fontSize: typography.body, color: colors.textSecondary, marginTop: spacing.xs, marginBottom: spacing.xl },
-  noteWrap: { marginTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md },
-  noteTitle: { color: colors.textPrimary, fontWeight: '700', marginBottom: spacing.xs },
-  note: { fontSize: typography.bodySmall, color: colors.textMuted, lineHeight: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: BASE,
+  },
+  ambientGlow: {
+    position: 'absolute',
+    top: 80,
+    right: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    opacity: 0.05,
+  },
+  scrollContent: {
+    paddingBottom: 64,
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 3.5,
+    color: PRIMARY,
+    marginBottom: spacing.sm,
+  },
+  title: {
+    fontSize: 44,
+    fontWeight: '900',
+    letterSpacing: -1.5,
+    color: TEXT_PRIMARY,
+    lineHeight: 48,
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    fontSize: typography.bodySmall,
+    fontWeight: '500',
+    color: TEXT_MUTED,
+  },
+
+  // Activity section
+  activitySection: {
+    marginBottom: spacing.lg,
+  },
+  selectedPreview: {
+    marginHorizontal: spacing.xxl,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  selectedPreviewGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.xl,
+  },
+  selectedPreviewEmoji: {
+    fontSize: 52,
+  },
+  selectedPreviewLabel: {
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+  },
+  selectedPreviewEmpty: {
+    marginHorizontal: spacing.xxl,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderStyle: 'dashed',
+    padding: spacing.xl,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  selectedPreviewEmptyText: {
+    color: TEXT_MUTED,
+    fontSize: typography.bodySmall,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  activityGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: spacing.xxl,
+    gap: 12,
+  },
+  activityTileWrap: {
+    alignItems: 'center',
+    gap: 5,
+  },
+  activityTile: {
+    width: 62,
+    height: 62,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activityEmoji: {
+    fontSize: 26,
+  },
+  activityLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
+
+  // Form sections
+  formSection: {
+    paddingHorizontal: spacing.xxl,
+    marginBottom: spacing.xl,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    color: TEXT_MUTED,
+    marginBottom: spacing.md,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  pillWrap: {
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+  },
+  pillActive: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: radii.pill,
+  },
+  pillTextActive: {
+    fontSize: typography.bodySmall,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  pillInactive: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  pillTextInactive: {
+    fontSize: typography.bodySmall,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+  },
+
+  // Inputs
+  textInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    fontSize: typography.body,
+    backgroundColor: SURFACE_ELEVATED,
+    borderColor: BORDER,
+    color: TEXT_PRIMARY,
+  },
+  textArea: {
+    minHeight: 80,
+    paddingTop: spacing.md,
+  },
+
+  // Stepper
+  stepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xl,
+  },
+  stepperBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    backgroundColor: SURFACE_ELEVATED,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepperBtnText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    lineHeight: 26,
+  },
+  stepperValueWrap: {
+    alignItems: 'center',
+  },
+  stepperValue: {
+    fontSize: 40,
+    fontWeight: '900',
+    color: TEXT_PRIMARY,
+    letterSpacing: -1,
+    lineHeight: 44,
+  },
+  stepperSub: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+
+  // Post button
+  postBtnWrap: {
+    marginHorizontal: spacing.xxl,
+    marginTop: spacing.md,
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+  },
+  postBtn: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    borderRadius: radii.pill,
+  },
+  postBtnText: {
+    fontSize: typography.body,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
 });

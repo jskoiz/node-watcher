@@ -1,132 +1,327 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import AppButton from "../components/ui/AppButton";
-import AppCard from "../components/ui/AppCard";
-import AppState from "../components/ui/AppState";
-import client from "../api/client";
-import { normalizeApiError } from "../api/errors";
-import { colors, spacing, typography } from "../theme/tokens";
+import React, { useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import AppBackButton from '../components/ui/AppBackButton';
+import { useTheme } from '../theme/useTheme';
+import { radii, spacing, typography } from '../theme/tokens';
 
-type NotificationItem = {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type NotifType = 'match' | 'message' | 'invite' | 'confirmed';
+
+interface MockNotif {
   id: string;
-  type: string;
+  type: NotifType;
   title: string;
   body: string;
-  createdAt: string;
-  readAt: string | null;
+  group: 'Today' | 'Earlier';
+  read: boolean;
+}
+
+// ─── Mock Data ────────────────────────────────────────────────────────────────
+
+const INITIAL_NOTIFS: MockNotif[] = [
+  {
+    id: '1',
+    type: 'match',
+    title: 'New Match!',
+    body: 'You and Sofia both love trail running. Say hi 👋',
+    group: 'Today',
+    read: false,
+  },
+  {
+    id: '2',
+    type: 'invite',
+    title: 'Activity Invite',
+    body: 'Jake invited you to his lap swim session Saturday.',
+    group: 'Today',
+    read: false,
+  },
+  {
+    id: '3',
+    type: 'message',
+    title: 'New Message from Emma',
+    body: '"Hey! Still up for yoga tomorrow? 🧘"',
+    group: 'Today',
+    read: true,
+  },
+  {
+    id: '4',
+    type: 'confirmed',
+    title: 'Activity Confirmed',
+    body: 'Your hike at Griffith Park this Sunday is confirmed. 6 people joining!',
+    group: 'Earlier',
+    read: true,
+  },
+  {
+    id: '5',
+    type: 'match',
+    title: 'New Match!',
+    body: 'You matched with Lena — she cycles 5x/week. 🚴',
+    group: 'Earlier',
+    read: true,
+  },
+  {
+    id: '6',
+    type: 'message',
+    title: 'New Message from Mia',
+    body: '"Are you free this weekend for the beach walk?"',
+    group: 'Earlier',
+    read: true,
+  },
+];
+
+// ─── Icon map ─────────────────────────────────────────────────────────────────
+
+const NOTIF_ICONS: Record<NotifType, string> = {
+  match: '💜',
+  message: '💬',
+  invite: '🤝',
+  confirmed: '✅',
 };
 
-export default function NotificationsScreen() {
-  const [items, setItems] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const NOTIF_COLORS: Record<NotifType, string> = {
+  match: '#7C6AF7',
+  message: '#34D399',
+  invite: '#F59E0B',
+  confirmed: '#34D399',
+};
 
-  const load = useCallback(async (silent = false) => {
-    if (silent) setRefreshing(true);
-    else setLoading(true);
+// ─── NotifRow ─────────────────────────────────────────────────────────────────
 
-    setError(null);
-    try {
-      const response = await client.get<NotificationItem[]>("/notifications");
-      setItems(response.data);
-    } catch (e) {
-      setError(normalizeApiError(e).message);
-    } finally {
-      if (silent) setRefreshing(false);
-      else setLoading(false);
-    }
-  }, []);
-
-  const markAllRead = async () => {
-    await client.post("/notifications/mark-all-read");
-    await load(true);
-  };
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  if (loading) return <AppState title="Loading notifications" loading />;
-  if (error)
-    return (
-      <AppState
-        title="Couldn’t load notifications"
-        description={error}
-        actionLabel="Retry"
-        onAction={() => load()}
-      />
-    );
+function NotifRow({
+  notif,
+  theme,
+  onDismiss,
+}: {
+  notif: MockNotif;
+  theme: any;
+  onDismiss: (id: string) => void;
+}) {
+  const color = NOTIF_COLORS[notif.type];
+  const icon = NOTIF_ICONS[notif.type];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Notifications</Text>
-        <AppButton
-          label="Mark all read"
-          variant="ghost"
-          onPress={markAllRead}
-        />
+    <View
+      style={[
+        styles.notifRow,
+        {
+          backgroundColor: notif.read ? theme.surfaceElevated : theme.surface,
+          borderColor: notif.read ? theme.border : color + '44',
+          borderLeftColor: color,
+        },
+      ]}
+    >
+      {/* Icon */}
+      <View style={[styles.notifIconWrap, { backgroundColor: color + '20' }]}>
+        <Text style={styles.notifIcon}>{icon}</Text>
       </View>
 
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => load(true)}
-            tintColor={colors.primary}
-          />
-        }
-        ListEmptyComponent={
-          <AppState title="All caught up" description="No notifications yet." />
-        }
-        renderItem={({ item }) => (
-          <AppCard
-            style={[styles.card, !item.readAt ? styles.unreadCard : undefined]}
-          >
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardBody}>{item.body}</Text>
-            <Text style={styles.meta}>
-              {new Date(item.createdAt).toLocaleString()}
-            </Text>
-          </AppCard>
+      {/* Content */}
+      <View style={styles.notifContent}>
+        <Text style={[styles.notifTitle, { color: theme.textPrimary }]}>{notif.title}</Text>
+        <Text style={[styles.notifBody, { color: theme.textSecondary }]}>{notif.body}</Text>
+      </View>
+
+      {/* Dismiss */}
+      <TouchableOpacity
+        style={styles.dismissBtn}
+        onPress={() => onDismiss(notif.id)}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        activeOpacity={0.6}
+      >
+        <Text style={[styles.dismissText, { color: theme.textMuted }]}>✕</Text>
+      </TouchableOpacity>
+
+      {/* Unread dot */}
+      {!notif.read && (
+        <View style={[styles.unreadDot, { backgroundColor: color }]} />
+      )}
+    </View>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
+export default function NotificationsScreen() {
+  const theme = useTheme();
+  const navigation = useNavigation<any>();
+  const [notifs, setNotifs] = useState<MockNotif[]>(INITIAL_NOTIFS);
+
+  const dismiss = (id: string) => {
+    setNotifs((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const clearAll = () => setNotifs([]);
+
+  const todayNotifs = notifs.filter((n) => n.group === 'Today');
+  const earlierNotifs = notifs.filter((n) => n.group === 'Earlier');
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <AppBackButton onPress={() => navigation.goBack()} />
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Notifications</Text>
+        {notifs.length > 0 && (
+          <TouchableOpacity onPress={clearAll} activeOpacity={0.7}>
+            <Text style={[styles.clearAll, { color: theme.textMuted }]}>Clear all</Text>
+          </TouchableOpacity>
         )}
-      />
+      </View>
+
+      {notifs.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>🔔</Text>
+          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>All caught up!</Text>
+          <Text style={[styles.emptyBody, { color: theme.textSecondary }]}>
+            Notifications will appear here when you get matches, messages, and activity invites.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {todayNotifs.length > 0 && (
+            <View style={styles.group}>
+              <Text style={[styles.groupLabel, { color: theme.textMuted }]}>Today</Text>
+              {todayNotifs.map((n) => (
+                <NotifRow key={n.id} notif={n} theme={theme} onDismiss={dismiss} />
+              ))}
+            </View>
+          )}
+          {earlierNotifs.length > 0 && (
+            <View style={styles.group}>
+              <Text style={[styles.groupLabel, { color: theme.textMuted }]}>Earlier</Text>
+              {earlierNotifs.map((n) => (
+                <NotifRow key={n.id} notif={n} theme={theme} onDismiss={dismiss} />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
+
   header: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
   title: {
-    color: colors.textPrimary,
     fontSize: typography.h2,
-    fontWeight: "800",
+    fontWeight: '800',
+    flex: 1,
+    letterSpacing: -0.3,
   },
-  listContent: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxxl },
-  card: { marginBottom: spacing.md },
-  unreadCard: { borderColor: colors.primary, borderWidth: 1.2 },
-  cardTitle: {
-    color: colors.textPrimary,
-    fontSize: typography.body,
-    fontWeight: "700",
-    marginBottom: spacing.xs,
+  clearAll: {
+    fontSize: typography.bodySmall,
+    fontWeight: '600',
   },
-  cardBody: {
-    color: colors.textSecondary,
-    fontSize: typography.body,
+
+  scrollContent: {
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: 64,
+  },
+
+  group: {
+    marginBottom: spacing.lg,
+  },
+  groupLabel: {
+    fontSize: typography.caption,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     marginBottom: spacing.sm,
   },
-  meta: { color: colors.textMuted, fontSize: typography.caption },
+
+  // Notification row
+  notifRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+    position: 'relative',
+  },
+  notifIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifIcon: {
+    fontSize: 18,
+  },
+  notifContent: {
+    flex: 1,
+  },
+  notifTitle: {
+    fontSize: typography.bodySmall,
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  notifBody: {
+    fontSize: typography.caption,
+    lineHeight: 18,
+  },
+  dismissBtn: {
+    padding: 4,
+  },
+  dismissText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+
+  // Empty state
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xxxl || 40,
+  },
+  emptyIcon: {
+    fontSize: 52,
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    fontSize: typography.h3,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  emptyBody: {
+    fontSize: typography.body,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
 });
