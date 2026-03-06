@@ -289,6 +289,7 @@ h3 {
   width: min(100%, 480px);
   margin: 0 auto;
   padding: 18px;
+  isolation: isolate;
   border: 1px solid var(--line);
   border-radius: 40px;
   background: rgba(232, 222, 207, 0.82);
@@ -297,6 +298,7 @@ h3 {
 
 .phone-screen {
   position: relative;
+  z-index: 1;
   min-height: 620px;
   overflow: hidden;
   border-radius: 30px;
@@ -389,6 +391,7 @@ h3 {
   justify-content: space-between;
   gap: 18px;
   margin-top: 22px;
+  max-width: calc(100% - 112px);
   padding: 20px;
   border-radius: 22px;
   background: rgba(20, 39, 33, 0.66);
@@ -413,6 +416,7 @@ h3 {
   position: absolute;
   display: grid;
   gap: 4px;
+  z-index: 3;
   border-radius: 22px;
   background: rgba(245, 239, 230, 0.92);
   color: var(--ink);
@@ -423,15 +427,15 @@ h3 {
 }
 
 .status-card-top {
-  top: 50px;
-  left: -22px;
+  top: 22px;
+  left: 22px;
   padding: 15px 17px;
   box-shadow: 0 14px 24px rgba(36, 44, 40, 0.08);
 }
 
 .status-card-bottom {
-  right: -24px;
-  bottom: 44px;
+  right: -18px;
+  bottom: 30px;
   min-width: 192px;
   padding: 18px 20px;
   background: var(--forest);
@@ -770,6 +774,7 @@ h3 {
 
   .action-card {
     padding: 18px;
+    max-width: 100%;
     flex-direction: column;
     align-items: flex-start;
   }
@@ -785,7 +790,7 @@ h3 {
   .status-card-top {
     top: 24px;
     left: 12px;
-    right: auto;
+    right: 12px;
     max-width: calc(100% - 24px);
   }
 
