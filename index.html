@@ -52,21 +52,6 @@
               <a class="button button-primary" href="mailto:hello@brdg.social?subject=BRDG%20invite">Get early access</a>
               <a class="button button-secondary" href="#flow">See how it works</a>
             </div>
-
-            <div class="hero-signals">
-              <div>
-                <strong>Intent-aware</strong>
-                <span>dating, workout partner, or both</span>
-              </div>
-              <div>
-                <strong>Activity-led</strong>
-                <span>match on pace, not just profile photos</span>
-              </div>
-              <div>
-                <strong>Plan-ready</strong>
-                <span>events, invites, and easy next steps</span>
-              </div>
-            </div>
           </div>
 
           <div class="hero-visual" id="product">
@@ -123,17 +108,35 @@
                   <article class="mini-panel">
                     <p>Filters</p>
                     <strong id="panel-filters">Hiking, yoga, surf</strong>
+                    <span class="mini-detail" id="panel-filters-detail">Morning pace • coffee after</span>
                   </article>
                   <article class="mini-panel">
                     <p>Social comfort</p>
                     <strong id="panel-social">Small group first</strong>
+                    <span class="mini-detail" id="panel-social-detail">Low-pressure intro, easy first plan</span>
                   </article>
                   <article class="mini-panel mini-panel-accent">
                     <p>Invite</p>
                     <strong id="panel-invite">Post a beach run</strong>
+                    <span class="mini-detail" id="panel-invite-detail">2 spots open nearby tonight</span>
                   </article>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div class="hero-signals">
+            <div>
+              <strong>Intent-aware</strong>
+              <span>dating, workout partner, or both</span>
+            </div>
+            <div>
+              <strong>Activity-led</strong>
+              <span>match on pace, not just profile photos</span>
+            </div>
+            <div>
+              <strong>Plan-ready</strong>
+              <span>events, invites, and easy next steps</span>
             </div>
           </div>
         </section>
@@ -228,8 +231,11 @@
           planTitle: "Sunrise yoga at Ala Moana",
           planTime: "12 min away",
           filters: "Hiking, yoga, surf",
+          filtersDetail: "Morning pace • coffee after",
           social: "Small group first",
-          invite: "Post a beach run"
+          socialDetail: "Low-pressure intro, easy first plan",
+          invite: "Post a beach run",
+          inviteDetail: "2 spots open nearby tonight"
         },
         {
           name: "Lena, 29",
@@ -240,8 +246,11 @@
           planTitle: "Koko Head sunrise hike",
           planTime: "18 min away",
           filters: "Running, hiking, coffee",
+          filtersDetail: "Sunrise energy • trail-first",
           social: "1-on-1 first",
-          invite: "Invite to a hike"
+          socialDetail: "Prefers direct plans over group warmup",
+          invite: "Invite to a hike",
+          inviteDetail: "Best for a first meet on Sunday"
         },
         {
           name: "Jordan, 26",
@@ -252,8 +261,11 @@
           planTitle: "Sand circuit at Magic Island",
           planTime: "9 min away",
           filters: "Lifting, HIIT, beach",
+          filtersDetail: "Evening sessions • high intensity",
           social: "Small group first",
-          invite: "Start a circuit"
+          socialDetail: "Likes a wing-person vibe before 1-on-1",
+          invite: "Start a circuit",
+          inviteDetail: "3 people can join this workout"
         },
         {
           name: "Noah, 30",
@@ -264,8 +276,11 @@
           planTitle: "Lap swim then coffee",
           planTime: "14 min away",
           filters: "Swim, mobility, coffee",
+          filtersDetail: "Flexible schedule • easy reset",
           social: "Group first",
-          invite: "Post a swim meetup"
+          socialDetail: "Starts casual, lets chemistry build",
+          invite: "Post a swim meetup",
+          inviteDetail: "Recovery-friendly meetup nearby"
         }
       ];
 
@@ -281,8 +296,11 @@
       const planTitleEl = document.getElementById("plan-title");
       const planTimeEl = document.getElementById("plan-time");
       const filtersEl = document.getElementById("panel-filters");
+      const filtersDetailEl = document.getElementById("panel-filters-detail");
       const socialEl = document.getElementById("panel-social");
+      const socialDetailEl = document.getElementById("panel-social-detail");
       const inviteEl = document.getElementById("panel-invite");
+      const inviteDetailEl = document.getElementById("panel-invite-detail");
       const dots = Array.from(document.querySelectorAll("#profile-dots span"));
 
       let index = 0;
@@ -296,8 +314,11 @@
         planTitleEl.textContent = profile.planTitle;
         planTimeEl.textContent = profile.planTime;
         filtersEl.textContent = profile.filters;
+        filtersDetailEl.textContent = profile.filtersDetail;
         socialEl.textContent = profile.social;
+        socialDetailEl.textContent = profile.socialDetail;
         inviteEl.textContent = profile.invite;
+        inviteDetailEl.textContent = profile.inviteDetail;
 
         chipsEl.innerHTML = "";
         profile.chips.forEach((chip) => {

@@ -224,6 +224,7 @@ p {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 34px;
+  grid-column: 1;
 }
 
 .hero-signals div,
@@ -508,10 +509,19 @@ p {
   padding: 16px;
   border-radius: 18px;
   min-height: 146px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
 }
 
 .mini-panel strong {
   min-height: 3.3em;
+}
+
+.mini-detail {
+  color: #7f8faa;
+  font-size: 0.92rem;
+  line-height: 1.55;
 }
 
 .mini-panel-accent {
@@ -632,10 +642,24 @@ p {
   .hero {
     gap: 30px;
     padding-top: 8px;
+    grid-template-columns: 1fr;
   }
 
   .hero h1 {
     font-size: clamp(3.1rem, 17vw, 4.6rem);
+  }
+
+  .hero-copy {
+    order: 1;
+  }
+
+  .hero-visual {
+    order: 2;
+  }
+
+  .hero-signals {
+    order: 3;
+    margin-top: 4px;
   }
 
   .device-frame {
@@ -651,6 +675,29 @@ p {
     position: static;
     width: auto;
     margin-top: 14px;
+  }
+
+  .profile-dots {
+    margin-top: 14px;
+  }
+
+  .panel-grid {
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .mini-panel {
+    min-height: 0;
+    padding: 18px 16px;
+    gap: 8px;
+  }
+
+  .mini-panel strong {
+    min-height: 0;
+  }
+
+  .mini-detail {
+    font-size: 0.88rem;
   }
 
   .button {
