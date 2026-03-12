@@ -329,14 +329,13 @@ p {
   min-height: 460px;
   border-radius: 30px;
   background: #1c2330;
-  transition: transform 320ms ease, opacity 320ms ease, filter 320ms ease;
+  isolation: isolate;
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1), filter 700ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.profile-card.is-swapping,
-.stack-card.is-swapping {
-  opacity: 0.82;
-  transform: translateY(10px) scale(0.985);
-  filter: saturate(0.92);
+.profile-card.is-transitioning {
+  transform: translateY(3px) scale(0.992);
+  filter: saturate(0.97);
 }
 
 .profile-photo {
@@ -346,7 +345,20 @@ p {
   height: 100%;
   object-fit: cover;
   object-position: center;
-  transform: scale(1.03);
+  opacity: 0;
+  transform: scale(1.035);
+  transition:
+    opacity 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 1400ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 760ms cubic-bezier(0.22, 1, 0.36, 1);
+  filter: saturate(0.92) brightness(0.92);
+  will-change: opacity, transform, filter;
+}
+
+.profile-photo.is-active {
+  opacity: 1;
+  transform: scale(1.01);
+  filter: saturate(1) brightness(1);
 }
 
 .profile-card::after {
@@ -395,6 +407,15 @@ p {
   bottom: 0;
   z-index: 2;
   padding: 22px;
+  transition:
+    opacity 360ms ease,
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.profile-overlay.is-transitioning {
+  opacity: 0;
+  transform: translateY(12px);
 }
 
 .profile-overlay h2 {
@@ -432,8 +453,17 @@ p {
   background: rgba(12, 18, 26, 0.92);
   border: 1px solid rgba(245, 158, 11, 0.24);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
-  transition: transform 320ms ease, opacity 320ms ease, filter 320ms ease;
+  transition:
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 360ms ease,
+    filter 520ms cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 3;
+}
+
+.stack-card.is-transitioning {
+  opacity: 0;
+  transform: translate(8px, 10px);
+  filter: blur(2px);
 }
 
 .stack-card-top {

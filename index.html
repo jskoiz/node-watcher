@@ -79,14 +79,21 @@
 
                 <div class="profile-card" id="profile-card">
                   <img
-                    id="profile-photo"
-                    class="profile-photo"
+                    id="profile-photo-primary"
+                    class="profile-photo is-active"
                     src="./profiles/maya.jpg"
                     alt="BRDG profile preview"
                   />
+                  <img
+                    id="profile-photo-secondary"
+                    class="profile-photo"
+                    src="./profiles/lena.jpg"
+                    alt=""
+                    aria-hidden="true"
+                  />
                   <div class="photo-sheen" aria-hidden="true"></div>
                   <div class="photo-badge">Nearby</div>
-                  <div class="profile-overlay">
+                  <div class="profile-overlay" id="profile-overlay">
                     <div>
                       <h2 id="profile-name">Maya, 27</h2>
                       <p id="profile-bio">Surfing • yoga • low-pressure coffee after class</p>
@@ -263,8 +270,10 @@
       ];
 
       const card = document.getElementById("profile-card");
+      const overlay = document.getElementById("profile-overlay");
       const planCard = document.getElementById("plan-card");
-      const photo = document.getElementById("profile-photo");
+      const primaryPhoto = document.getElementById("profile-photo-primary");
+      const secondaryPhoto = document.getElementById("profile-photo-secondary");
       const nameEl = document.getElementById("profile-name");
       const modeEl = document.getElementById("profile-mode");
       const bioEl = document.getElementById("profile-bio");
@@ -277,9 +286,10 @@
       const dots = Array.from(document.querySelectorAll("#profile-dots span"));
 
       let index = 0;
+      let showingPrimary = true;
+      let isAnimating = false;
 
-      function renderProfile(profile) {
-        photo.src = profile.photo;
+      function renderProfile(profile, updateDots = true) {
         nameEl.textContent = profile.name;
         modeEl.textContent = profile.mode;
         bioEl.textContent = profile.bio;
@@ -296,28 +306,50 @@
           chipsEl.appendChild(span);
         });
 
-        dots.forEach((dot, dotIndex) => {
-          dot.classList.toggle("is-active", dotIndex === index);
-        });
+        if (updateDots) {
+          dots.forEach((dot, dotIndex) => {
+            dot.classList.toggle("is-active", dotIndex === index);
+          });
+        }
       }
 
       function cycleProfile() {
-        card.classList.add("is-swapping");
-        planCard.classList.add("is-swapping");
+        if (isAnimating) return;
+        isAnimating = true;
+        const nextIndex = (index + 1) % profiles.length;
+        const nextProfile = profiles[nextIndex];
+        const incomingPhoto = showingPrimary ? secondaryPhoto : primaryPhoto;
+        const outgoingPhoto = showingPrimary ? primaryPhoto : secondaryPhoto;
+
+        incomingPhoto.src = nextProfile.photo;
+        incomingPhoto.alt = "BRDG profile preview";
+        outgoingPhoto.alt = "";
+
+        card.classList.add("is-transitioning");
+        overlay.classList.add("is-transitioning");
+        planCard.classList.add("is-transitioning");
 
         window.setTimeout(() => {
-          index = (index + 1) % profiles.length;
-          renderProfile(profiles[index]);
-        }, 260);
+          renderProfile(nextProfile, false);
+          outgoingPhoto.classList.remove("is-active");
+          incomingPhoto.classList.add("is-active");
+        }, 220);
 
         window.setTimeout(() => {
-          card.classList.remove("is-swapping");
-          planCard.classList.remove("is-swapping");
-        }, 520);
+          index = nextIndex;
+          showingPrimary = !showingPrimary;
+          dots.forEach((dot, dotIndex) => {
+            dot.classList.toggle("is-active", dotIndex === index);
+          });
+          overlay.classList.remove("is-transitioning");
+          planCard.classList.remove("is-transitioning");
+          card.classList.remove("is-transitioning");
+          isAnimating = false;
+        }, 900);
       }
 
       renderProfile(profiles[index]);
-      window.setInterval(cycleProfile, 3800);
+      window.setInterval(cycleProfile, 4600);
     </script>
   </body>
 </html>
