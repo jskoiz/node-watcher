@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
-  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,22 +11,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { normalizeApiError } from '../api/errors';
+import { eventsApi } from '../services/api';
 import { radii, spacing, typography } from '../theme/tokens';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-
-// ─── Mock global post store ────────────────────────────────────────────────────
-export const mockCommunityPosts: Array<{
-  id: string;
-  user: string;
-  activity: string;
-  text: string;
-  spots: number;
-  initial: string;
-  color: string;
-}> = [];
-
-// ─── Design Tokens ────────────────────────────────────────────────────────────
 const BASE = '#0D1117';
 const SURFACE = '#161B22';
 const SURFACE_ELEVATED = '#1C2128';
@@ -38,8 +25,7 @@ const TEXT_PRIMARY = '#F0F6FC';
 const TEXT_SECONDARY = 'rgba(240,246,252,0.6)';
 const TEXT_MUTED = 'rgba(240,246,252,0.38)';
 const ENERGY = '#F59E0B';
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
+const ERROR = '#F87171';
 
 const ACTIVITY_TYPES = [
   { emoji: '🏃', label: 'Run', color: ACCENT },
@@ -52,19 +38,18 @@ const ACTIVITY_TYPES = [
   { emoji: '🧗', label: 'Climb', color: '#FB923C' },
   { emoji: '🥊', label: 'Box', color: '#F87171' },
   { emoji: '🏊', label: 'Swim', color: '#60A5FA' },
-];
+] as const;
 
-const WHEN_OPTIONS = ['Today', 'Tomorrow', 'This Weekend', 'Next Week'];
-const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening'];
-const SKILL_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'];
+const WHEN_OPTIONS = ['Today', 'Tomorrow', 'This Weekend', 'Next Week'] as const;
+const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening'] as const;
+const SKILL_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'] as const;
 
-// ─── Activity Tile ────────────────────────────────────────────────────────────
 function ActivityTile({
   activity,
   selected,
   onPress,
 }: {
-  activity: typeof ACTIVITY_TYPES[0];
+  activity: (typeof ACTIVITY_TYPES)[number];
   selected: boolean;
   onPress: () => void;
 }) {
@@ -87,7 +72,6 @@ function ActivityTile({
   );
 }
 
-// ─── Pill ─────────────────────────────────────────────────────────────────────
 function Pill({
   label,
   active,
@@ -114,21 +98,72 @@ function Pill({
     );
   }
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.pillInactive]}
-    >
+    <Pressable onPress={onPress} style={[styles.pillInactive]}>
       <Text style={styles.pillTextInactive}>{label}</Text>
     </Pressable>
   );
 }
 
-// ─── Section Label ────────────────────────────────────────────────────────────
 function SectionLabel({ label }: { label: string }) {
   return <Text style={styles.sectionLabel}>{label}</Text>;
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+function buildStartDate(selectedWhen: string, selectedTime: string) {
+  const now = new Date();
+  const start = new Date(now);
+
+  if (selectedWhen === 'Tomorrow') {
+    start.setDate(start.getDate() + 1);
+  } else if (selectedWhen === 'This Weekend') {
+    const currentDay = start.getDay();
+    const daysUntilSaturday = (6 - currentDay + 7) % 7;
+    start.setDate(start.getDate() + daysUntilSaturday);
+  } else if (selectedWhen === 'Next Week') {
+    start.setDate(start.getDate() + 7);
+  }
+
+  if (selectedTime === 'Morning') {
+    start.setHours(9, 0, 0, 0);
+  } else if (selectedTime === 'Afternoon') {
+    start.setHours(14, 0, 0, 0);
+  } else {
+    start.setHours(18, 0, 0, 0);
+  }
+
+  if (start <= now) {
+    start.setDate(start.getDate() + 1);
+  }
+
+  return start;
+}
+
+function buildTitle(activity: string, where: string) {
+  return where.trim() ? `${activity} at ${where.trim()}` : `${activity} meetup`;
+}
+
+function buildDescription({
+  note,
+  skillLevel,
+  spots,
+  selectedWhen,
+  selectedTime,
+}: {
+  note: string;
+  skillLevel: string | null;
+  spots: number;
+  selectedWhen: string;
+  selectedTime: string;
+}) {
+  const parts = [
+    note.trim(),
+    skillLevel ? `Skill level: ${skillLevel}.` : null,
+    `Open spots: ${spots}.`,
+    `${selectedWhen} ${selectedTime.toLowerCase()}.`,
+  ].filter(Boolean);
+
+  return parts.join(' ');
+}
+
 export default function CreateScreen({ navigation }: any) {
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
   const [selectedWhen, setSelectedWhen] = useState<string | null>(null);
@@ -138,52 +173,92 @@ export default function CreateScreen({ navigation }: any) {
   const [spots, setSpots] = useState(2);
   const [note, setNote] = useState('');
   const [posting, setPosting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [lastCreatedTitle, setLastCreatedTitle] = useState<string | null>(null);
 
-  const activityObj = ACTIVITY_TYPES.find((a) => a.label === selectedActivity);
+  const activityObj = useMemo(
+    () => ACTIVITY_TYPES.find((a) => a.label === selectedActivity),
+    [selectedActivity],
+  );
   const selectedColor = activityObj?.color ?? PRIMARY;
 
-  const handlePost = () => {
+  const resetForm = () => {
+    setSelectedActivity(null);
+    setSelectedWhen(null);
+    setSelectedTime(null);
+    setWhere('');
+    setSkillLevel(null);
+    setSpots(2);
+    setNote('');
+  };
+
+  const handlePost = async () => {
+    if (posting) return;
+
     if (!selectedActivity) {
       Alert.alert('Pick an activity', 'Choose what you want to do first.');
       return;
     }
     if (!selectedWhen) {
-      Alert.alert('When?', 'Choose a time for your activity.');
+      Alert.alert('When?', 'Choose a day for your activity.');
+      return;
+    }
+    if (!selectedTime) {
+      Alert.alert('What time?', 'Choose a time window for your activity.');
+      return;
+    }
+    if (!where.trim()) {
+      Alert.alert('Add a location', 'Tell people where to meet.');
       return;
     }
 
     setPosting(true);
-    setTimeout(() => {
-      mockCommunityPosts.unshift({
-        id: String(Date.now()),
-        user: 'You',
-        activity: `${activityObj?.emoji ?? '🏃'} ${selectedActivity}`,
-        text: note || `${selectedActivity} ${selectedWhen?.toLowerCase()} ${selectedTime ? `(${selectedTime.toLowerCase()})` : ''}${where ? ` at ${where}` : ''}`,
-        spots,
-        initial: 'Y',
-        color: PRIMARY,
+    setSubmitError(null);
+    setLastCreatedTitle(null);
+
+    const startsAt = buildStartDate(selectedWhen, selectedTime);
+    const endsAt = new Date(startsAt.getTime() + 2 * 60 * 60 * 1000);
+    const title = buildTitle(selectedActivity, where);
+
+    try {
+      const response = await eventsApi.create({
+        title,
+        location: where.trim(),
+        category: selectedActivity,
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+        description: buildDescription({
+          note,
+          skillLevel,
+          spots,
+          selectedWhen,
+          selectedTime,
+        }),
       });
 
-      setPosting(false);
+      const createdEvent = response.data;
+      setLastCreatedTitle(createdEvent.title);
+      resetForm();
 
-      Alert.alert(
-        '🎉 Activity Posted!',
-        'Your invite is live. People can see and join it now.',
-        [
-          {
-            text: 'View in Explore',
-            onPress: () => {
-              if (navigation) navigation.navigate('Explore');
-            },
-          },
-        ],
-      );
-    }, 800);
+      Alert.alert('🎉 Activity posted!', 'Your invite is live now.', [
+        {
+          text: 'View event',
+          onPress: () => navigation?.navigate('EventDetail', { eventId: createdEvent.id }),
+        },
+        {
+          text: 'Done',
+          style: 'default',
+        },
+      ]);
+    } catch (error) {
+      setSubmitError(normalizeApiError(error).message);
+    } finally {
+      setPosting(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Ambient glow that matches selected activity */}
       <View style={[styles.ambientGlow, { backgroundColor: selectedColor }]} pointerEvents="none" />
 
       <ScrollView
@@ -191,16 +266,13 @@ export default function CreateScreen({ navigation }: any) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Hero Header ── */}
         <View style={styles.header}>
           <Text style={styles.eyebrow}>CREATE</Text>
-          <Text style={styles.title}>Start{'\n'}Something.</Text>
+          <Text style={styles.title}>{`Start\nSomething.`}</Text>
           <Text style={styles.subtitle}>Invite people to move with you</Text>
         </View>
 
-        {/* ── Activity Selector — full-bleed feel ── */}
         <View style={styles.activitySection}>
-          {/* Selected preview */}
           {activityObj ? (
             <View style={styles.selectedPreview}>
               <LinearGradient
@@ -219,7 +291,6 @@ export default function CreateScreen({ navigation }: any) {
             </View>
           )}
 
-          {/* Activity grid — no box borders, flat large tiles */}
           <View style={styles.activityGrid}>
             {ACTIVITY_TYPES.map((a) => (
               <ActivityTile
@@ -232,7 +303,6 @@ export default function CreateScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* ── When? ── */}
         <View style={styles.formSection}>
           <SectionLabel label="When?" />
           <View style={styles.pillRow}>
@@ -259,7 +329,6 @@ export default function CreateScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* ── Where? ── */}
         <View style={styles.formSection}>
           <SectionLabel label="Where?" />
           <TextInput
@@ -271,7 +340,6 @@ export default function CreateScreen({ navigation }: any) {
           />
         </View>
 
-        {/* ── Skill Level ── */}
         <View style={styles.formSection}>
           <SectionLabel label="Skill level" />
           <View style={styles.pillRow}>
@@ -287,7 +355,6 @@ export default function CreateScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* ── Spots Available ── */}
         <View style={styles.formSection}>
           <SectionLabel label="Spots available" />
           <View style={styles.stepperRow}>
@@ -295,6 +362,7 @@ export default function CreateScreen({ navigation }: any) {
               style={styles.stepperBtn}
               onPress={() => setSpots(Math.max(1, spots - 1))}
               activeOpacity={0.7}
+              disabled={posting}
             >
               <Text style={styles.stepperBtnText}>−</Text>
             </TouchableOpacity>
@@ -306,13 +374,13 @@ export default function CreateScreen({ navigation }: any) {
               style={styles.stepperBtn}
               onPress={() => setSpots(Math.min(10, spots + 1))}
               activeOpacity={0.7}
+              disabled={posting}
             >
               <Text style={styles.stepperBtnText}>+</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* ── Add a Note ── */}
         <View style={styles.formSection}>
           <SectionLabel label="Add a note" />
           <TextInput
@@ -327,30 +395,34 @@ export default function CreateScreen({ navigation }: any) {
           />
         </View>
 
-        {/* ── Post Button ── */}
-        <Pressable
-          onPress={handlePost}
-          disabled={posting}
-          style={styles.postBtnWrap}
-        >
+        {submitError ? (
+          <View style={styles.feedbackWrap}>
+            <Text style={styles.feedbackError}>⚠️ {submitError}</Text>
+          </View>
+        ) : null}
+
+        {lastCreatedTitle ? (
+          <View style={styles.feedbackWrap}>
+            <Text style={styles.feedbackSuccess}>✅ Posted: {lastCreatedTitle}</Text>
+          </View>
+        ) : null}
+
+        <Pressable onPress={handlePost} disabled={posting} style={styles.postBtnWrap}>
           <LinearGradient
             colors={posting ? [ACCENT + '80', ACCENT + '40'] : [selectedColor, selectedColor + 'BB']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.postBtn}
+            style={[styles.postBtn, posting && styles.postBtnDisabled]}
           >
             <Text style={styles.postBtnText}>
               {posting ? 'Posting...' : `🚀  Post ${selectedActivity ?? 'Activity'}`}
             </Text>
           </LinearGradient>
         </Pressable>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -369,8 +441,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 64,
   },
-
-  // Header
   header: {
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.lg,
@@ -396,8 +466,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: TEXT_MUTED,
   },
-
-  // Activity section
   activitySection: {
     marginBottom: spacing.lg,
   },
@@ -466,8 +534,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     textAlign: 'center',
   },
-
-  // Form sections
   formSection: {
     paddingHorizontal: spacing.xxl,
     marginBottom: spacing.xl,
@@ -513,8 +579,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: TEXT_MUTED,
   },
-
-  // Inputs
   textInput: {
     borderWidth: 1,
     borderRadius: 12,
@@ -529,8 +593,6 @@ const styles = StyleSheet.create({
     minHeight: 80,
     paddingTop: spacing.md,
   },
-
-  // Stepper
   stepperRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -569,8 +631,22 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-
-  // Post button
+  feedbackWrap: {
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.md,
+  },
+  feedbackError: {
+    color: ERROR,
+    fontSize: typography.bodySmall,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  feedbackSuccess: {
+    color: ACCENT,
+    fontSize: typography.bodySmall,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
   postBtnWrap: {
     marginHorizontal: spacing.xxl,
     marginTop: spacing.md,
@@ -581,6 +657,9 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     alignItems: 'center',
     borderRadius: radii.pill,
+  },
+  postBtnDisabled: {
+    opacity: 0.8,
   },
   postBtnText: {
     fontSize: typography.body,

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -9,6 +10,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { EventsService } from './events.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
+import type { CreateEventInput } from './create-event.types';
 
 @Controller('events')
 export class EventsController {
@@ -28,6 +30,15 @@ export class EventsController {
   @Get(':id')
   detail(@Param('id') id: string) {
     return this.eventsService.detail(id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post()
+  create(
+    @Body() payload: CreateEventInput,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.eventsService.create(payload, req.user.id);
   }
 
   @UseGuards(AuthGuard('jwt'))

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Image,
   Pressable,
@@ -10,50 +11,56 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { useAuthStore } from '../store/authStore';
-import client from '../api/client';
-import { normalizeApiError } from '../api/errors';
-import type { User } from '../api/types';
-import AppState from '../components/ui/AppState';
-import { radii, spacing, typography } from '../theme/tokens';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import { useAuthStore } from "../store/authStore";
+import client from "../api/client";
+import { normalizeApiError } from "../api/errors";
+import type { User } from "../api/types";
+import AppState from "../components/ui/AppState";
+import { radii, spacing, typography } from "../theme/tokens";
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_WIDTH = Dimensions.get("window").width;
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
-const BASE = '#0D1117';
-const SURFACE = '#161B22';
-const SURFACE_ELEVATED = '#1C2128';
-const BORDER = 'rgba(255,255,255,0.07)';
-const PRIMARY = '#7C6AF7';
-const ACCENT = '#34D399';
-const ENERGY = '#F59E0B';
-const DANGER = '#F87171';
-const TEXT_PRIMARY = '#F0F6FC';
-const TEXT_SECONDARY = 'rgba(240,246,252,0.6)';
-const TEXT_MUTED = 'rgba(240,246,252,0.35)';
+const BASE = "#0D1117";
+const SURFACE = "#161B22";
+const SURFACE_ELEVATED = "#1C2128";
+const BORDER = "rgba(255,255,255,0.07)";
+const PRIMARY = "#7C6AF7";
+const ACCENT = "#34D399";
+const ENERGY = "#F59E0B";
+const DANGER = "#F87171";
+const TEXT_PRIMARY = "#F0F6FC";
+const TEXT_SECONDARY = "rgba(240,246,252,0.6)";
+const TEXT_MUTED = "rgba(240,246,252,0.35)";
 
 // ─── Activity Data ────────────────────────────────────────────────────────────
 const ACTIVITY_OPTIONS = [
-  { label: '🏃 Running', color: ACCENT },
-  { label: '🧘 Yoga', color: PRIMARY },
-  { label: '🏋️ Lifting', color: '#F87171' },
-  { label: '🥾 Hiking', color: ENERGY },
-  { label: '🏖️ Beach', color: '#60A5FA' },
-  { label: '🚴 Cycling', color: ACCENT },
-  { label: '🏄 Surfing', color: '#38BDF8' },
-  { label: '🧗 Climbing', color: '#FB923C' },
-  { label: '🥊 Boxing', color: '#F87171' },
-  { label: '🏊 Swimming', color: '#60A5FA' },
-  { label: '🎾 Tennis', color: ENERGY },
-  { label: '⛷️ Skiing', color: '#93C5FD' },
+  { label: "🏃 Running", color: ACCENT },
+  { label: "🧘 Yoga", color: PRIMARY },
+  { label: "🏋️ Lifting", color: "#F87171" },
+  { label: "🥾 Hiking", color: ENERGY },
+  { label: "🏖️ Beach", color: "#60A5FA" },
+  { label: "🚴 Cycling", color: ACCENT },
+  { label: "🏄 Surfing", color: "#38BDF8" },
+  { label: "🧗 Climbing", color: "#FB923C" },
+  { label: "🥊 Boxing", color: "#F87171" },
+  { label: "🏊 Swimming", color: "#60A5FA" },
+  { label: "🎾 Tennis", color: ENERGY },
+  { label: "⛷️ Skiing", color: "#93C5FD" },
 ];
 
-const SCHEDULE_OPTIONS = ['Morning', 'Midday', 'Afternoon', 'Evening', 'Weekends'];
-const ENVIRONMENT_OPTIONS = ['Outdoors', 'Gym', 'Home', 'Studio', 'Pool'];
+const SCHEDULE_OPTIONS = [
+  "Morning",
+  "Midday",
+  "Afternoon",
+  "Evening",
+  "Weekends",
+];
+const ENVIRONMENT_OPTIONS = ["Outdoors", "Gym", "Home", "Studio", "Pool"];
 
 // ─── Tag Cloud Pill ───────────────────────────────────────────────────────────
 function TagPill({
@@ -75,11 +82,13 @@ function TagPill({
       style={[
         styles.tagPill,
         selected
-          ? { backgroundColor: color + '22', borderColor: color + '70' }
-          : { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: BORDER },
+          ? { backgroundColor: color + "22", borderColor: color + "70" }
+          : { backgroundColor: "rgba(255,255,255,0.04)", borderColor: BORDER },
       ]}
     >
-      <Text style={[styles.tagPillText, { color: selected ? color : TEXT_MUTED }]}>
+      <Text
+        style={[styles.tagPillText, { color: selected ? color : TEXT_MUTED }]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -113,7 +122,12 @@ function EditableField({
           autoCapitalize="none"
         />
       ) : (
-        <Text style={[styles.fieldValue, { color: value ? TEXT_PRIMARY : TEXT_MUTED }]}>
+        <Text
+          style={[
+            styles.fieldValue,
+            { color: value ? TEXT_PRIMARY : TEXT_MUTED },
+          ]}
+        >
           {value || placeholder}
         </Text>
       )}
@@ -122,9 +136,21 @@ function EditableField({
 }
 
 // ─── Settings Row ─────────────────────────────────────────────────────────────
-function SettingsRow({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+function SettingsRow({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  onPress: () => void;
+}) {
   return (
-    <TouchableOpacity style={styles.settingsRow} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.settingsRow}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <Text style={styles.settingsIcon}>{icon}</Text>
       <Text style={styles.settingsLabel}>{label}</Text>
       <Text style={styles.settingsArrow}>›</Text>
@@ -136,6 +162,7 @@ function SettingsRow({ icon, label, onPress }: { icon: string; label: string; on
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const deleteAccount = useAuthStore((state) => state.deleteAccount);
   const navigation = useNavigation<any>();
 
   const [profile, setProfile] = useState<User | null>(null);
@@ -143,15 +170,24 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
-  const [intensityLevel, setIntensityLevel] = useState('');
-  const [weeklyFrequencyBand, setWeeklyFrequencyBand] = useState('');
-  const [primaryGoal, setPrimaryGoal] = useState('');
+  const [intensityLevel, setIntensityLevel] = useState("");
+  const [weeklyFrequencyBand, setWeeklyFrequencyBand] = useState("");
+  const [primaryGoal, setPrimaryGoal] = useState("");
 
-  const [selectedActivities, setSelectedActivities] = useState<string[]>(['🏃 Running', '🧘 Yoga']);
-  const [selectedSchedule, setSelectedSchedule] = useState<string[]>(['Morning']);
-  const [selectedEnvironment, setSelectedEnvironment] = useState<string[]>(['Outdoors', 'Gym']);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([
+    "🏃 Running",
+    "🧘 Yoga",
+  ]);
+  const [selectedSchedule, setSelectedSchedule] = useState<string[]>([
+    "Morning",
+  ]);
+  const [selectedEnvironment, setSelectedEnvironment] = useState<string[]>([
+    "Outdoors",
+    "Gym",
+  ]);
 
   useEffect(() => {
     if (user) fetchProfile();
@@ -163,12 +199,12 @@ export default function ProfileScreen() {
     else setLoading(true);
     setError(null);
     try {
-      const response = await client.get<User>('/profile');
+      const response = await client.get<User>("/profile");
       const next = response.data;
       setProfile(next);
-      setIntensityLevel(next.fitnessProfile?.intensityLevel || '');
-      setWeeklyFrequencyBand(next.fitnessProfile?.weeklyFrequencyBand || '');
-      setPrimaryGoal(next.fitnessProfile?.primaryGoal || '');
+      setIntensityLevel(next.fitnessProfile?.intensityLevel || "");
+      setWeeklyFrequencyBand(next.fitnessProfile?.weeklyFrequencyBand || "");
+      setPrimaryGoal(next.fitnessProfile?.primaryGoal || "");
     } catch (err) {
       setError(normalizeApiError(err).message);
     } finally {
@@ -181,7 +217,11 @@ export default function ProfileScreen() {
     setSaving(true);
     setError(null);
     try {
-      await client.put('/profile/fitness', { intensityLevel, weeklyFrequencyBand, primaryGoal });
+      await client.put("/profile/fitness", {
+        intensityLevel,
+        weeklyFrequencyBand,
+        primaryGoal,
+      });
       setEditMode(false);
       await fetchProfile(true);
     } catch (err) {
@@ -195,12 +235,57 @@ export default function ProfileScreen() {
     set(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
   };
 
+  const confirmDeleteAccount = () => {
+    if (deletingAccount) {
+      return;
+    }
+
+    Alert.alert(
+      "Delete account?",
+      "This permanently removes your profile, matches, messages, event RSVPs, and saved session.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: async () => {
+            setDeletingAccount(true);
+            setError(null);
+            try {
+              await deleteAccount();
+            } catch (err) {
+              setError(normalizeApiError(err).message);
+            } finally {
+              setDeletingAccount(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading) return <AppState title="Loading your profile" loading />;
   if (error && !profile)
-    return <AppState title="Couldn't load profile" description={error} actionLabel="Retry" onAction={fetchProfile} isError />;
-  if (!profile) return <AppState title="No profile found" actionLabel="Refresh" onAction={fetchProfile} />;
+    return (
+      <AppState
+        title="Couldn't load profile"
+        description={error}
+        actionLabel="Retry"
+        onAction={fetchProfile}
+        isError
+      />
+    );
+  if (!profile)
+    return (
+      <AppState
+        title="No profile found"
+        actionLabel="Refresh"
+        onAction={fetchProfile}
+      />
+    );
 
-  const primaryPhoto = profile.photos?.find((p) => p.isPrimary)?.storageKey || profile.photoUrl;
+  const primaryPhoto =
+    profile.photos?.find((p) => p.isPrimary)?.storageKey || profile.photoUrl;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -211,10 +296,13 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => fetchProfile(true)} tintColor={PRIMARY} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchProfile(true)}
+            tintColor={PRIMARY}
+          />
         }
       >
-
         {/* ── Hero ── */}
         <View style={styles.hero}>
           {/* Avatar with glow ring */}
@@ -225,7 +313,9 @@ export default function ProfileScreen() {
             >
               <View style={styles.avatarInnerWrap}>
                 <Image
-                  source={{ uri: primaryPhoto || 'https://via.placeholder.com/120' }}
+                  source={{
+                    uri: primaryPhoto || "https://via.placeholder.com/120",
+                  }}
                   style={styles.avatar}
                 />
               </View>
@@ -233,7 +323,8 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={styles.heroName}>
-            {profile.firstName}{profile.age ? `, ${profile.age}` : ''}
+            {profile.firstName}
+            {profile.age ? `, ${profile.age}` : ""}
           </Text>
 
           <View style={styles.intentBadge}>
@@ -241,13 +332,15 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={styles.heroLocation}>
-            📍 {profile.profile?.city || 'Location not set'}
+            📍 {profile.profile?.city || "Location not set"}
           </Text>
 
           {/* Ambient stat strip — no grid lines, just numbers floating */}
           <View style={styles.ambientStats}>
             <View style={styles.ambientStat}>
-              <Text style={[styles.ambientStatNum, { color: PRIMARY }]}>12</Text>
+              <Text style={[styles.ambientStatNum, { color: PRIMARY }]}>
+                12
+              </Text>
               <Text style={styles.ambientStatLabel}>matches</Text>
             </View>
             <View style={styles.ambientStatDot} />
@@ -266,23 +359,39 @@ export default function ProfileScreen() {
         {/* ── Edit / Save bar ── */}
         <View style={styles.editBar}>
           <Pressable
-            onPress={() => editMode ? saveFitness() : setEditMode(true)}
+            onPress={() => (editMode ? saveFitness() : setEditMode(true))}
             disabled={saving}
             style={styles.editBtnWrap}
           >
             <LinearGradient
-              colors={editMode ? [PRIMARY, PRIMARY + 'AA'] : ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.04)']}
+              colors={
+                editMode
+                  ? [PRIMARY, PRIMARY + "AA"]
+                  : ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.04)"]
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.editBtn}
             >
-              <Text style={[styles.editBtnText, { color: editMode ? '#FFFFFF' : TEXT_SECONDARY }]}>
-                {saving ? 'Saving...' : editMode ? '✓ Save Changes' : '✏️ Edit Profile'}
+              <Text
+                style={[
+                  styles.editBtnText,
+                  { color: editMode ? "#FFFFFF" : TEXT_SECONDARY },
+                ]}
+              >
+                {saving
+                  ? "Saving..."
+                  : editMode
+                    ? "✓ Save Changes"
+                    : "✏️ Edit Profile"}
               </Text>
             </LinearGradient>
           </Pressable>
           {editMode && (
-            <Pressable onPress={() => setEditMode(false)} style={styles.cancelBtn}>
+            <Pressable
+              onPress={() => setEditMode(false)}
+              style={styles.cancelBtn}
+            >
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </Pressable>
           )}
@@ -297,7 +406,10 @@ export default function ProfileScreen() {
                 key={label}
                 label={label}
                 selected={selectedActivities.includes(label)}
-                onPress={() => editMode && toggle(selectedActivities, label, setSelectedActivities)}
+                onPress={() =>
+                  editMode &&
+                  toggle(selectedActivities, label, setSelectedActivities)
+                }
                 color={color}
                 interactive={editMode}
               />
@@ -309,11 +421,29 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionEyebrow}>Fitness Profile</Text>
           <View style={styles.fieldsCard}>
-            <EditableField label="Intensity" value={intensityLevel} onChangeText={setIntensityLevel} placeholder="moderate" editMode={editMode} />
+            <EditableField
+              label="Intensity"
+              value={intensityLevel}
+              onChangeText={setIntensityLevel}
+              placeholder="moderate"
+              editMode={editMode}
+            />
             <View style={styles.fieldDivider} />
-            <EditableField label="Days / week" value={weeklyFrequencyBand} onChangeText={setWeeklyFrequencyBand} placeholder="3-4" editMode={editMode} />
+            <EditableField
+              label="Days / week"
+              value={weeklyFrequencyBand}
+              onChangeText={setWeeklyFrequencyBand}
+              placeholder="3-4"
+              editMode={editMode}
+            />
             <View style={styles.fieldDivider} />
-            <EditableField label="Primary goal" value={primaryGoal} onChangeText={setPrimaryGoal} placeholder="health" editMode={editMode} />
+            <EditableField
+              label="Primary goal"
+              value={primaryGoal}
+              onChangeText={setPrimaryGoal}
+              placeholder="health"
+              editMode={editMode}
+            />
           </View>
         </View>
 
@@ -326,7 +456,9 @@ export default function ProfileScreen() {
                 key={tag}
                 label={tag}
                 selected={selectedSchedule.includes(tag)}
-                onPress={() => editMode && toggle(selectedSchedule, tag, setSelectedSchedule)}
+                onPress={() =>
+                  editMode && toggle(selectedSchedule, tag, setSelectedSchedule)
+                }
                 color={ACCENT}
                 interactive={editMode}
               />
@@ -343,7 +475,10 @@ export default function ProfileScreen() {
                 key={tag}
                 label={tag}
                 selected={selectedEnvironment.includes(tag)}
-                onPress={() => editMode && toggle(selectedEnvironment, tag, setSelectedEnvironment)}
+                onPress={() =>
+                  editMode &&
+                  toggle(selectedEnvironment, tag, setSelectedEnvironment)
+                }
                 color={ENERGY}
                 interactive={editMode}
               />
@@ -359,7 +494,37 @@ export default function ProfileScreen() {
             <View style={styles.fieldDivider} />
             <SettingsRow icon="🔒" label="Privacy" onPress={() => {}} />
             <View style={styles.fieldDivider} />
-            <SettingsRow icon="🔔" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
+            <SettingsRow
+              icon="🔔"
+              label="Notifications"
+              onPress={() => navigation.navigate("Notifications")}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrow}>Account deletion</Text>
+          <View style={styles.dangerCard}>
+            <Text style={styles.dangerTitle}>Delete your account</Text>
+            <Text style={styles.dangerBody}>
+              Remove your BRDG profile and associated data directly from the
+              app.
+            </Text>
+            <Pressable
+              onPress={confirmDeleteAccount}
+              disabled={deletingAccount}
+              style={({ pressed }) => [
+                styles.deleteAccountBtn,
+                pressed && !deletingAccount
+                  ? styles.deleteAccountBtnPressed
+                  : null,
+                deletingAccount ? styles.deleteAccountBtnDisabled : null,
+              ]}
+            >
+              <Text style={styles.deleteAccountText}>
+                {deletingAccount ? "Deleting account..." : "Delete account"}
+              </Text>
+            </Pressable>
           </View>
         </View>
 
@@ -371,10 +536,15 @@ export default function ProfileScreen() {
         )}
 
         {/* ── Logout ── */}
-        <Pressable onPress={logout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Log out</Text>
+        <Pressable
+          onPress={logout}
+          disabled={deletingAccount}
+          style={styles.logoutBtn}
+        >
+          <Text style={styles.logoutText}>
+            {deletingAccount ? "Account deletion in progress" : "Log out"}
+          </Text>
         </Pressable>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -387,7 +557,7 @@ const styles = StyleSheet.create({
     backgroundColor: BASE,
   },
   heroBg: {
-    position: 'absolute',
+    position: "absolute",
     top: -80,
     left: SCREEN_WIDTH / 2 - 150,
     width: 300,
@@ -403,7 +573,7 @@ const styles = StyleSheet.create({
 
   // Hero
   hero: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: spacing.xxl,
     marginBottom: spacing.lg,
   },
@@ -420,70 +590,70 @@ const styles = StyleSheet.create({
     height: 104,
     borderRadius: 52,
     padding: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarInnerWrap: {
     width: 98,
     height: 98,
     borderRadius: 49,
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: SURFACE,
     borderWidth: 2,
     borderColor: BASE,
   },
   avatar: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   heroName: {
     fontSize: 34,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: -0.8,
     color: TEXT_PRIMARY,
     marginBottom: spacing.sm,
   },
   intentBadge: {
-    backgroundColor: 'rgba(124,106,247,0.15)',
+    backgroundColor: "rgba(124,106,247,0.15)",
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: 'rgba(124,106,247,0.4)',
+    borderColor: "rgba(124,106,247,0.4)",
     paddingHorizontal: spacing.md,
     paddingVertical: 5,
     marginBottom: spacing.sm,
   },
   intentBadgeText: {
     fontSize: typography.bodySmall,
-    fontWeight: '800',
+    fontWeight: "800",
     color: PRIMARY,
   },
   heroLocation: {
     fontSize: typography.bodySmall,
     color: TEXT_MUTED,
     marginBottom: spacing.xl,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 
   // Ambient stats (no card, just floating numbers)
   ambientStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.lg,
   },
   ambientStat: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   ambientStatNum: {
     fontSize: 32,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: -1,
     lineHeight: 36,
   },
   ambientStatLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
     color: TEXT_MUTED,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.8,
     marginTop: 2,
   },
@@ -496,27 +666,27 @@ const styles = StyleSheet.create({
 
   // Edit bar
   editBar: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: spacing.xxl,
     marginBottom: spacing.xxl,
     gap: spacing.sm,
-    alignItems: 'center',
+    alignItems: "center",
   },
   editBtnWrap: {
     flex: 1,
     borderRadius: radii.pill,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: BORDER,
   },
   editBtn: {
     paddingVertical: 11,
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: radii.pill,
   },
   editBtnText: {
     fontSize: typography.bodySmall,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: 0.2,
   },
   cancelBtn: {
@@ -525,11 +695,11 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: BORDER,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: "rgba(255,255,255,0.04)",
   },
   cancelBtnText: {
     fontSize: typography.bodySmall,
-    fontWeight: '700',
+    fontWeight: "700",
     color: TEXT_MUTED,
   },
 
@@ -540,8 +710,8 @@ const styles = StyleSheet.create({
   },
   sectionEyebrow: {
     fontSize: 10,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontWeight: "900",
+    textTransform: "uppercase",
     letterSpacing: 2,
     color: TEXT_MUTED,
     marginBottom: spacing.md,
@@ -549,8 +719,8 @@ const styles = StyleSheet.create({
 
   // Tag cloud — variable gap for organic feel
   tagCloud: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   tagPill: {
@@ -561,7 +731,7 @@ const styles = StyleSheet.create({
   },
   tagPillText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 
   // Fitness fields card
@@ -574,23 +744,23 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.sm,
     gap: spacing.md,
   },
   fieldLabel: {
     fontSize: typography.bodySmall,
-    fontWeight: '700',
+    fontWeight: "700",
     width: 100,
     color: TEXT_MUTED,
-    textTransform: 'capitalize',
+    textTransform: "capitalize",
   },
   fieldValue: {
     flex: 1,
     fontSize: typography.bodySmall,
-    fontWeight: '600',
-    textTransform: 'capitalize',
+    fontWeight: "600",
+    textTransform: "capitalize",
     color: TEXT_PRIMARY,
   },
   fieldInput: {
@@ -600,8 +770,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
-    borderColor: 'rgba(124,106,247,0.4)',
-    backgroundColor: 'rgba(124,106,247,0.08)',
+    borderColor: "rgba(124,106,247,0.4)",
+    backgroundColor: "rgba(124,106,247,0.08)",
     color: TEXT_PRIMARY,
   },
   fieldDivider: {
@@ -619,26 +789,62 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   settingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 13,
     gap: spacing.md,
   },
   settingsIcon: {
     fontSize: 18,
     width: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   settingsLabel: {
     flex: 1,
     fontSize: typography.body,
-    fontWeight: '700',
+    fontWeight: "700",
     color: TEXT_PRIMARY,
   },
   settingsArrow: {
     fontSize: 22,
-    fontWeight: '300',
+    fontWeight: "300",
     color: TEXT_MUTED,
+  },
+  dangerCard: {
+    backgroundColor: "rgba(248,113,113,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(248,113,113,0.28)",
+    borderRadius: 24,
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  dangerTitle: {
+    fontSize: typography.body,
+    fontWeight: "800",
+    color: TEXT_PRIMARY,
+  },
+  dangerBody: {
+    fontSize: typography.bodySmall,
+    lineHeight: 20,
+    color: TEXT_SECONDARY,
+  },
+  deleteAccountBtn: {
+    minHeight: 46,
+    borderRadius: radii.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: DANGER,
+  },
+  deleteAccountBtnPressed: {
+    opacity: 0.88,
+  },
+  deleteAccountBtnDisabled: {
+    opacity: 0.6,
+  },
+  deleteAccountText: {
+    fontSize: typography.bodySmall,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 
   // Error banner
@@ -648,24 +854,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.sm,
-    backgroundColor: 'rgba(248,113,113,0.1)',
-    borderColor: 'rgba(248,113,113,0.3)',
+    backgroundColor: "rgba(248,113,113,0.1)",
+    borderColor: "rgba(248,113,113,0.3)",
   },
   errorText: {
     fontSize: typography.bodySmall,
-    fontWeight: '600',
+    fontWeight: "600",
     color: DANGER,
   },
 
   // Logout
   logoutBtn: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.xl,
     marginTop: spacing.sm,
   },
   logoutText: {
     fontSize: typography.body,
-    fontWeight: '800',
+    fontWeight: "800",
     color: DANGER,
     letterSpacing: 0.2,
   },

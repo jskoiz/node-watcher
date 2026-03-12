@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
 import { DiscoveryService } from './discovery.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -27,6 +28,9 @@ describe('DiscoveryService', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
     },
+    userProfile: {
+      findMany: jest.fn(),
+    },
     match: {
       upsert: jest.fn(),
     },
@@ -35,6 +39,35 @@ describe('DiscoveryService', () => {
   const notificationsMock = {
     create: jest.fn(),
   };
+
+  const makeCandidate = (overrides: Record<string, unknown> = {}) => ({
+    id: 'candidate-1',
+    firstName: 'Casey',
+    birthdate: new Date('1998-06-15T00:00:00.000Z'),
+    profile: {
+      city: 'Honolulu',
+      bio: 'Runner and lifter who likes sunrise sessions.',
+      latitude: 21.3069,
+      longitude: -157.8583,
+    },
+    fitnessProfile: {
+      primaryGoal: 'strength',
+      secondaryGoal: 'endurance',
+      intensityLevel: 'moderate',
+      prefersMorning: true,
+      prefersEvening: false,
+      favoriteActivities: null,
+    },
+    photos: [
+      {
+        id: 'photo-1',
+        storageKey: 'photo-1.jpg',
+        isPrimary: true,
+        sortOrder: 0,
+      },
+    ],
+    ...overrides,
+  });
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -58,6 +91,168 @@ describe('DiscoveryService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('pushes like/pass exclusions and profile filters into the feed query', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'me',
+      profile: {
+        latitude: 21.3,
+        longitude: -157.8,
+      },
+      fitnessProfile: {
+        intensityLevel: 'moderate',
+        primaryGoal: 'strength',
+        secondaryGoal: 'endurance',
+      },
+    });
+    prismaMock.user.findMany.mockResolvedValue([makeCandidate()]);
+
+    await service.getFeed('me', {
+      minAge: 25,
+      maxAge: 32,
+      goals: ['Strength'],
+      intensity: ['Moderate'],
+      availability: ['morning', 'evening'],
+    });
+
+    expect(prismaMock.like.findMany).not.toHaveBeenCalled();
+    expect(prismaMock.pass.findMany).not.toHaveBeenCalled();
+    expect(prismaMock.user.findMany).toHaveBeenCalledTimes(1);
+
+    const query = prismaMock.user.findMany.mock.calls[0][0];
+    expect(query.where.id).toEqual({ not: 'me' });
+    expect(query.where.sentLikes).toEqual({ none: { fromUserId: 'me' } });
+    expect(query.where.sentPasses).toEqual({ none: { fromUserId: 'me' } });
+    expect(query.where.birthdate).toEqual(
+      expect.objectContaining({
+        gte: expect.any(Date),
+        lte: expect.any(Date),
+      }),
+    );
+    expect(query.where.fitnessProfile).toEqual({
+      is: {
+        AND: [
+          {
+            OR: [
+              {
+                primaryGoal: {
+                  equals: 'strength',
+                  mode: 'insensitive',
+                },
+              },
+              {
+                secondaryGoal: {
+                  equals: 'strength',
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          },
+          {
+            intensityLevel: {
+              in: ['moderate'],
+              mode: 'insensitive',
+            },
+          },
+          {
+            OR: [{ prefersMorning: true }, { prefersEvening: true }],
+          },
+        ],
+      },
+    });
+  });
+
+  it('still filters distance after the database query and returns top scored results', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'me',
+      profile: {
+        latitude: 21.3069,
+        longitude: -157.8583,
+      },
+      fitnessProfile: {
+        intensityLevel: 'moderate',
+        primaryGoal: 'strength',
+        secondaryGoal: 'mobility',
+      },
+    });
+    prismaMock.user.findMany.mockResolvedValue([
+      makeCandidate({
+        id: 'nearby-match',
+        birthdate: new Date('1997-05-01T00:00:00.000Z'),
+        profile: {
+          city: 'Honolulu',
+          bio: 'Close by',
+          latitude: 21.307,
+          longitude: -157.8584,
+        },
+      }),
+      makeCandidate({
+        id: 'far-away',
+        birthdate: new Date('1997-05-01T00:00:00.000Z'),
+        profile: {
+          city: 'Tokyo',
+          bio: 'Very far away',
+          latitude: 35.6764,
+          longitude: 139.65,
+        },
+      }),
+    ]);
+
+    const result = await service.getFeed('me', { distanceKm: 10 });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        id: 'nearby-match',
+        distanceKm: expect.any(Number),
+        recommendationScore: expect.any(Number),
+      }),
+    );
+  });
+
+  it('derives mutual match classification from shared intents', async () => {
+    prismaMock.like.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'mutual-like' });
+    prismaMock.pass.deleteMany.mockResolvedValue({ count: 0 });
+    prismaMock.like.create.mockResolvedValue({ id: 'like-1' });
+    prismaMock.userProfile.findMany.mockResolvedValue([
+      {
+        userId: 'user-1',
+        intentDating: false,
+        intentWorkout: true,
+      },
+      {
+        userId: 'user-2',
+        intentDating: true,
+        intentWorkout: true,
+      },
+    ]);
+    prismaMock.match.upsert.mockResolvedValue({ id: 'match-1' });
+
+    const result = await service.likeUser('user-1', 'user-2');
+
+    expect(prismaMock.match.upsert).toHaveBeenCalledWith({
+      where: {
+        userAId_userBId: {
+          userAId: 'user-1',
+          userBId: 'user-2',
+        },
+      },
+      create: {
+        userAId: 'user-1',
+        userBId: 'user-2',
+        isDatingMatch: false,
+        isWorkoutMatch: true,
+      },
+      update: expect.objectContaining({
+        updatedAt: expect.any(Date),
+        isBlocked: false,
+        isArchived: false,
+      }),
+    });
+    expect(result).toEqual({ status: 'match', match: { id: 'match-1' } });
   });
 
   it('returns already_liked status when like exists', async () => {

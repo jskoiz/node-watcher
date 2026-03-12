@@ -93,6 +93,15 @@ export interface EventSummary {
 
 export type EventDetail = EventSummary;
 
+export interface CreateEventPayload {
+  title: string;
+  description?: string;
+  location: string;
+  category?: string;
+  startsAt: string;
+  endsAt?: string;
+}
+
 export interface EventRsvpResponse {
   status: "joined";
   attendeesCount: number;

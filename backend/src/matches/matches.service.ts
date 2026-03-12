@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MatchesRealtimeService } from './matches-realtime.service';
 import { map, Observable } from 'rxjs';
 import { NotificationsService } from '../notifications/notifications.service';
+import { deriveMatchClassification } from './match-classification';
 
 @Injectable()
 export class MatchesService {
@@ -64,11 +65,16 @@ export class MatchesService {
         return { isMatch: true, matchId: existingMatch.id };
       }
 
+      const classification = await deriveMatchClassification(this.prisma, [
+        fromUserId,
+        toUserId,
+      ]);
+
       const match = await this.prisma.match.create({
         data: {
           userAId,
           userBId,
-          isDatingMatch: true, // Defaulting to dating for now
+          ...classification,
         },
       });
 

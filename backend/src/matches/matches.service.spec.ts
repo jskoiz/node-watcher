@@ -9,8 +9,16 @@ describe('MatchesService realtime', () => {
   let service: MatchesService;
 
   const prisma = {
+    userProfile: {
+      findMany: jest.fn(),
+    },
+    like: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+    },
     match: {
       findUnique: jest.fn(),
+      create: jest.fn(),
       update: jest.fn(),
     },
     message: {
@@ -29,6 +37,7 @@ describe('MatchesService realtime', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(prisma.userProfile.findMany).mockResolvedValue([] as any);
     service = new MatchesService(prisma, realtime, notifications);
   });
 
@@ -86,6 +95,72 @@ describe('MatchesService realtime', () => {
     expect(packet).toEqual({
       type: 'message',
       data: event,
+    });
+  });
+
+  it('creates a mutual-like match using shared profile intents', async () => {
+    jest
+      .mocked(prisma.like.findUnique)
+      .mockResolvedValueOnce(null as any)
+      .mockResolvedValueOnce({ id: 'like-2' } as any);
+    jest.mocked(prisma.like.create).mockResolvedValue({ id: 'like-1' } as any);
+    jest.mocked(prisma.match.findUnique).mockResolvedValue(null as any);
+    jest.mocked(prisma.userProfile.findMany).mockResolvedValue([
+      {
+        userId: 'user-1',
+        intentDating: false,
+        intentWorkout: true,
+      },
+      {
+        userId: 'user-2',
+        intentDating: true,
+        intentWorkout: true,
+      },
+    ] as any);
+    jest
+      .mocked(prisma.match.create)
+      .mockResolvedValue({ id: 'match-1' } as any);
+
+    const result = await service.likeUser('user-1', 'user-2');
+
+    expect(result).toEqual({ isMatch: true, matchId: 'match-1' });
+    expect(jest.mocked(prisma.match.create)).toHaveBeenCalledWith({
+      data: {
+        userAId: 'user-1',
+        userBId: 'user-2',
+        isDatingMatch: false,
+        isWorkoutMatch: true,
+      },
+    });
+  });
+
+  it('falls back to a dating match when profile intent data is unavailable', async () => {
+    jest
+      .mocked(prisma.like.findUnique)
+      .mockResolvedValueOnce(null as any)
+      .mockResolvedValueOnce({ id: 'like-2' } as any);
+    jest.mocked(prisma.like.create).mockResolvedValue({ id: 'like-1' } as any);
+    jest.mocked(prisma.match.findUnique).mockResolvedValue(null as any);
+    jest.mocked(prisma.userProfile.findMany).mockResolvedValue([
+      {
+        userId: 'user-1',
+        intentDating: false,
+        intentWorkout: true,
+      },
+    ] as any);
+    jest
+      .mocked(prisma.match.create)
+      .mockResolvedValue({ id: 'match-2' } as any);
+
+    await service.likeUser('user-1', 'user-2');
+
+    expect(jest.mocked(prisma.match.create)).toHaveBeenCalledWith({
+      data: {
+        userAId: 'user-1',
+        userBId: 'user-2',
+        isDatingMatch: true,
+        isWorkoutMatch: false,
+      },
     });
   });
 });

@@ -1,0 +1,7 @@
+tunnel: replace-with-tunnel-id
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: api.brdg.social
+    service: http://api:3010
+  - service: http_status:404

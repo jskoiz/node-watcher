@@ -1,82 +1,94 @@
-import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authApi } from '../services/api';
-import { STORAGE_KEYS } from '../constants/storage';
-import { normalizeApiError } from '../api/errors';
-import type { User } from '../api/types';
+import { create } from "zustand";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { authApi } from "../services/api";
+import { STORAGE_KEYS } from "../constants/storage";
+import { normalizeApiError } from "../api/errors";
+import type { User } from "../api/types";
 
 interface LoginPayload {
-    email: string;
-    password: string;
+  email: string;
+  password: string;
 }
 
 interface SignupPayload {
-    email: string;
-    password: string;
-    firstName: string;
-    birthdate: string;
-    gender: string;
+  email: string;
+  password: string;
+  firstName: string;
+  birthdate: string;
+  gender: string;
 }
 
 interface AuthState {
-    token: string | null;
-    user: User | null;
-    isLoading: boolean;
-    login: (data: LoginPayload) => Promise<void>;
-    signup: (data: SignupPayload) => Promise<void>;
-    logout: () => Promise<void>;
-    loadToken: () => Promise<void>;
-    setUser: (user: User | null) => void;
+  token: string | null;
+  user: User | null;
+  isLoading: boolean;
+  login: (data: LoginPayload) => Promise<void>;
+  signup: (data: SignupPayload) => Promise<void>;
+  deleteAccount: () => Promise<void>;
+  logout: () => Promise<void>;
+  loadToken: () => Promise<void>;
+  setUser: (user: User | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-    token: null,
-    user: null,
-    isLoading: true,
+  token: null,
+  user: null,
+  isLoading: true,
 
-    setUser: (user) => set({ user }),
+  setUser: (user) => set({ user }),
 
-    login: async (data) => {
-        try {
-            const response = await authApi.login(data);
-            const { access_token, user } = response.data;
-            await AsyncStorage.setItem(STORAGE_KEYS.accessToken, access_token);
-            set({ token: access_token, user });
-        } catch (error) {
-            throw normalizeApiError(error);
-        }
-    },
+  login: async (data) => {
+    try {
+      const response = await authApi.login(data);
+      const { access_token, user } = response.data;
+      await AsyncStorage.setItem(STORAGE_KEYS.accessToken, access_token);
+      set({ token: access_token, user });
+    } catch (error) {
+      throw normalizeApiError(error);
+    }
+  },
 
-    signup: async (data) => {
-        try {
-            const response = await authApi.signup(data);
-            const { access_token, user } = response.data;
-            await AsyncStorage.setItem(STORAGE_KEYS.accessToken, access_token);
-            set({ token: access_token, user });
-        } catch (error) {
-            throw normalizeApiError(error);
-        }
-    },
+  signup: async (data) => {
+    try {
+      const response = await authApi.signup(data);
+      const { access_token, user } = response.data;
+      await AsyncStorage.setItem(STORAGE_KEYS.accessToken, access_token);
+      set({ token: access_token, user });
+    } catch (error) {
+      throw normalizeApiError(error);
+    }
+  },
 
-    logout: async () => {
-        await AsyncStorage.removeItem(STORAGE_KEYS.accessToken);
-        set({ token: null, user: null });
-    },
+  logout: async () => {
+    await AsyncStorage.removeItem(STORAGE_KEYS.accessToken);
+    set({ token: null, user: null });
+  },
 
-    loadToken: async () => {
-        set({ isLoading: true });
-        const token = await AsyncStorage.getItem(STORAGE_KEYS.accessToken);
-        if (!token) {
-            set({ token: null, user: null, isLoading: false });
-            return;
-        }
+  deleteAccount: async () => {
+    try {
+      await authApi.deleteAccount();
+    } catch (error) {
+      throw normalizeApiError(error);
+    }
 
-        try {
-            const response = await authApi.me(token);
-            set({ token, user: response.data, isLoading: false });
-        } catch {
-            await AsyncStorage.removeItem(STORAGE_KEYS.accessToken);
-            set({ token: null, user: null, isLoading: false });
-        }
-    },
+    await AsyncStorage.removeItem(STORAGE_KEYS.accessToken);
+    set({ token: null, user: null });
+  },
+
+  loadToken: async () => {
+    set({ isLoading: true });
+    const token = await AsyncStorage.getItem(STORAGE_KEYS.accessToken);
+    if (!token) {
+      set({ token: null, user: null, isLoading: false });
+      return;
+    }
+
+    try {
+      const response = await authApi.me(token);
+      set({ token, user: response.data, isLoading: false });
+    } catch {
+      await AsyncStorage.removeItem(STORAGE_KEYS.accessToken);
+      set({ token: null, user: null, isLoading: false });
+    }
+  },
 }));

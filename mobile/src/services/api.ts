@@ -1,6 +1,7 @@
 import client from "../api/client";
 import type {
   AuthResponse,
+  CreateEventPayload,
   EventDetail,
   EventRsvpResponse,
   EventSummary,
@@ -40,6 +41,14 @@ export const authApi = {
       });
     } catch (error) {
       logApiFailure("auth", "me", error);
+      throw error;
+    }
+  },
+  deleteAccount: async () => {
+    try {
+      return await client.delete("/auth/me");
+    } catch (error) {
+      logApiFailure("auth", "deleteAccount", error);
       throw error;
     }
   },
@@ -151,6 +160,17 @@ export const eventsApi = {
       return await client.get<EventSummary[]>("/events");
     } catch (error) {
       logApiFailure("events", "list", error);
+      throw error;
+    }
+  },
+  create: async (payload: CreateEventPayload) => {
+    try {
+      return await client.post<EventSummary>("/events", payload);
+    } catch (error) {
+      logApiFailure("events", "create", error, {
+        title: payload.title,
+        category: payload.category,
+      });
       throw error;
     }
   },

@@ -12,16 +12,20 @@ const requireEnv = (value: string | undefined, key: string): string => {
   return value;
 };
 
+const apiPort = toNumber(process.env.PORT, 3000);
+const localApiBaseUrl = `http://127.0.0.1:${apiPort}`;
+const apiBaseUrl = process.env.API_BASE_URL || localApiBaseUrl;
+
 export const appConfig = {
-  apiPort: toNumber(process.env.PORT, 3000),
+  apiPort,
   jwt: {
     secret: requireEnv(process.env.JWT_SECRET, 'JWT_SECRET'),
     expiresIn: '60m' as const,
   },
   seed: {
-    assetBaseUrl: process.env.BASE_URL || 'http://localhost:3000',
+    assetBaseUrl: process.env.BASE_URL || apiBaseUrl,
   },
   scripts: {
-    apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000',
+    apiBaseUrl,
   },
 };

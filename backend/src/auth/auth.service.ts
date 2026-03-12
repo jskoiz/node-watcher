@@ -166,4 +166,38 @@ export class AuthService {
       throw error;
     }
   }
+
+  async deleteAccount(userId: string): Promise<void> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true },
+      });
+
+      if (!user) {
+        this.logger.warn(`Delete account lookup failed for userId=${userId}`);
+        throw new UnauthorizedException('User not found');
+      }
+
+      await this.prisma.user.delete({
+        where: { id: userId },
+      });
+
+      this.logger.log(
+        `Deleted account for userId=${user.id}${user.email ? ` email=${user.email}` : ''}`,
+      );
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(
+        `Delete account failed for userId=${userId}: ${message}`,
+        stack,
+      );
+      throw error;
+    }
+  }
 }

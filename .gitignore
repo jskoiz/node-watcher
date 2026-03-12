@@ -27,3 +27,8 @@ dist/
 # local tooling
 .vscode/
 .idea/
+.codex-worktrees/
+.wrangler/
+
+# runtime uploads
+backend/public/pfps/

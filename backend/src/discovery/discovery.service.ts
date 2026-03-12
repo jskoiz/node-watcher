@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { deriveMatchClassification } from '../matches/match-classification';
 
 export interface DiscoveryFilters {
   distanceKm?: number;
@@ -48,33 +49,30 @@ export class DiscoveryService {
 
   async getFeed(userId: string, filters: DiscoveryFilters = {}) {
     try {
-      const [sentLikes, sentPasses, me] = await Promise.all([
-        this.prisma.like.findMany({
-          where: { fromUserId: userId },
-          select: { toUserId: true },
-        }),
-        this.prisma.pass.findMany({
-          where: { fromUserId: userId },
-          select: { toUserId: true },
-        }),
-        this.prisma.user.findUnique({
-          where: { id: userId },
-          include: { profile: true, fitnessProfile: true },
-        }),
-      ]);
+      const me = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { profile: true, fitnessProfile: true },
+      });
 
-      const excludedIds = [
-        ...sentLikes.map((l) => l.toUserId),
-        ...sentPasses.map((p) => p.toUserId),
-        userId,
-      ];
+      const birthdateFilter = this.buildBirthdateFilter(filters);
+      const fitnessProfileFilter = this.buildFitnessProfileFilter(filters);
 
       const users = (await this.prisma.user.findMany({
         where: {
-          id: { notIn: excludedIds },
+          id: { not: userId },
           isDeleted: false,
           isBanned: false,
           isOnboarded: true,
+          sentLikes: { none: { fromUserId: userId } },
+          sentPasses: { none: { fromUserId: userId } },
+          ...(birthdateFilter ? { birthdate: birthdateFilter } : {}),
+          ...(fitnessProfileFilter
+            ? {
+                fitnessProfile: {
+                  is: fitnessProfileFilter,
+                },
+              }
+            : {}),
         },
         include: {
           fitnessProfile: true,
@@ -105,44 +103,6 @@ export class DiscoveryService {
             distanceKm > filters.distanceKm
           )
             return null;
-
-          if (filters.goals?.length) {
-            const userGoals = [
-              user.fitnessProfile?.primaryGoal,
-              user.fitnessProfile?.secondaryGoal,
-            ]
-              .filter(Boolean)
-              .map((goal) => String(goal).toLowerCase());
-            const normalizedGoals = filters.goals.map((goal) =>
-              goal.toLowerCase(),
-            );
-            const goalHit = normalizedGoals.some((goal) =>
-              userGoals.includes(goal),
-            );
-            if (!goalHit) return null;
-          }
-
-          if (filters.intensity?.length) {
-            const hit = filters.intensity
-              .map((level) => level.toLowerCase())
-              .includes(
-                (user.fitnessProfile?.intensityLevel || '').toLowerCase(),
-              );
-            if (!hit) return null;
-          }
-
-          if (filters.availability?.length) {
-            const wantMorning = filters.availability.includes('morning');
-            const wantEvening = filters.availability.includes('evening');
-            const hasMorning = !!user.fitnessProfile?.prefersMorning;
-            const hasEvening = !!user.fitnessProfile?.prefersEvening;
-            if (
-              (wantMorning || wantEvening) &&
-              !((wantMorning && hasMorning) || (wantEvening && hasEvening))
-            ) {
-              return null;
-            }
-          }
 
           const meForScore = me
             ? {
@@ -185,6 +145,92 @@ export class DiscoveryService {
       );
       throw error;
     }
+  }
+
+  private buildBirthdateFilter(filters: DiscoveryFilters) {
+    const birthdateFilter: {
+      gte?: Date;
+      lte?: Date;
+    } = {};
+
+    if (filters.maxAge) {
+      birthdateFilter.gte = this.getBirthdateBoundary(filters.maxAge + 1);
+    }
+
+    if (filters.minAge) {
+      birthdateFilter.lte = this.getBirthdateBoundary(filters.minAge);
+    }
+
+    return Object.keys(birthdateFilter).length ? birthdateFilter : null;
+  }
+
+  private buildFitnessProfileFilter(filters: DiscoveryFilters) {
+    const normalizedGoals = filters.goals?.length
+      ? filters.goals.map((goal) => goal.toLowerCase())
+      : [];
+    const normalizedIntensity = filters.intensity?.length
+      ? filters.intensity.map((level) => level.toLowerCase())
+      : [];
+    const availabilityFilter = this.buildAvailabilityFilter(filters);
+
+    const andFilters: Array<Record<string, unknown>> = [];
+
+    if (normalizedGoals.length) {
+      andFilters.push({
+        OR: normalizedGoals.flatMap((goal) => [
+          {
+            primaryGoal: {
+              equals: goal,
+              mode: 'insensitive' as const,
+            },
+          },
+          {
+            secondaryGoal: {
+              equals: goal,
+              mode: 'insensitive' as const,
+            },
+          },
+        ]),
+      });
+    }
+
+    if (normalizedIntensity.length) {
+      andFilters.push({
+        intensityLevel: {
+          in: normalizedIntensity,
+          mode: 'insensitive' as const,
+        },
+      });
+    }
+
+    if (availabilityFilter) {
+      andFilters.push(availabilityFilter);
+    }
+
+    if (!andFilters.length) return null;
+    if (andFilters.length === 1) return andFilters[0];
+
+    return { AND: andFilters };
+  }
+
+  private buildAvailabilityFilter(filters: DiscoveryFilters) {
+    const wantMorning = !!filters.availability?.includes('morning');
+    const wantEvening = !!filters.availability?.includes('evening');
+
+    if (!wantMorning && !wantEvening) return null;
+
+    return {
+      OR: [
+        ...(wantMorning ? [{ prefersMorning: true }] : []),
+        ...(wantEvening ? [{ prefersEvening: true }] : []),
+      ],
+    };
+  }
+
+  private getBirthdateBoundary(age: number) {
+    const boundary = new Date();
+    boundary.setFullYear(boundary.getFullYear() - age);
+    return boundary;
   }
 
   private computeRecommendationScore(
@@ -329,6 +375,11 @@ export class DiscoveryService {
       if (mutualLike) {
         const [userAId, userBId] = [userId, targetUserId].sort();
 
+        const classification = await deriveMatchClassification(this.prisma, [
+          userId,
+          targetUserId,
+        ]);
+
         const match = await this.prisma.match.upsert({
           where: {
             userAId_userBId: {
@@ -339,7 +390,7 @@ export class DiscoveryService {
           create: {
             userAId,
             userBId,
-            isDatingMatch: true,
+            ...classification,
           },
           update: {
             updatedAt: new Date(),

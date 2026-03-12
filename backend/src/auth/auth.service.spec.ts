@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -11,6 +12,7 @@ describe('AuthService', () => {
       findFirst: jest.fn(),
       create: jest.fn(),
       findUnique: jest.fn(),
+      delete: jest.fn(),
     },
   };
 
@@ -63,5 +65,27 @@ describe('AuthService', () => {
         isOnboarded: true,
       },
     });
+  });
+
+  it('deletes the current user account when it exists', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      email: 'test@example.com',
+    });
+    prismaMock.user.delete.mockResolvedValue({ id: 'user-1' });
+
+    await expect(service.deleteAccount('user-1')).resolves.toBeUndefined();
+    expect(prismaMock.user.delete).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+    });
+  });
+
+  it('rejects account deletion for unknown users', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+
+    await expect(service.deleteAccount('missing-user')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(prismaMock.user.delete).not.toHaveBeenCalled();
   });
 });
