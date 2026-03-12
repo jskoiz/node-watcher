@@ -199,6 +199,11 @@ p {
   will-change: opacity, transform, filter;
 }
 
+.split-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
 .split-chars.is-visible .char {
   opacity: 1;
   transform: translateY(0) scale(1);
@@ -618,6 +623,7 @@ p {
   margin-top: 18px;
   font-size: clamp(2.6rem, 5vw, 4.1rem);
   line-height: 0.98;
+  text-wrap: balance;
 }
 
 .flow-grid {

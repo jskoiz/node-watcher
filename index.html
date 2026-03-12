@@ -322,16 +322,29 @@
           textNodes.forEach((node) => {
             const text = node.textContent;
             const frag = document.createDocumentFragment();
-            Array.from(text).forEach((char, idx) => {
-              if (char === " ") {
-                frag.appendChild(document.createTextNode(" "));
+            const parts = text.split(/(\s+)/);
+            let charIndex = 0;
+
+            parts.forEach((part) => {
+              if (!part) return;
+              if (/^\s+$/.test(part)) {
+                frag.appendChild(document.createTextNode(part));
                 return;
               }
-              const span = document.createElement("span");
-              span.className = "char";
-              span.style.setProperty("--char-delay", `${idx * 0.022}s`);
-              span.textContent = char;
-              frag.appendChild(span);
+
+              const word = document.createElement("span");
+              word.className = "split-word";
+
+              Array.from(part).forEach((char) => {
+                const span = document.createElement("span");
+                span.className = "char";
+                span.style.setProperty("--char-delay", `${charIndex * 0.022}s`);
+                span.textContent = char;
+                word.appendChild(span);
+                charIndex += 1;
+              });
+
+              frag.appendChild(word);
             });
             node.parentNode.replaceChild(frag, node);
           });
