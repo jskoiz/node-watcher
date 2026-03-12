@@ -554,27 +554,38 @@ p {
 .panel-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 16px;
+  gap: 14px;
+  margin-top: 18px;
 }
 
 .mini-panel {
-  padding: 16px;
+  padding: 18px 18px 20px;
   border-radius: 18px;
-  min-height: 146px;
+  min-height: 172px;
   display: grid;
   align-content: start;
-  gap: 10px;
+  gap: 12px;
 }
 
 .mini-panel strong {
-  min-height: 3.3em;
+  min-height: 2.45em;
+  font-size: 0.98rem;
+  line-height: 1.18;
 }
 
 .mini-detail {
   color: #7f8faa;
-  font-size: 0.92rem;
-  line-height: 1.55;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.mini-panel p {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #91a0b8;
 }
 
 .mini-panel-accent {
@@ -804,10 +815,15 @@ p {
 
   .mini-panel strong {
     min-height: 0;
+    font-size: 1rem;
   }
 
   .mini-detail {
     font-size: 0.88rem;
+  }
+
+  .mini-panel p {
+    font-size: 0.72rem;
   }
 
   .button {
