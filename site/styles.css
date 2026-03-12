@@ -744,13 +744,38 @@ p {
   }
 
   .profile-card {
-    min-height: 380px;
+    min-height: 320px;
   }
 
   .stack-card-top {
     position: static;
     width: auto;
     margin-top: 14px;
+  }
+
+  .profile-overlay {
+    padding: 18px;
+  }
+
+  .profile-overlay h2 {
+    font-size: 1.72rem;
+    margin-bottom: 6px;
+  }
+
+  .profile-overlay p {
+    min-height: 0;
+    font-size: 0.98rem;
+    line-height: 1.5;
+  }
+
+  .chip-row {
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .chip-row span {
+    padding: 7px 10px;
+    font-size: 0.78rem;
   }
 
   .profile-dots {
@@ -760,6 +785,15 @@ p {
   .panel-grid {
     gap: 10px;
     margin-top: 14px;
+  }
+
+  .hero-signals {
+    gap: 10px;
+  }
+
+  .hero-signals div {
+    padding: 16px;
+    border-radius: 18px;
   }
 
   .mini-panel {
