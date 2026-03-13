@@ -29,6 +29,8 @@ dist/
 .idea/
 .codex-worktrees/
 .wrangler/
+.vercel/
+/site/
 
 # runtime uploads
 backend/public/pfps/
