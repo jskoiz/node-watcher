@@ -14,10 +14,8 @@ jest.mock('bcrypt', () => ({
   compare: jest.fn(),
 }));
 
-const mockedHash = bcrypt.hash as jest.MockedFunction<typeof bcrypt.hash>;
-const mockedCompare = bcrypt.compare as jest.MockedFunction<
-  typeof bcrypt.compare
->;
+const mockedHash = bcrypt.hash as jest.Mock;
+const mockedCompare = bcrypt.compare as jest.Mock;
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -90,7 +88,7 @@ describe('AuthService', () => {
       isOnboarded: false,
     });
     jwtServiceMock.sign.mockReturnValue('signed-token');
-    mockedHash.mockResolvedValue('hashed-password');
+    mockedHash.mockImplementation(async () => 'hashed-password');
 
     const result = await service.signup({
       email: ' Jordan@Example.com ',
@@ -197,7 +195,7 @@ describe('AuthService', () => {
       isOnboarded: true,
     });
     jwtServiceMock.sign.mockReturnValue('signed-token');
-    mockedCompare.mockResolvedValue(true);
+    mockedCompare.mockImplementation(async () => true);
 
     const result = await service.login({
       email: ' Jordan@Example.com ',
@@ -232,7 +230,7 @@ describe('AuthService', () => {
       isOnboarded: true,
     });
     jwtServiceMock.sign.mockReturnValue('signed-token');
-    mockedCompare.mockResolvedValue(true);
+    mockedCompare.mockImplementation(async () => true);
 
     const result = await service.login({
       email: 'jordan@example.com',
