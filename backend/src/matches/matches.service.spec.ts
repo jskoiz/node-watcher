@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-argument */
+import { ForbiddenException } from '@nestjs/common';
 import { MatchesService } from './matches.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchesRealtimeService } from './matches-realtime.service';
@@ -22,6 +23,7 @@ describe('MatchesService realtime', () => {
       update: jest.fn(),
     },
     message: {
+      findMany: jest.fn(),
       create: jest.fn(),
     },
   } as unknown as PrismaService;
@@ -96,6 +98,34 @@ describe('MatchesService realtime', () => {
       type: 'message',
       data: event,
     });
+  });
+
+  it('rejects message reads for users outside the match with a forbidden error', async () => {
+    jest.mocked(prisma.match.findUnique).mockResolvedValue({
+      id: 'match-1',
+      userAId: 'user-1',
+      userBId: 'user-2',
+      isBlocked: false,
+    } as any);
+
+    await expect(service.getMessages('match-1', 'user-3')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(jest.mocked(prisma.message.findMany)).not.toHaveBeenCalled();
+  });
+
+  it('rejects message sends for blocked matches with a forbidden error', async () => {
+    jest.mocked(prisma.match.findUnique).mockResolvedValue({
+      id: 'match-1',
+      userAId: 'user-1',
+      userBId: 'user-2',
+      isBlocked: true,
+    } as any);
+
+    await expect(
+      service.sendMessage('match-1', 'user-1', 'hey'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(jest.mocked(prisma.message.create)).not.toHaveBeenCalled();
   });
 
   it('creates a mutual-like match using shared profile intents', async () => {
