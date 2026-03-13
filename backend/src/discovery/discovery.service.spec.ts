@@ -255,6 +255,42 @@ describe('DiscoveryService', () => {
     );
   });
 
+  it('keeps candidates when the requester has no coordinates even if a distance filter is set', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'me',
+      profile: {
+        latitude: null,
+        longitude: null,
+      },
+      fitnessProfile: {
+        intensityLevel: 'moderate',
+        primaryGoal: 'strength',
+        secondaryGoal: 'mobility',
+      },
+    });
+    prismaMock.user.findMany.mockResolvedValue([
+      makeCandidate({
+        id: 'known-location',
+      }),
+      makeCandidate({
+        id: 'unknown-location',
+        profile: {
+          city: 'Honolulu',
+          bio: 'No coordinates yet',
+          latitude: null,
+          longitude: null,
+        },
+      }),
+    ]);
+
+    const result = await service.getFeed('me', { distanceKm: 50 });
+
+    expect(result).toHaveLength(2);
+    expect(result.map((candidate) => candidate.id)).toEqual(
+      expect.arrayContaining(['known-location', 'unknown-location']),
+    );
+  });
+
   it('derives mutual match classification from shared intents', async () => {
     prismaMock.like.findUnique
       .mockResolvedValueOnce(null)
