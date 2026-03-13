@@ -32,6 +32,60 @@ describe('DiscoveryController', () => {
     expect(controller).toBeDefined();
   });
 
+  it('parses feed filters from query params and forwards them to the service', async () => {
+    const req = {
+      user: { id: 'user-1', email: 'u@example.com' },
+    } as AuthenticatedRequest;
+    discoveryServiceMock.getFeed.mockResolvedValue([]);
+
+    await expect(
+      controller.getFeed(req, {
+        distanceKm: '10',
+        minAge: '25',
+        maxAge: '32',
+        goals: 'strength,endurance',
+        intensity: 'moderate',
+        availability: 'morning,evening,invalid',
+      }),
+    ).resolves.toEqual([]);
+
+    expect(discoveryServiceMock.getFeed).toHaveBeenCalledWith('user-1', {
+      distanceKm: 10,
+      minAge: 25,
+      maxAge: 32,
+      goals: ['strength', 'endurance'],
+      intensity: ['moderate'],
+      availability: ['morning', 'evening'],
+    });
+  });
+
+  it('supports repeated query params and drops invalid scalar values', async () => {
+    const req = {
+      user: { id: 'user-1', email: 'u@example.com' },
+    } as AuthenticatedRequest;
+    discoveryServiceMock.getFeed.mockResolvedValue([]);
+
+    await expect(
+      controller.getFeed(req, {
+        distanceKm: ['abc', '15'],
+        minAge: [' ', '24'],
+        maxAge: ['41'],
+        goals: ['strength,endurance', '', 'mobility'],
+        intensity: ['moderate', 'high'],
+        availability: ['morning,invalid', 'evening'],
+      }),
+    ).resolves.toEqual([]);
+
+    expect(discoveryServiceMock.getFeed).toHaveBeenCalledWith('user-1', {
+      distanceKm: 15,
+      minAge: 24,
+      maxAge: 41,
+      goals: ['strength', 'endurance', 'mobility'],
+      intensity: ['moderate', 'high'],
+      availability: ['morning', 'evening'],
+    });
+  });
+
   it('delegates like action to discovery service', async () => {
     const req = {
       user: { id: 'user-1', email: 'u@example.com' },

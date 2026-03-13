@@ -396,6 +396,7 @@ export class DiscoveryService {
             updatedAt: new Date(),
             isBlocked: false,
             isArchived: false,
+            ...classification,
           },
         });
 

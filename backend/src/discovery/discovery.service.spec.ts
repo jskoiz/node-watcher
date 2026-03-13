@@ -250,6 +250,8 @@ describe('DiscoveryService', () => {
         updatedAt: expect.any(Date),
         isBlocked: false,
         isArchived: false,
+        isDatingMatch: false,
+        isWorkoutMatch: true,
       }),
     });
     expect(result).toEqual({ status: 'match', match: { id: 'match-1' } });

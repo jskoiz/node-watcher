@@ -77,26 +77,32 @@ export class AuthService {
   }
 
   async login(user: LoginDto): Promise<AuthResult> {
-    let userId = user.id ?? '';
-    let userEmail = user.email ?? '';
+    let userId = user.id?.trim() ?? '';
+    let userEmail = user.email?.trim() ?? '';
+    const password = user.password ?? '';
     let isOnboarded = user.isOnboarded ?? false;
 
     try {
-      if (!userId && user.email && user.password) {
+      const hasCredentials = Boolean(userEmail && password);
+      const hasTrustedIdentity = Boolean(userId && userEmail);
+
+      if (!hasCredentials && !hasTrustedIdentity) {
+        this.logger.warn('Login rejected due to incomplete credentials');
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      if (!hasTrustedIdentity && userEmail && password) {
         const foundUser = await this.prisma.user.findFirst({
-          where: { email: user.email },
+          where: { email: userEmail },
         });
         if (!foundUser || !foundUser.passwordHash) {
-          this.logger.warn(`Login rejected for email=${user.email}`);
+          this.logger.warn(`Login rejected for email=${userEmail}`);
           throw new UnauthorizedException('Invalid credentials');
         }
 
-        const isMatch = await bcrypt.compare(
-          user.password,
-          foundUser.passwordHash,
-        );
+        const isMatch = await bcrypt.compare(password, foundUser.passwordHash);
         if (!isMatch) {
-          this.logger.warn(`Login rejected for email=${user.email}`);
+          this.logger.warn(`Login rejected for email=${userEmail}`);
           throw new UnauthorizedException('Invalid credentials');
         }
         userId = foundUser.id;

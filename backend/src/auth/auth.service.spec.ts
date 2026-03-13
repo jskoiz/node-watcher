@@ -88,4 +88,12 @@ describe('AuthService', () => {
     );
     expect(prismaMock.user.delete).not.toHaveBeenCalled();
   });
+
+  it('rejects login when both credentials and trusted identity are missing', async () => {
+    await expect(service.login({ email: '   ' })).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(jwtServiceMock.sign).not.toHaveBeenCalled();
+    expect(prismaMock.user.findFirst).not.toHaveBeenCalled();
+  });
 });
