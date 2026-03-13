@@ -286,7 +286,7 @@ describe('DiscoveryService', () => {
     const result = await service.getFeed('me', { distanceKm: 50 });
 
     expect(result).toHaveLength(2);
-    expect(result.map((candidate) => candidate.id)).toEqual(
+    expect(result.map((candidate) => candidate?.id)).toEqual(
       expect.arrayContaining(['known-location', 'unknown-location']),
     );
   });
