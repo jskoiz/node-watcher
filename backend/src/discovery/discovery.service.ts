@@ -85,6 +85,20 @@ export class DiscoveryService {
         take: 100,
       })) as unknown as UserWithRelations[];
 
+      let maxDistanceKm: number | null = null;
+      if (
+        typeof filters.distanceKm === 'number' &&
+        Number.isFinite(filters.distanceKm) &&
+        filters.distanceKm > 0
+      ) {
+        maxDistanceKm = filters.distanceKm;
+      }
+      const requesterHasCoordinates =
+        me?.profile?.latitude !== null &&
+        me?.profile?.latitude !== undefined &&
+        me?.profile?.longitude !== null &&
+        me?.profile?.longitude !== undefined;
+
       const scored = users
         .map((user) => {
           const age = this.calculateAge(user.birthdate);
@@ -98,9 +112,9 @@ export class DiscoveryService {
           if (filters.minAge && age < filters.minAge) return null;
           if (filters.maxAge && age > filters.maxAge) return null;
           if (
-            filters.distanceKm &&
-            distanceKm !== null &&
-            distanceKm > filters.distanceKm
+            maxDistanceKm !== null &&
+            requesterHasCoordinates &&
+            (distanceKm === null || distanceKm > maxDistanceKm)
           )
             return null;
 
