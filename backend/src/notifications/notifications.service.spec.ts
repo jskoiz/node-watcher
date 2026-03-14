@@ -65,6 +65,26 @@ describe('NotificationsService', () => {
     expect(list.every((n) => n.readAt !== null)).toBe(true);
   });
 
+  it('markAllRead counts only previously-unread notifications', () => {
+    const n1 = service.create('user-1', { type: 'system', title: 'A', body: '' });
+    service.create('user-1', { type: 'system', title: 'B', body: '' });
+
+    // Pre-read one notification so only 1 is actually unread
+    service.markRead('user-1', n1.id);
+
+    const { updated } = service.markAllRead('user-1');
+    // Only the remaining unread notification should be counted, not the total
+    expect(updated).toBe(1);
+  });
+
+  it('markAllRead returns 0 when all notifications are already read', () => {
+    const n = service.create('user-1', { type: 'system', title: 'A', body: '' });
+    service.markRead('user-1', n.id);
+
+    const { updated } = service.markAllRead('user-1');
+    expect(updated).toBe(0);
+  });
+
   it('isolates notifications per user', () => {
     service.create('user-1', { type: 'system', title: 'U1', body: '' });
     service.create('user-2', { type: 'system', title: 'U2', body: '' });

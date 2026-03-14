@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -42,7 +43,11 @@ export class NotificationsController {
 
   @Patch(':id/read')
   markRead(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.notificationsService.markRead(req.user.id, id);
+    const result = this.notificationsService.markRead(req.user.id, id);
+    if (result === null) {
+      throw new NotFoundException(`Notification ${id} not found`);
+    }
+    return result;
   }
 
   @Post('mark-all-read')

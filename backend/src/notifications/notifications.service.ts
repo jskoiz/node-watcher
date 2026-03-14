@@ -61,10 +61,14 @@ export class NotificationsService {
   markAllRead(userId: string) {
     const current = this.notificationsByUser.get(userId) ?? [];
     const now = new Date();
+    let updated = 0;
     for (const item of current) {
-      if (!item.readAt) item.readAt = now;
+      if (!item.readAt) {
+        item.readAt = now;
+        updated++;
+      }
     }
-    return { updated: current.length };
+    return { updated };
   }
 
   private dispatchPush(notification: AppNotification) {
