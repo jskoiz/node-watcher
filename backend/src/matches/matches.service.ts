@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, MessageEvent } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchesRealtimeService } from './matches-realtime.service';
 import { map, Observable } from 'rxjs';
@@ -14,6 +15,9 @@ export class MatchesService {
   ) {}
 
   async likeUser(fromUserId: string, toUserId: string) {
+    if (fromUserId === toUserId) {
+      return { isMatch: false };
+    }
     // 1. Check if like already exists to prevent duplicates
     const existingLike = await this.prisma.like.findUnique({
       where: {
@@ -70,13 +74,28 @@ export class MatchesService {
         toUserId,
       ]);
 
-      const match = await this.prisma.match.create({
-        data: {
-          userAId,
-          userBId,
-          ...classification,
-        },
-      });
+      let match: { id: string };
+      try {
+        match = await this.prisma.match.create({
+          data: {
+            userAId,
+            userBId,
+            ...classification,
+          },
+        });
+      } catch (e) {
+        // Race condition: both users liked simultaneously; another request created the match first
+        if (
+          e instanceof Prisma.PrismaClientKnownRequestError &&
+          e.code === 'P2002'
+        ) {
+          const existing = await this.prisma.match.findUnique({
+            where: { userAId_userBId: { userAId, userBId } },
+          });
+          return { isMatch: true, matchId: existing!.id };
+        }
+        throw e;
+      }
 
       this.notifications.create(fromUserId, {
         type: 'match_created',
@@ -219,7 +238,8 @@ export class MatchesService {
     if (
       !match ||
       (match.userAId !== userId && match.userBId !== userId) ||
-      match.isBlocked
+      match.isBlocked ||
+      match.isArchived
     ) {
       throw new ForbiddenException('Access denied');
     }
