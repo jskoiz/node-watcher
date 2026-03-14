@@ -69,7 +69,7 @@ const config: ExpoConfig = {
   orientation: "portrait",
   icon: "./assets/icon.png",
   scheme: slug,
-  userInterfaceStyle: "light",
+  userInterfaceStyle: "dark",
   newArchEnabled: true,
   plugins: ["expo-asset", "expo-font"],
   runtimeVersion: {
@@ -81,7 +81,7 @@ const config: ExpoConfig = {
   splash: {
     image: "./assets/splash-icon.png",
     resizeMode: "contain",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#0D1117",
   },
   ios: {
     supportsTablet: true,
@@ -96,7 +96,7 @@ const config: ExpoConfig = {
     versionCode: androidVersionCode,
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#0D1117",
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,

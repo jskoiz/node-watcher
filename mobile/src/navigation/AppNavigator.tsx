@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { DarkTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuthStore } from "../store/authStore";
 import LoginScreen from "../screens/LoginScreen";
@@ -14,6 +14,7 @@ import NotificationsScreen from "../screens/NotificationsScreen";
 
 import MainTabNavigator from "./MainTabNavigator";
 import { setUnauthorizedHandler } from "../api/authSession";
+import { useTheme } from "../theme/useTheme";
 
 const Stack = createNativeStackNavigator();
 
@@ -22,6 +23,20 @@ export default function AppNavigator() {
   const isLoading = useAuthStore((state) => state.isLoading);
   const loadToken = useAuthStore((state) => state.loadToken);
   const clearSession = useAuthStore((state) => state.clearSession);
+  const theme = useTheme();
+
+  const navigationTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: theme.background,
+      card: theme.background,
+      border: theme.border,
+      primary: theme.primary,
+      text: theme.textPrimary,
+      notification: theme.accent,
+    },
+  };
 
   useEffect(() => {
     const cleanupUnauthorizedHandler = setUnauthorizedHandler(clearSession);
@@ -37,20 +52,21 @@ export default function AppNavigator() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#FAF7F4",
+          backgroundColor: theme.background,
         }}
       >
-        <ActivityIndicator size="large" color="#C9897A" />
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: "#FAF7F4" },
+          contentStyle: { backgroundColor: theme.background },
+          animation: "default",
         }}
       >
         {token ? (
