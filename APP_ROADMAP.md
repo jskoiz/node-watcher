@@ -1,5 +1,8 @@
 # BRDG App - Project Status & Roadmap
 
+> Historical snapshot only.
+> This document is preserved for context and may not reflect the current implementation. Use [`docs/DEV_LOOP.md`](/Users/jerry/Desktop/brdg/docs/DEV_LOOP.md), [`docs/ARCHITECTURE.md`](/Users/jerry/Desktop/brdg/docs/ARCHITECTURE.md), [`docs/FUNCTIONAL_MATRIX.md`](/Users/jerry/Desktop/brdg/docs/FUNCTIONAL_MATRIX.md), and the current `backend/src/**` and `mobile/src/**` trees as the live source of truth.
+
 ## 📱 Current Status (MVP Phase 1)
 
 We have successfully established the foundation of the BRDG app. The core navigation loop and user identity systems are in place.
@@ -140,4 +143,3 @@ Based on the initial "Connection through movement" concept, here are some tailor
 *   **Actions**:
     *   **Create Workout Invite**: Builder flow (Activity + Time + Invitees).
     *   **Post Activity**: Short status update ("Hitting Gold's at 5pm").
-

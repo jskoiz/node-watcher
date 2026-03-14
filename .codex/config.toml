@@ -1,0 +1,23 @@
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
+personality = "pragmatic"
+approval_policy = "never"
+
+[mcp_servers.figma]
+url = "https://mcp.figma.com/mcp"
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["@playwright/mcp@latest"]
+
+[profiles.review]
+model_reasoning_effort = "high"
+
+[profiles.ui-debug]
+model_reasoning_effort = "medium"
+
+[profiles.release]
+model_reasoning_effort = "high"
+
+[projects."/Users/jerry/Desktop/brdg"]
+trust_level = "trusted"

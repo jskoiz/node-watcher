@@ -1,0 +1,4 @@
+interface:
+  display_name: "BRDG iOS Release"
+  short_description: "Run the BRDG iOS release checklist"
+  default_prompt: "Use $brdg-ios-release to prepare or verify a BRDG iOS release."

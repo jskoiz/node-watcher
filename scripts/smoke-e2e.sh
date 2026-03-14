@@ -5,8 +5,16 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
 MOBILE_DIR="$ROOT_DIR/mobile"
 
-API_PORT="${API_PORT:-3000}"
-API_BASE_URL="http://127.0.0.1:${API_PORT}"
+if [[ -f "$BACKEND_DIR/.env" ]]; then
+  # shellcheck disable=SC1091
+  source "$BACKEND_DIR/.env"
+elif [[ -f "$BACKEND_DIR/.env.example" ]]; then
+  # shellcheck disable=SC1091
+  source "$BACKEND_DIR/.env.example"
+fi
+
+API_PORT="${API_PORT:-${PORT:-3010}}"
+API_BASE_URL="${API_BASE_URL:-http://127.0.0.1:${API_PORT}}"
 BACKEND_LOG="${BACKEND_LOG:-/tmp/brdg-backend-smoke.log}"
 
 cleanup() {

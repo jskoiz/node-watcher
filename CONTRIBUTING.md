@@ -2,12 +2,20 @@
 
 ## Local setup
 
+### Repo root
+
+```bash
+npm run check
+npm run smoke
+```
+
 ### Backend
 
 ```bash
 cd backend
 npm ci
 cp .env.example .env
+npm run dev:bootstrap
 npm run start:dev
 ```
 
@@ -25,7 +33,7 @@ Run these before opening a PR:
 
 ```bash
 # repo root one-shot smoke (bootstrap -> backend start -> mobile prereqs)
-./scripts/smoke-e2e.sh
+npm run smoke
 ```
 
 ### Backend
@@ -50,8 +58,8 @@ npm run check
 ```
 
 This runs:
-- `npm run lint` (currently aliases to typecheck)
-- `npm run test` (placeholder smoke output until unit tests are added)
+- `npm run lint`
+- `npm run test`
 
 ## CI checks
 
@@ -64,4 +72,12 @@ It executes:
 ### Temporary skips
 
 - **Backend lint is not yet in CI** because current ESLint rules fail on existing legacy `any` usage and unsafe access patterns. Lint remains available locally via `npm run lint` while technical debt is addressed incrementally.
-- **Mobile unit tests are not implemented yet.** The `test` script is a temporary placeholder so the command contract exists and can be swapped to Jest once tests are introduced.
+- **Mobile lint currently aliases to typecheck** in this branch. Use `npm run check` in `mobile` and the repo-root `npm run check` as the source of truth until stricter linting is intentionally reintroduced.
+
+## Codex workflow
+
+- Work from the repo root by default and let Codex stay there too.
+- Use one Codex thread per task and one git worktree per active task.
+- Prefer [`scripts/codex-worktree.sh`](/Users/jerry/Desktop/brdg/scripts/codex-worktree.sh) when you want a fresh worktree for a new Codex task.
+- Keep durable repo instructions in [`AGENTS.md`](/Users/jerry/Desktop/brdg/AGENTS.md) and review guidance in [`code_review.md`](/Users/jerry/Desktop/brdg/code_review.md).
+- Prefer the repo-root scripts over retyping package-local commands in prompts.

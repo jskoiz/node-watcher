@@ -1,0 +1,4 @@
+interface:
+  display_name: "BRDG Roadmap Sync"
+  short_description: "Check BRDG docs and roadmap drift"
+  default_prompt: "Use $brdg-roadmap-sync to compare BRDG roadmap docs against the codebase."

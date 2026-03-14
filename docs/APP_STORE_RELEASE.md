@@ -28,20 +28,42 @@ For local release builds, [`mobile/.env.production`](/Users/jerry/Desktop/brdg/m
 
 ## Recommended release flow
 
-From [`/Users/jerry/Desktop/brdg/mobile`](/Users/jerry/Desktop/brdg/mobile):
+From repo root:
 
 ```bash
-npx eas login
-npx eas build --platform ios --profile production
+npm run release:ios:check
+npm run release:ios
 ```
+
+This is the normal release path. [`scripts/release-ios.sh`](/Users/jerry/Desktop/brdg/scripts/release-ios.sh) enforces branch cleanliness, upstream sync, backend/mobile validation, and writes a manifest to [`mobile/build/ios-release-manifest.json`](/Users/jerry/Desktop/brdg/mobile/build/ios-release-manifest.json) before starting the build.
+
+Use `npm run release:ios:check` when you want the preflight and manifest generation without starting EAS.
+
+## Release provenance guardrails
+
+Before any production or TestFlight archive:
+
+- Build only from `main` or an explicitly designated `release/*` branch.
+- Do not build from a dirty working tree.
+- Do not build from a detached `HEAD`.
+- Do not build from local-only, unpushed commits.
+- Record the exact branch, full git SHA, app version, iOS build number, API URL, and build date in the release notes or handoff.
+
+The script blocks release if any of these conditions fail:
+
+- current branch is not `main` or `release/*`
+- working tree is not fully clean, including untracked files
+- branch is detached
+- branch has no upstream
+- branch is ahead of or behind its upstream
+- repo validation fails
 
 If the build is intended for App Store review, submit the resulting `.ipa` through Transporter or `eas submit` after App Store Connect is configured.
 
-If building locally with Xcode instead of EAS:
+If building locally with Xcode instead of EAS, treat it as a fallback path only and use the same wrapper:
 
 ```bash
-cd /Users/jerry/Desktop/brdg/mobile
-xcodebuild -workspace ios/mobile.xcworkspace -scheme mobile -configuration Release -destination 'generic/platform=iOS' archive -archivePath build/BRDG.xcarchive -allowProvisioningUpdates
+./scripts/release-ios.sh --mode xcode
 ```
 
 ## App Store Connect items still required
@@ -58,3 +80,5 @@ xcodebuild -workspace ios/mobile.xcworkspace -scheme mobile -configuration Relea
 - `npm run check` in [`mobile`](/Users/jerry/Desktop/brdg/mobile)
 - `npm run check:full` in [`backend`](/Users/jerry/Desktop/brdg/backend)
 - Verify signup, login, onboarding, profile load, discovery feed, chat, event creation, RSVP, notifications, logout, and account deletion against the production API
+- Verify the authenticated runtime surfaces for Discover, Explore, Create, Inbox, and You. Preview routes are useful, but they do not replace runtime verification.
+- Open the in-app build provenance panel in the You/Profile screen and confirm branch, git SHA, version/build number, API URL, and build date match the release manifest.

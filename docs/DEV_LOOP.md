@@ -5,14 +5,18 @@
 From repo root:
 
 ```bash
-# backend terminal
+# first terminal
+npm run dev:backend
+
+# second terminal
+npm run dev:mobile
+```
+
+If local infra or schema state is missing, bootstrap once from `backend/`:
+
+```bash
 cd backend
 npm run dev:bootstrap
-npm run start:dev
-
-# mobile terminal
-cd mobile
-npm run start
 ```
 
 ## Release-hardening smoke run
@@ -20,27 +24,64 @@ npm run start
 From repo root:
 
 ```bash
-./scripts/smoke-e2e.sh
+npm run smoke
 ```
 
 This verifies:
 1. Backend deterministic bootstrap (`db up -> wait -> migrate -> seed`)
-2. Backend starts and responds on `http://127.0.0.1:3010`
+2. Backend starts and responds on the configured local API URL
 3. Mobile launch prerequisites (`expo-doctor` + `typecheck`)
 
 ## Validation commands used before ship
 
 ```bash
-# backend
-cd backend
-npm run test
-npm run build
+# repo root
+npm run check
 
-# mobile
-cd mobile
-npx expo-doctor
-npm run typecheck
+# or package-local when narrowing failures
+npm run check:backend
+npm run check:mobile
 ```
+
+## Preview surfaces
+
+Use preview mode for stable UI review instead of steering through live app state:
+
+```bash
+cd mobile
+EXPO_PUBLIC_PREVIEW_SURFACES=1 EXPO_PUBLIC_PREVIEW_SCENARIO=home-populated npm run web
+```
+
+Common scenarios:
+- `home-populated`
+- `auth-login`
+- `chat-thread`
+- `notifications`
+- `profile-edit`
+- `create-flow`
+
+Use screenshot mode to jump directly to a runtime tab:
+
+```bash
+cd mobile
+EXPO_PUBLIC_SCREENSHOT_MODE=1 EXPO_PUBLIC_SCREENSHOT_ROUTE=Discover npm run web
+```
+
+## Backend reset path for QA
+
+When preview or QA flows need known live data, run this against a running backend:
+
+```bash
+npm run dev:scenario -- ui-preview
+```
+
+This recreates fixed preview users, a mutual match, chat history, notifications, and an event RSVP path.
+
+## No-fragmentation release rule
+
+- Do not cut TestFlight or App Store builds from feature branches, dirty trees, detached `HEAD`, or local-only commits.
+- Ship only from a clean `main` or explicit `release/*` branch.
+- If local dev and TestFlight differ, inspect the shipped bundle and identify the exact source snapshot before changing UI code.
 
 ## Troubleshooting quick reference
 
@@ -59,7 +100,7 @@ npm run typecheck
 
 ### Auth/profile/discovery requests failing
 
-- Backend now logs structured error context in:
+- Backend logs structured error context in:
   - `AuthService`
   - `ProfileService`
   - `DiscoveryService`

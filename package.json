@@ -1,0 +1,17 @@
+{
+  "name": "brdg",
+  "private": true,
+  "scripts": {
+    "check": "npm run check:backend && npm run check:mobile",
+    "check:backend": "npm --prefix backend run check",
+    "check:mobile": "npm --prefix mobile run check",
+    "smoke": "./scripts/smoke-e2e.sh",
+    "dev:backend": "npm --prefix backend run start:dev",
+    "dev:mobile": "npm --prefix mobile run start",
+    "dev:scenario": "npm --prefix backend run dev:scenario --",
+    "release:ios": "./scripts/release-ios.sh",
+    "release:ios:check": "./scripts/release-ios.sh --check-only",
+    "test:backend": "npm --prefix backend run test",
+    "test:mobile": "npm --prefix mobile run test"
+  }
+}

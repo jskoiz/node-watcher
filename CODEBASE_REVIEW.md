@@ -1,5 +1,8 @@
 # Codebase Review: BRDG App
 
+> Historical snapshot only.
+> This document captures an earlier review and is not the current source of truth. Use [`docs/FUNCTIONAL_MATRIX.md`](/Users/jerry/Desktop/brdg/docs/FUNCTIONAL_MATRIX.md), [`docs/DEV_LOOP.md`](/Users/jerry/Desktop/brdg/docs/DEV_LOOP.md), and current source files before acting on claims here.
+
 ## 🚨 Critical Issues (Bad Code / Security)
 
 ### 1. Hardcoded Secrets

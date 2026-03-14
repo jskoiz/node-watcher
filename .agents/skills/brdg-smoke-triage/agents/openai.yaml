@@ -1,0 +1,4 @@
+interface:
+  display_name: "BRDG Smoke Triage"
+  short_description: "Triage BRDG smoke and dev-loop failures"
+  default_prompt: "Use $brdg-smoke-triage to diagnose a failing BRDG smoke run."
