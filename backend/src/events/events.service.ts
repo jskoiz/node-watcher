@@ -154,38 +154,48 @@ export class EventsService {
 
   async rsvp(eventId: string, userId: string) {
     const event = await this.detail(eventId);
-
-    await this.prisma.eventRsvp.upsert({
+    const existingRsvp = await this.prisma.eventRsvp.findUnique({
       where: {
         eventId_userId: {
           eventId,
           userId,
         },
       },
-      create: {
-        eventId,
-        userId,
-      },
-      update: {},
     });
 
-    const total = await this.prisma.eventRsvp.count({ where: { eventId } });
+    if (!existingRsvp) {
+      await this.prisma.eventRsvp.upsert({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
+        },
+        create: {
+          eventId,
+          userId,
+        },
+        update: {},
+      });
 
-    if (event.host.id !== userId) {
-      this.notifications.create(event.host.id, {
-        type: 'event_rsvp',
-        title: 'New RSVP',
-        body: `Someone joined ${event.title}`,
-        data: { eventId, attendeeId: userId },
+      if (event.host.id !== userId) {
+        this.notifications.create(event.host.id, {
+          type: 'event_rsvp',
+          title: 'New RSVP',
+          body: `Someone joined ${event.title}`,
+          data: { eventId, attendeeId: userId },
+        });
+      }
+
+      this.notifications.create(userId, {
+        type: 'event_reminder',
+        title: 'Event joined',
+        body: `You are in for ${event.title}`,
+        data: { eventId },
       });
     }
 
-    this.notifications.create(userId, {
-      type: 'event_reminder',
-      title: 'Event joined',
-      body: `You are in for ${event.title}`,
-      data: { eventId },
-    });
+    const total = await this.prisma.eventRsvp.count({ where: { eventId } });
 
     return { status: 'joined', attendeesCount: total };
   }
