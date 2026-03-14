@@ -11,20 +11,24 @@ export class ProfileService {
     // Strip userId from caller-supplied data to prevent overwriting the relation key
     const { userId: _ignored, ...safeData } = data;
     try {
-      const profile = await this.prisma.userFitnessProfile.upsert({
-        where: { userId },
-        update: {
-          ...safeData,
-        },
-        create: {
-          userId,
-          ...safeData,
-        },
-      });
+      const profile = await this.prisma.$transaction(async (tx) => {
+        const updatedProfile = await tx.userFitnessProfile.upsert({
+          where: { userId },
+          update: {
+            ...safeData,
+          },
+          create: {
+            userId,
+            ...safeData,
+          },
+        });
 
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { isOnboarded: true },
+        await tx.user.update({
+          where: { id: userId },
+          data: { isOnboarded: true },
+        });
+
+        return updatedProfile;
       });
 
       return profile;
@@ -78,8 +82,17 @@ export class ProfileService {
         return null;
       }
 
+      // Strip sensitive auth fields before returning — passwordHash must never
+      // leave the service layer (affects both own-profile and getProfileById).
+      const {
+        passwordHash: _ph,
+        providerId: _pid,
+        authProvider: _ap,
+        ...safeUser
+      } = user;
+
       return {
-        ...user,
+        ...safeUser,
         age: this.calculateAge(user.birthdate),
       };
     } catch (error) {

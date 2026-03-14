@@ -16,6 +16,7 @@ describe('ProfileService', () => {
       update: jest.fn(),
       findUnique: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -40,6 +41,7 @@ describe('ProfileService', () => {
 
   it('marks user as onboarded when fitness profile is updated', async () => {
     const profile = { userId: 'user-1', intensityLevel: 'high' };
+    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => Promise<typeof profile>) => fn(prismaMock));
     prismaMock.userFitnessProfile.upsert.mockResolvedValue(profile);
 
     const result = await service.updateFitnessProfile('user-1', {
@@ -53,7 +55,21 @@ describe('ProfileService', () => {
     });
   });
 
+  it('runs fitness upsert and isOnboarded update inside a transaction', async () => {
+    const profile = { userId: 'user-1', intensityLevel: 'high' };
+    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => Promise<typeof profile>) => fn(prismaMock));
+    prismaMock.userFitnessProfile.upsert.mockResolvedValue(profile);
+
+    await service.updateFitnessProfile('user-1', { intensityLevel: 'high' });
+
+    // Both DB writes must happen inside the same $transaction call
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(prismaMock.userFitnessProfile.upsert).toHaveBeenCalledTimes(1);
+    expect(prismaMock.user.update).toHaveBeenCalledTimes(1);
+  });
+
   it('strips userId from caller-supplied data in updateFitnessProfile', async () => {
+    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock));
     prismaMock.userFitnessProfile.upsert.mockResolvedValue({ userId: 'user-1' });
 
     await service.updateFitnessProfile('user-1', {
@@ -108,5 +124,26 @@ describe('ProfileService', () => {
     const result = await service.getProfile('user-1');
     expect(typeof result!.age).toBe('number');
     expect(result!.age).toBeGreaterThan(30);
+  });
+
+  it('strips passwordHash, providerId, and authProvider from getProfile result', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      birthdate: new Date('1995-06-15'),
+      passwordHash: 'super-secret-hash',
+      providerId: 'provider-xyz',
+      authProvider: 'phone',
+      fitnessProfile: null,
+      profile: null,
+      photos: [],
+    });
+
+    const result = await service.getProfile('user-1');
+    expect(result).not.toBeNull();
+    expect(result).not.toHaveProperty('passwordHash');
+    expect(result).not.toHaveProperty('providerId');
+    expect(result).not.toHaveProperty('authProvider');
+    // Safe fields must still be present
+    expect(result!.id).toBe('user-1');
   });
 });
