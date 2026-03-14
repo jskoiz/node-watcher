@@ -19,6 +19,7 @@ import { useAuthStore } from "../store/authStore";
 import client from "../api/client";
 import { normalizeApiError } from "../api/errors";
 import type { User } from "../api/types";
+import { buildInfo } from "../config/buildInfo";
 import AppState from "../components/ui/AppState";
 import { radii, spacing, typography } from "../theme/tokens";
 
@@ -140,21 +141,43 @@ function SettingsRow({
   icon,
   label,
   onPress,
+  accessory = "›",
+  testID,
 }: {
   icon: string;
   label: string;
   onPress: () => void;
+  accessory?: string;
+  testID?: string;
 }) {
   return (
     <TouchableOpacity
+      testID={testID}
       style={styles.settingsRow}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <Text style={styles.settingsIcon}>{icon}</Text>
       <Text style={styles.settingsLabel}>{label}</Text>
-      <Text style={styles.settingsArrow}>›</Text>
+      <Text style={styles.settingsArrow}>{accessory}</Text>
     </TouchableOpacity>
+  );
+}
+
+function BuildInfoRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.buildInfoRow}>
+      <Text style={styles.buildInfoLabel}>{label}</Text>
+      <Text selectable style={styles.buildInfoValue}>
+        {value}
+      </Text>
+    </View>
   );
 }
 
@@ -172,6 +195,7 @@ export default function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [showBuildInfo, setShowBuildInfo] = useState(false);
 
   const [intensityLevel, setIntensityLevel] = useState("");
   const [weeklyFrequencyBand, setWeeklyFrequencyBand] = useState("");
@@ -286,6 +310,18 @@ export default function ProfileScreen() {
 
   const primaryPhoto =
     profile.photos?.find((p) => p.isPrimary)?.storageKey || profile.photoUrl;
+  const buildRows = [
+    { label: "App env", value: buildInfo.appEnv },
+    {
+      label: "Version",
+      value: `${buildInfo.version} (${buildInfo.iosBuildNumber})`,
+    },
+    { label: "Branch", value: buildInfo.gitBranch },
+    { label: "Git SHA", value: buildInfo.gitSha },
+    { label: "API URL", value: buildInfo.apiBaseUrl || "not set" },
+    { label: "Built at", value: buildInfo.buildDate },
+    { label: "Release path", value: buildInfo.releaseMode },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -499,6 +535,29 @@ export default function ProfileScreen() {
               label="Notifications"
               onPress={() => navigation.navigate("Notifications")}
             />
+            <View style={styles.fieldDivider} />
+            <SettingsRow
+              testID="build-provenance-toggle"
+              icon="🧾"
+              label="Build provenance"
+              accessory={showBuildInfo ? "⌄" : "›"}
+              onPress={() => setShowBuildInfo((current) => !current)}
+            />
+            {showBuildInfo ? (
+              <>
+                <View style={styles.fieldDivider} />
+                <View testID="build-provenance-panel" style={styles.buildInfoCard}>
+                  {buildRows.map((row, index) => (
+                    <View key={row.label}>
+                      <BuildInfoRow label={row.label} value={row.value} />
+                      {index < buildRows.length - 1 ? (
+                        <View style={styles.buildInfoDivider} />
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              </>
+            ) : null}
           </View>
         </View>
 
@@ -809,6 +868,31 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "300",
     color: TEXT_MUTED,
+  },
+  buildInfoCard: {
+    paddingTop: spacing.sm,
+    gap: spacing.xs,
+  },
+  buildInfoRow: {
+    gap: 4,
+    paddingVertical: spacing.sm,
+  },
+  buildInfoLabel: {
+    fontSize: typography.bodySmall,
+    fontWeight: "700",
+    color: TEXT_MUTED,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  buildInfoValue: {
+    fontSize: typography.bodySmall,
+    lineHeight: 20,
+    color: TEXT_PRIMARY,
+    fontWeight: "600",
+  },
+  buildInfoDivider: {
+    height: 1,
+    backgroundColor: BORDER,
   },
   dangerCard: {
     backgroundColor: "rgba(248,113,113,0.08)",

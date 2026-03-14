@@ -1,5 +1,12 @@
 import type { ExpoConfig } from "expo/config";
 
+declare const __dirname: string;
+declare function require(moduleName: string): any;
+
+const { execFileSync } = require("child_process");
+const path = require("path");
+
+const repoRoot = path.resolve(__dirname, "..");
 const appName = process.env.EXPO_PUBLIC_APP_NAME?.trim() || "BRDG";
 const slug = process.env.EXPO_PUBLIC_APP_SLUG?.trim() || "brdg";
 const version = process.env.APP_VERSION?.trim() || "1.0.0";
@@ -18,6 +25,36 @@ const androidVersionCode = Number.isFinite(parsedAndroidVersionCode)
 
 const appEnv = process.env.APP_ENV?.trim() || "development";
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+const iosBuildNumber = process.env.IOS_BUILD_NUMBER?.trim() || "1";
+
+const readGitValue = (
+  envKey: string,
+  args: string[],
+  fallback = "unknown",
+) => {
+  const explicit = process.env[envKey]?.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  try {
+    const value = String(
+      execFileSync("git", ["-C", repoRoot, ...args], {
+        stdio: ["ignore", "pipe", "ignore"],
+      }),
+    )
+      .toString()
+      .trim();
+    return value || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const gitSha = readGitValue("BRDG_GIT_SHA", ["rev-parse", "HEAD"]);
+const gitBranch = readGitValue("BRDG_GIT_BRANCH", ["branch", "--show-current"]);
+const buildDate = process.env.BRDG_BUILD_DATE?.trim() || new Date().toISOString();
+const releaseMode = process.env.BRDG_RELEASE_MODE?.trim() || "runtime";
 
 if (appEnv !== "development" && !apiUrl) {
   throw new Error(
@@ -34,6 +71,7 @@ const config: ExpoConfig = {
   scheme: slug,
   userInterfaceStyle: "light",
   newArchEnabled: true,
+  plugins: ["expo-asset", "expo-font"],
   runtimeVersion: {
     policy: "appVersion",
   },
@@ -48,7 +86,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: iosBundleIdentifier,
-    buildNumber: process.env.IOS_BUILD_NUMBER?.trim() || "1",
+    buildNumber: iosBuildNumber,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
     },
@@ -69,6 +107,19 @@ const config: ExpoConfig = {
   extra: {
     appEnv,
     apiBaseUrl: apiUrl ?? null,
+    buildProvenance: {
+      appEnv,
+      apiBaseUrl: apiUrl ?? null,
+      version,
+      iosBuildNumber,
+      androidVersionCode: String(androidVersionCode),
+      gitBranch,
+      gitSha,
+      gitShortSha: gitSha === "unknown" ? "unknown" : gitSha.slice(0, 7),
+      buildDate,
+      releaseMode,
+      releaseProfile: process.env.BRDG_RELEASE_PROFILE?.trim() || null,
+    },
     ...(process.env.EAS_PROJECT_ID
       ? {
           eas: {

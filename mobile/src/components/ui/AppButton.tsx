@@ -12,9 +12,10 @@ interface AppButtonProps {
   loading?: boolean;
   variant?: Variant;
   style?: ViewStyle;
+  testID?: string;
 }
 
-export default function AppButton({ label, onPress, disabled, loading, variant = 'primary', style }: AppButtonProps) {
+export default function AppButton({ label, onPress, disabled, loading, variant = 'primary', style, testID }: AppButtonProps) {
   const theme = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const isDisabled = disabled || loading;
@@ -83,6 +84,7 @@ export default function AppButton({ label, onPress, disabled, loading, variant =
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
