@@ -1,4 +1,4 @@
-import { Injectable, MessageEvent } from '@nestjs/common';
+import { ForbiddenException, Injectable, MessageEvent } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchesRealtimeService } from './matches-realtime.service';
 import { map, Observable } from 'rxjs';
@@ -129,18 +129,7 @@ export class MatchesService {
     });
   }
   async getMessages(matchId: string, userId: string) {
-    // Verify user is part of match
-    const match = await this.prisma.match.findUnique({
-      where: { id: matchId },
-    });
-
-    if (
-      !match ||
-      (match.userAId !== userId && match.userBId !== userId) ||
-      match.isBlocked
-    ) {
-      throw new Error('Access denied');
-    }
+    await this.assertMatchAccess(matchId, userId);
 
     const messages = await this.prisma.message.findMany({
       where: { matchId },
@@ -160,17 +149,7 @@ export class MatchesService {
     matchId: string,
     userId: string,
   ): Promise<Observable<MessageEvent>> {
-    const match = await this.prisma.match.findUnique({
-      where: { id: matchId },
-    });
-
-    if (
-      !match ||
-      (match.userAId !== userId && match.userBId !== userId) ||
-      match.isBlocked
-    ) {
-      throw new Error('Access denied');
-    }
+    await this.assertMatchAccess(matchId, userId);
 
     return this.realtime
       .stream(matchId)
@@ -182,18 +161,7 @@ export class MatchesService {
   }
 
   async sendMessage(matchId: string, userId: string, content: string) {
-    // Verify user is part of match
-    const match = await this.prisma.match.findUnique({
-      where: { id: matchId },
-    });
-
-    if (
-      !match ||
-      (match.userAId !== userId && match.userBId !== userId) ||
-      match.isBlocked
-    ) {
-      throw new Error('Access denied');
-    }
+    const match = await this.assertMatchAccess(matchId, userId);
 
     const message = await this.prisma.message.create({
       data: {
@@ -228,5 +196,21 @@ export class MatchesService {
     });
 
     return response;
+  }
+
+  private async assertMatchAccess(matchId: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+    });
+
+    if (
+      !match ||
+      (match.userAId !== userId && match.userBId !== userId) ||
+      match.isBlocked
+    ) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return match;
   }
 }
