@@ -29,7 +29,7 @@ interface CardProps {
 const profileChips = (user: any) => {
   const chips: string[] = [];
   if (user.profile?.city) chips.push(user.profile.city);
-  if (user.fitnessProfile?.primaryGoal) chips.push(user.fitnessProfile.primaryGoal.replace('_', ' '));
+  if (user.fitnessProfile?.primaryGoal) chips.push(user.fitnessProfile.primaryGoal.replace(/_/g, ' '));
   if (user.fitnessProfile?.intensityLevel) chips.push(user.fitnessProfile.intensityLevel);
   return chips.slice(0, 3);
 };
@@ -120,8 +120,8 @@ const Card = ({ user, onPress }: CardProps) => {
 
           <View style={styles.chipRow}>
             {chips.length > 0 ? (
-              chips.map((chip) => (
-                <View key={chip} style={styles.chip}>
+              chips.map((chip, index) => (
+                <View key={`${chip}-${index}`} style={styles.chip}>
                   <Text style={styles.chipText}>{chip}</Text>
                 </View>
               ))
