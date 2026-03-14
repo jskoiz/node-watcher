@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -20,15 +20,17 @@ import { normalizeApiError } from '../api/errors';
 import type { User } from '../api/types';
 import AppState from '../components/ui/AppState';
 import AppButton from '../components/ui/AppButton';
+import AppIcon from '../components/ui/AppIcon';
+import AppBackdrop from '../components/ui/AppBackdrop';
 import { useTheme } from '../theme/useTheme';
 import { radii, spacing, typography } from '../theme/tokens';
 
 type SessionIntent = 'dating' | 'workout' | 'both';
 
 const INTENT_OPTIONS: Array<{ value: SessionIntent; label: string; color: string }> = [
-  { value: 'dating', label: '❤️ Dating', color: '#F87171' },
-  { value: 'workout', label: '💪 Workout', color: '#7C6AF7' },
-  { value: 'both', label: '🔀 Both', color: '#34D399' },
+  { value: 'dating', label: 'Dating', color: '#F87171' },
+  { value: 'workout', label: 'Training', color: '#7C6AF7' },
+  { value: 'both', label: 'Open to both', color: '#34D399' },
 ];
 
 const goalOptions = ['strength', 'weight_loss', 'endurance', 'mobility'];
@@ -43,11 +45,11 @@ function getGreeting(name?: string) {
 
 const FILTER_CATEGORIES = [
   { id: 'all', label: 'All' },
-  { id: 'strength', label: '🏋️ Strength' },
-  { id: 'running', label: '🏃 Running' },
-  { id: 'yoga', label: '🧘 Yoga' },
-  { id: 'hiking', label: '⛰️ Hiking' },
-  { id: 'cycling', label: '🚴 Cycling' },
+  { id: 'strength', label: 'Strength' },
+  { id: 'running', label: 'Running' },
+  { id: 'yoga', label: 'Yoga' },
+  { id: 'hiking', label: 'Hiking' },
+  { id: 'cycling', label: 'Cycling' },
 ];
 
 export default function HomeScreen({ navigation }: any) {
@@ -70,24 +72,19 @@ export default function HomeScreen({ navigation }: any) {
   const [intensity, setIntensity] = useState<string[]>([]);
   const [availability, setAvailability] = useState<Array<'morning' | 'evening'>>([]);
 
-  useEffect(() => {
-    if (user && !user.isOnboarded) {
-      setTimeout(() => navigation.navigate('Onboarding'), 100);
-      return;
-    }
-    fetchFeed();
-  }, [user]);
+  const currentFilters = useCallback(
+    (): DiscoveryFiltersInput => ({
+      distanceKm: Number(distanceKm) || undefined,
+      minAge: Number(minAge) || undefined,
+      maxAge: Number(maxAge) || undefined,
+      goals: goals.length ? goals : undefined,
+      intensity: intensity.length ? intensity : undefined,
+      availability: availability.length ? availability : undefined,
+    }),
+    [availability, distanceKm, goals, intensity, maxAge, minAge],
+  );
 
-  const currentFilters = (): DiscoveryFiltersInput => ({
-    distanceKm: Number(distanceKm) || undefined,
-    minAge: Number(minAge) || undefined,
-    maxAge: Number(maxAge) || undefined,
-    goals: goals.length ? goals : undefined,
-    intensity: intensity.length ? intensity : undefined,
-    availability: availability.length ? availability : undefined,
-  });
-
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -98,10 +95,22 @@ export default function HomeScreen({ navigation }: any) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentFilters]);
+
+  useEffect(() => {
+    if (user && !user.isOnboarded) {
+      const timeout = setTimeout(() => navigation.navigate('Onboarding'), 100);
+      return () => clearTimeout(timeout);
+    }
+    void fetchFeed();
+  }, [fetchFeed, navigation, user]);
 
   const handleSwipeLeft = async (profile: User) => {
-    try { await discoveryApi.pass(profile.id); } catch {}
+    try {
+      await discoveryApi.pass(profile.id);
+    } catch {
+      // Ignore transient swipe failures and keep the deck responsive.
+    }
   };
 
   const handleSwipeRight = async (profile: User) => {
@@ -112,14 +121,18 @@ export default function HomeScreen({ navigation }: any) {
         setMatchData(response.data.match);
         setShowMatch(true);
       }
-    } catch {}
+    } catch {
+      // Ignore transient like failures; the next feed refresh will recover state.
+    }
   };
 
   const handleUndo = async () => {
     try {
       const response = await discoveryApi.undo();
       if (response.data.status === 'undone') await fetchFeed();
-    } catch {}
+    } catch {
+      // Undo is opportunistic; keep the current deck state if it fails.
+    }
   };
 
   const toggleValue = <T extends string>(current: T[], value: T, setter: (arr: T[]) => void) => {
@@ -149,73 +162,91 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Ambient background glow */}
-      <View style={styles.glowTopLeft} pointerEvents="none" />
-      <View style={styles.glowBottomRight} pointerEvents="none" />
+      <AppBackdrop />
 
-      {/* Header */}
       <View style={styles.topBar}>
-        <View>
-          <Text style={styles.greetingEyebrow}>BRDG</Text>
-          <Text style={styles.greeting}>
-            {getGreeting(user?.firstName)} ✦
-          </Text>
-        </View>
+        <View style={[styles.heroPanel, { backgroundColor: theme.surfaceGlass, borderColor: theme.border }]}>
+          <View style={styles.heroPanelHeader}>
+            <View style={styles.headerCopy}>
+              <Text style={styles.greetingEyebrow}>{getGreeting(user?.firstName).toUpperCase()} / INTENT-AWARE</Text>
+              <Text style={styles.greeting}>Tonight's people.</Text>
+              <Text style={styles.greetingSub}>Fewer choices up front. Better matches in focus.</Text>
+            </View>
 
-        {/* Intent badge — tappable, pill with gradient border */}
-        <Pressable onPress={cycleIntent} style={styles.intentBadgeWrap}>
-          <LinearGradient
-            colors={[intentOption.color + '55', intentOption.color + '22']}
-            style={styles.intentBadge}
-          >
-            <Text style={[styles.intentBadgeText, { color: intentOption.color }]}>
-              {intentOption.label}
-            </Text>
-          </LinearGradient>
-        </Pressable>
+            <Pressable onPress={cycleIntent} style={styles.intentBadgeWrap}>
+              <LinearGradient
+                colors={[intentOption.color + '55', intentOption.color + '22']}
+                style={styles.intentBadge}
+              >
+                <Text style={[styles.intentBadgeText, { color: intentOption.color }]}>
+                  {intentOption.label}
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+
+          <View style={styles.heroMetricsRow}>
+            <View style={styles.heroMetric}>
+              <Text style={styles.heroMetricLabel}>Feed</Text>
+              <Text style={styles.heroMetricValue}>{feed.length} profiles</Text>
+            </View>
+            <View style={styles.heroMetricDivider} />
+            <View style={styles.heroMetric}>
+              <Text style={styles.heroMetricLabel}>Filters</Text>
+              <Text style={styles.heroMetricValue}>{activeFilterCount > 0 ? `${activeFilterCount} active` : 'Minimal'}</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
-      {/* Filter pills — horizontal scroll */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterPillsRow}
-        style={styles.filterPillsScroll}
-      >
-        {FILTER_CATEGORIES.map((cat) => (
-          <Pressable
-            key={cat.id}
-            onPress={() => setActiveFilter(cat.id)}
-            style={[
-              styles.filterPill,
-              activeFilter === cat.id
-                ? styles.filterPillActive
-                : styles.filterPillInactive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterPillText,
-                { color: activeFilter === cat.id ? '#FFFFFF' : 'rgba(255,255,255,0.45)' },
-              ]}
-            >
-              {cat.label}
+      <View style={styles.filterBar}>
+        <View style={styles.filterBarHeader}>
+          <Text style={styles.filterBarLabel}>Curated around pace and intent</Text>
+          <Pressable onPress={() => setShowFiltersModal(true)} style={styles.refineTrigger}>
+            <AppIcon
+              name="sliders"
+              size={14}
+              color={activeFilterCount > 0 ? ACCENT : TEXT_MUTED}
+            />
+            <Text style={[styles.refineTriggerText, { color: activeFilterCount > 0 ? ACCENT : TEXT_MUTED }]}>
+              {activeFilterCount > 0 ? `Refine (${activeFilterCount})` : 'Refine'}
             </Text>
           </Pressable>
-        ))}
-        {/* Advanced filters button */}
-        <Pressable
-          onPress={() => setShowFiltersModal(true)}
-          style={[
-            styles.filterPill,
-            activeFilterCount > 0 ? styles.filterPillActiveAccent : styles.filterPillInactive,
-          ]}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterPillsRow}
+          style={styles.filterPillsScroll}
         >
-          <Text style={[styles.filterPillText, { color: activeFilterCount > 0 ? '#34D399' : 'rgba(255,255,255,0.4)' }]}>
-            {activeFilterCount > 0 ? `⚙️ Filters (${activeFilterCount})` : '⚙️ More'}
-          </Text>
-        </Pressable>
-      </ScrollView>
+          {FILTER_CATEGORIES.map((cat) => (
+            <Pressable
+              key={cat.id}
+              onPress={() => setActiveFilter(cat.id)}
+              style={[
+                styles.filterPill,
+                activeFilter === cat.id
+                  ? styles.filterPillActive
+                  : styles.filterPillInactive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterPillText,
+                  { color: activeFilter === cat.id ? '#FFFFFF' : 'rgba(255,255,255,0.45)' },
+                ]}
+              >
+                {cat.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.deckHeader}>
+        <Text style={styles.deckHeaderLabel}>Featured profile</Text>
+      </View>
 
       {/* Swipe deck */}
       <View style={styles.deckArea}>
@@ -304,7 +335,7 @@ export default function HomeScreen({ navigation }: any) {
 
             <View style={styles.modalActions}>
               <AppButton
-                label="↩ Undo swipe"
+                label="Undo swipe"
                 onPress={() => { handleUndo(); setShowFiltersModal(false); }}
                 variant="ghost"
                 style={{ flex: 1 }}
@@ -354,61 +385,89 @@ const styles = StyleSheet.create({
     backgroundColor: BASE,
   },
 
-  // Ambient glows
-  glowTopLeft: {
-    position: 'absolute',
-    top: -80,
-    left: -80,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: PRIMARY,
-    opacity: 0.07,
-  },
-  glowBottomRight: {
-    position: 'absolute',
-    bottom: 100,
-    right: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: ACCENT,
-    opacity: 0.06,
-  },
-
-  // Header
   topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  heroPanel: {
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+  },
+  heroPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  headerCopy: {
+    flex: 1,
   },
   greetingEyebrow: {
     fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 3,
-    color: PRIMARY,
+    fontWeight: '800',
+    letterSpacing: 2.6,
+    color: ACCENT,
     textTransform: 'uppercase',
-    marginBottom: 2,
+    marginBottom: spacing.xs,
   },
   greeting: {
-    fontSize: typography.h3,
+    fontSize: 28,
     fontWeight: '800',
     color: TEXT_PRIMARY,
-    letterSpacing: -0.3,
+    letterSpacing: -0.9,
+    lineHeight: 30,
+    marginBottom: spacing.xs,
+  },
+  greetingSub: {
+    fontSize: typography.bodySmall,
+    color: TEXT_MUTED,
+    lineHeight: 20,
+    maxWidth: 240,
+  },
+  heroMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    paddingTop: spacing.md,
+  },
+  heroMetric: {
+    flex: 1,
+    gap: 2,
+  },
+  heroMetricDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: BORDER,
+    marginHorizontal: spacing.lg,
+  },
+  heroMetricLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: TEXT_MUTED,
+  },
+  heroMetricValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
 
-  // Intent badge
   intentBadgeWrap: {
     borderRadius: radii.pill,
     overflow: 'hidden',
+    alignSelf: 'flex-start',
   },
   intentBadge: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: 6,
     borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   intentBadgeText: {
     fontSize: typography.caption,
@@ -416,46 +475,79 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Filter pills
   filterPillsScroll: {
-    maxHeight: 52,
+    maxHeight: 42,
     flexGrow: 0,
+  },
+  filterBar: {
+    paddingBottom: spacing.xs,
+  },
+  filterBarHeader: {
+    paddingHorizontal: spacing.xxl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  filterBarLabel: {
+    color: TEXT_MUTED,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  refineTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  refineTriggerText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   filterPillsRow: {
     flexDirection: 'row',
     paddingHorizontal: spacing.xxl,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
     gap: spacing.sm,
     alignItems: 'center',
   },
   filterPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: radii.pill,
     borderWidth: 1,
   },
   filterPillActive: {
-    backgroundColor: PRIMARY,
-    borderColor: PRIMARY,
-  },
-  filterPillActiveAccent: {
-    backgroundColor: 'rgba(52,211,153,0.15)',
-    borderColor: 'rgba(52,211,153,0.4)',
+    backgroundColor: 'rgba(124,106,247,0.18)',
+    borderColor: 'rgba(124,106,247,0.34)',
   },
   filterPillInactive: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderColor: BORDER,
   },
+  deckHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xxl,
+    paddingTop: 0,
+    paddingBottom: spacing.xs,
+  },
+  deckHeaderLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.8,
+    color: TEXT_MUTED,
+    textTransform: 'uppercase',
+  },
   filterPillText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
 
-  // Deck
   deckArea: {
     flex: 1,
-    marginTop: spacing.xs,
+    marginTop: 0,
   },
 
   // Modal

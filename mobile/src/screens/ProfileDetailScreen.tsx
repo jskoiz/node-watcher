@@ -12,10 +12,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import client from '../api/client';
 import { normalizeApiError } from '../api/errors';
+import { discoveryApi, matchesApi } from '../services/api';
 import AppBackButton from '../components/ui/AppBackButton';
 import AppButton from '../components/ui/AppButton';
+import AppIcon from '../components/ui/AppIcon';
+import AppBackdrop from '../components/ui/AppBackdrop';
 import { useTheme } from '../theme/useTheme';
 import { radii, spacing, typography } from '../theme/tokens';
 import { type SessionIntent } from '../store/intentStore';
@@ -53,27 +55,57 @@ export default function ProfileDetailScreen() {
     null;
 
   const intentDisplay =
-    intent === 'dating' ? '❤️ Dating' :
-    intent === 'workout' ? '💪 Workout Partner' :
-    intent === 'both' ? '🔀 Dating + Workout' :
+    intent === 'dating' ? 'Dating' :
+    intent === 'workout' ? 'Training partner' :
+    intent === 'both' ? 'Open to both' :
     null;
+  const structuredRows = [
+    {
+      label: 'Pace',
+      value: user.fitnessProfile?.intensityLevel ? `${user.fitnessProfile.intensityLevel}` : 'Conversational',
+    },
+    {
+      label: 'Prefers',
+      value: activityTags.slice(0, 2).join(' / ') || 'Night runs',
+    },
+    {
+      label: 'Intent',
+      value: intentDisplay || 'Meet after',
+    },
+  ];
 
-  const ACTIVITY_EMOJI_MAP: Record<string, string> = {
-    lifting: '🏋️', yoga: '🧘', surfing: '🏄', hiking: '🥾', running: '🏃',
-    cycling: '🚴', beach: '🏖️', climbing: '🧗', skiing: '⛷️', swimming: '🏊',
-    boxing: '🥊', crossfit: '🤸',
-  };
-
-  const handleSuggestActivity = () => {
+  const handleSuggestActivity = async () => {
     const firstActivity = activityTags[0] || 'a workout';
-    const suggestion = `🏃 Let's plan ${firstActivity} together!`;
-    navigation.navigate('Chat', { matchId: user.id, user, prefillMessage: suggestion });
+    const suggestion = `Let's plan ${firstActivity} together.`;
+    setSubmitting(true);
+    try {
+      const response = await matchesApi.list();
+      const existingMatch = response.data.find((match) => match.user.id === user.id);
+
+      if (!existingMatch) {
+        Alert.alert(
+          'Match required',
+          'Once you both match, you can jump straight into chat with a suggested plan.',
+        );
+        return;
+      }
+
+      navigation.navigate('Chat', {
+        matchId: existingMatch.id,
+        user: existingMatch.user,
+        prefillMessage: suggestion,
+      });
+    } catch (error) {
+      Alert.alert('Could not open chat', normalizeApiError(error).message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handlePass = async () => {
     setSubmitting(true);
     try {
-      await client.post(`/discovery/pass/${user.id}`);
+      await discoveryApi.pass(user.id);
       navigation.goBack();
     } catch (error) {
       Alert.alert('Could not pass profile', normalizeApiError(error).message);
@@ -85,7 +117,7 @@ export default function ProfileDetailScreen() {
   const handleLike = async () => {
     setSubmitting(true);
     try {
-      await client.post(`/discovery/like/${user.id}`);
+      await discoveryApi.like(user.id);
       navigation.goBack();
     } catch (error) {
       Alert.alert('Could not like profile', normalizeApiError(error).message);
@@ -96,28 +128,29 @@ export default function ProfileDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <AppBackdrop />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Full-bleed hero image */}
         <View style={styles.heroContainer}>
           <Image
-            source={{ uri: primaryPhoto || 'https://via.placeholder.com/400x500' }}
+            source={
+              primaryPhoto
+                ? { uri: primaryPhoto }
+                : require('../../assets/icon.png')
+            }
             style={styles.heroImage}
             resizeMode="cover"
           />
 
-          {/* Rich gradient overlay bottom */}
           <LinearGradient
             colors={['transparent', 'rgba(13,17,23,0.7)', 'rgba(13,17,23,0.98)']}
             locations={[0, 0.55, 1]}
             style={styles.heroGradient}
           />
 
-          {/* Back button overlay */}
           <View style={styles.backButtonOverlay}>
             <AppBackButton onPress={() => navigation.goBack()} style={{ marginBottom: 0 }} />
           </View>
 
-          {/* Name overlay */}
           <View style={styles.heroNameOverlay}>
             {intentDisplay && (
               <View style={styles.intentPill}>
@@ -127,18 +160,18 @@ export default function ProfileDetailScreen() {
             <Text style={styles.heroName}>
               {user.firstName || 'Someone'}{user.age ? `, ${user.age}` : ''}
             </Text>
-            <Text style={styles.heroLocation}>
-              📍 {user.profile?.city || 'Nearby'}
-            </Text>
+            <View style={styles.locationRow}>
+              <AppIcon name="map-pin" size={14} color={TEXT_MUTED} />
+              <Text style={styles.heroLocation}>
+                {user.profile?.city || 'Nearby'}
+              </Text>
+            </View>
 
-            {/* Activity tags */}
             {activityTags.length > 0 && (
               <View style={styles.tagRow}>
                 {activityTags.slice(0, 4).map((tag) => (
                   <View key={tag} style={styles.tag}>
-                    <Text style={styles.tagText}>
-                      {ACTIVITY_EMOJI_MAP[tag.toLowerCase()] || '🏃'} {tag}
-                    </Text>
+                    <Text style={styles.tagText}>{tag}</Text>
                   </View>
                 ))}
               </View>
@@ -146,10 +179,7 @@ export default function ProfileDetailScreen() {
           </View>
         </View>
 
-        {/* Content area — no card/border, just dark surface seamlessly */}
         <View style={styles.contentArea}>
-
-          {/* About */}
           {!!user.profile?.bio && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>About</Text>
@@ -157,31 +187,27 @@ export default function ProfileDetailScreen() {
             </View>
           )}
 
-          {/* Fitness details */}
-          {user.fitnessProfile && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Fitness Profile</Text>
-              <View style={styles.metaGrid}>
-                {user.fitnessProfile.intensityLevel ? (
-                  <MetaChip label="intensity" value={user.fitnessProfile.intensityLevel} />
-                ) : null}
-                {user.fitnessProfile.weeklyFrequencyBand ? (
-                  <MetaChip label="frequency" value={`${user.fitnessProfile.weeklyFrequencyBand}x/wk`} />
-                ) : null}
-                {user.fitnessProfile.primaryGoal ? (
-                  <MetaChip label="goal" value={user.fitnessProfile.primaryGoal} />
-                ) : null}
-              </View>
-            </View>
-          )}
+          <View style={styles.section}>
+            <View style={styles.metaPanel}>
+              {user.fitnessProfile?.weeklyFrequencyBand ? (
+                <View style={styles.metaIntroCard}>
+                  <Text style={styles.metaIntroText}>
+                    Moves {user.fitnessProfile.weeklyFrequencyBand}x per week and prefers cleaner, aligned plans over filler.
+                  </Text>
+                </View>
+              ) : null}
 
-          {/* Movement Identity section */}
+              {structuredRows.map((row) => (
+                <StructuredRow key={row.label} label={row.label} value={row.value} />
+              ))}
+            </View>
+          </View>
+
           {activityTags.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Movement Identity</Text>
               <View style={styles.activityPills}>
-                {activityTags.map((tag, i) => {
-                  const emoji = ACTIVITY_EMOJI_MAP[tag.toLowerCase()] || '🏃';
+                {activityTags.slice(0, 3).map((tag, i) => {
                   const isAccent = i % 2 === 0;
                   return (
                     <View
@@ -189,12 +215,11 @@ export default function ProfileDetailScreen() {
                       style={[
                         styles.activityPill,
                         {
-                          backgroundColor: isAccent ? 'rgba(52,211,153,0.12)' : 'rgba(124,106,247,0.12)',
-                          borderColor: isAccent ? 'rgba(52,211,153,0.4)' : 'rgba(124,106,247,0.4)',
+                          backgroundColor: isAccent ? 'rgba(52,211,153,0.10)' : 'rgba(124,106,247,0.10)',
+                          borderColor: isAccent ? 'rgba(52,211,153,0.24)' : 'rgba(124,106,247,0.24)',
                         },
                       ]}
                     >
-                      <Text style={styles.activityPillEmoji}>{emoji}</Text>
                       <Text
                         style={[
                           styles.activityPillText,
@@ -207,27 +232,23 @@ export default function ProfileDetailScreen() {
                   );
                 })}
               </View>
-
-              {/* Suggest Activity button */}
-              <Pressable
-                onPress={handleSuggestActivity}
-                style={styles.suggestBtn}
-              >
-                <LinearGradient
-                  colors={['rgba(52,211,153,0.15)', 'rgba(52,211,153,0.05)']}
-                  style={styles.suggestBtnInner}
-                >
-                  <Text style={styles.suggestBtnText}>
-                    🎯 Suggest an Activity
-                  </Text>
-                </LinearGradient>
-              </Pressable>
             </View>
           )}
+
+          <Pressable
+            onPress={handleSuggestActivity}
+            style={styles.suggestBtn}
+          >
+            <LinearGradient
+              colors={['#9B8BFF', PRIMARY]}
+              style={styles.suggestBtnInner}
+            >
+              <Text style={styles.suggestBtnText}>Suggest activity</Text>
+            </LinearGradient>
+          </Pressable>
         </View>
       </ScrollView>
 
-      {/* Pinned action buttons */}
       <LinearGradient
         colors={['rgba(13,17,23,0)', 'rgba(13,17,23,0.95)', '#0D1117']}
         style={styles.actionBar}
@@ -241,7 +262,7 @@ export default function ProfileDetailScreen() {
             style={styles.actionBtn}
           />
           <AppButton
-            label="Like ✦"
+            label="Like"
             variant="primary"
             onPress={handleLike}
             disabled={submitting}
@@ -254,11 +275,11 @@ export default function ProfileDetailScreen() {
   );
 }
 
-function MetaChip({ label, value }: { label: string; value: string }) {
+function StructuredRow({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.metaChip}>
-      <Text style={styles.metaChipLabel}>{label}</Text>
-      <Text style={styles.metaChipValue}>{value}</Text>
+    <View style={styles.structuredRow}>
+      <Text style={styles.structuredLabel}>{label}</Text>
+      <Text style={styles.structuredValue}>{value}</Text>
     </View>
   );
 }
@@ -293,7 +314,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.lg,
     left: spacing.lg,
-    backgroundColor: 'rgba(13,17,23,0.6)',
+    backgroundColor: 'rgba(13,17,23,0.56)',
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -306,10 +327,10 @@ const styles = StyleSheet.create({
   },
   intentPill: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(124,106,247,0.25)',
+    backgroundColor: 'rgba(124,106,247,0.18)',
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: 'rgba(124,106,247,0.5)',
+    borderColor: 'rgba(124,106,247,0.34)',
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     marginBottom: spacing.sm,
@@ -330,10 +351,15 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.md,
+  },
   heroLocation: {
     fontSize: typography.bodySmall,
     color: 'rgba(255,255,255,0.75)',
-    marginBottom: spacing.md,
     fontWeight: '600',
   },
   tagRow: {
@@ -357,7 +383,7 @@ const styles = StyleSheet.create({
 
   // Content
   contentArea: {
-    backgroundColor: BASE,
+    backgroundColor: 'rgba(13,17,23,0.92)',
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.xl,
   },
@@ -383,31 +409,23 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  metaChip: {
-    borderRadius: radii.lg,
+  metaPanel: {
+    gap: spacing.sm,
+  },
+  metaIntroCard: {
+    borderRadius: 20,
     borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    backgroundColor: 'rgba(124,106,247,0.1)',
-    borderColor: 'rgba(124,106,247,0.35)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(28,35,48,0.82)',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
-  metaChipLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    color: TEXT_MUTED,
-    marginBottom: 2,
-  },
-  metaChipValue: {
+  metaIntroText: {
+    color: TEXT_PRIMARY,
+    opacity: 0.86,
+    lineHeight: 22,
     fontSize: typography.bodySmall,
-    fontWeight: '800',
-    textTransform: 'capitalize',
-    color: PRIMARY,
   },
-
-  // Activity pills
   activityPills: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -421,12 +439,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
-    gap: 5,
-  },
-  activityPillEmoji: {
-    fontSize: 14,
   },
   activityPillText: {
+    fontSize: typography.bodySmall,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+  structuredRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(20,26,38,0.76)',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  structuredLabel: {
+    color: TEXT_MUTED,
+    fontSize: typography.bodySmall,
+    fontWeight: '600',
+  },
+  structuredValue: {
+    color: TEXT_PRIMARY,
     fontSize: typography.bodySmall,
     fontWeight: '700',
     textTransform: 'capitalize',
@@ -435,18 +471,18 @@ const styles = StyleSheet.create({
   // Suggest btn
   suggestBtn: {
     borderRadius: radii.xl,
-    borderWidth: 1.5,
-    borderColor: 'rgba(52,211,153,0.4)',
     overflow: 'hidden',
+    marginBottom: 120,
+    marginTop: spacing.sm,
   },
   suggestBtnInner: {
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.md + 2,
     alignItems: 'center',
   },
   suggestBtnText: {
     fontSize: typography.body,
     fontWeight: '800',
-    color: ACCENT,
+    color: '#FFFFFF',
   },
 
   // Action bar

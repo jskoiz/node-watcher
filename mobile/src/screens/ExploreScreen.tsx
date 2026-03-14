@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Dimensions,
   Pressable,
+  RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
@@ -11,8 +12,14 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { normalizeApiError } from '../api/errors';
+import type { EventSummary } from '../api/types';
+import { eventsApi } from '../services/api';
+import AppBackdrop from '../components/ui/AppBackdrop';
 import { radii, spacing, typography } from '../theme/tokens';
 import AppIcon from '../components/ui/AppIcon';
+import AppState from '../components/ui/AppState';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_PADDING = spacing.xxl;
@@ -29,109 +36,6 @@ const TEXT_PRIMARY = '#F0F6FC';
 const TEXT_SECONDARY = 'rgba(240,246,252,0.65)';
 const TEXT_MUTED = 'rgba(240,246,252,0.38)';
 type AppIconName = React.ComponentProps<typeof AppIcon>['name'];
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-function formatUpcomingLabel(dayOffset: number, hour: number, minute = 0) {
-  const startsAt = new Date();
-  startsAt.setDate(startsAt.getDate() + dayOffset);
-  startsAt.setHours(hour, minute, 0, 0);
-
-  const dateLabel = startsAt.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-  const timeLabel = startsAt.toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  return `${dateLabel} · ${timeLabel}`;
-}
-
-const MOCK_EVENTS: Array<{
-  id: string;
-  title: string;
-  date: string;
-  attendees: number;
-  category: string;
-  icon: AppIconName;
-  gradientColors: readonly [string, string];
-}> = [
-  {
-    id: '1',
-    title: 'Ala Moana Sunrise Run Club',
-    date: formatUpcomingLabel(1, 6),
-    attendees: 18,
-    category: 'Running',
-    icon: 'navigation',
-    gradientColors: ['#34D399', '#059669'] as const,
-  },
-  {
-    id: '2',
-    title: 'Golden Hour Rooftop Flow',
-    date: formatUpcomingLabel(1, 18),
-    attendees: 11,
-    category: 'Yoga',
-    icon: 'sun',
-    gradientColors: ['#7C6AF7', '#4B3EBF'] as const,
-  },
-  {
-    id: '3',
-    title: 'Diamond Head Power Hike',
-    date: formatUpcomingLabel(2, 17),
-    attendees: 13,
-    category: 'Hiking',
-    icon: 'map',
-    gradientColors: ['#F59E0B', '#D97706'] as const,
-  },
-  {
-    id: '4',
-    title: 'Kailua Paddle + Breakfast',
-    date: formatUpcomingLabel(3, 8),
-    attendees: 9,
-    category: 'Paddling',
-    icon: 'anchor',
-    gradientColors: ['#7AA8B8', '#4D6C78'] as const,
-  },
-  {
-    id: '5',
-    title: 'Kaimuki Boxing Circuit Night',
-    date: formatUpcomingLabel(3, 19),
-    attendees: 8,
-    category: 'Boxing',
-    icon: 'target',
-    gradientColors: ['#F87171', '#C2410C'] as const,
-  },
-  {
-    id: '6',
-    title: 'Beach Volleyball Sunset Social',
-    date: formatUpcomingLabel(5, 17),
-    attendees: 16,
-    category: 'Volleyball',
-    icon: 'circle',
-    gradientColors: ['#7C6AF7', '#F59E0B'] as const,
-  },
-  {
-    id: '7',
-    title: 'North Shore Surf Carpool',
-    date: formatUpcomingLabel(10, 6),
-    attendees: 7,
-    category: 'Surfing',
-    icon: 'wind',
-    gradientColors: ['#8AA9B2', '#56727A'] as const,
-  },
-  {
-    id: '8',
-    title: 'Manoa Reset Walk',
-    date: formatUpcomingLabel(11, 17, 30),
-    attendees: 10,
-    category: 'Wellness',
-    icon: 'heart',
-    gradientColors: ['#34D399', '#047857'] as const,
-  },
-];
 
 const ACTIVITY_SPOTS: Array<{
   id: string;
@@ -201,12 +105,49 @@ const CATEGORIES = ['All', 'Events', 'Trails', 'Gyms', 'Spots', 'Community'];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function EventCard({ event, onInvite }: { event: typeof MOCK_EVENTS[0]; onInvite: () => void }) {
+function getEventMeta(event: EventSummary) {
+  const category = event.category?.toLowerCase() ?? '';
+  if (category.includes('run')) {
+    return { icon: 'navigation' as const, gradientColors: ['#34D399', '#059669'] as const };
+  }
+  if (category.includes('yoga')) {
+    return { icon: 'sun' as const, gradientColors: ['#7C6AF7', '#4B3EBF'] as const };
+  }
+  if (category.includes('hike')) {
+    return { icon: 'map' as const, gradientColors: ['#F59E0B', '#D97706'] as const };
+  }
+  if (category.includes('surf') || category.includes('swim')) {
+    return { icon: 'wind' as const, gradientColors: ['#7AA8B8', '#4D6C78'] as const };
+  }
+  return { icon: 'calendar' as const, gradientColors: ['#7C6AF7', '#F59E0B'] as const };
+}
+
+function formatEventDate(startsAt: string) {
+  const start = new Date(startsAt);
+  return start.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function EventCard({
+  event,
+  onOpen,
+  onInvite,
+}: {
+  event: EventSummary;
+  onOpen: () => void;
+  onInvite: () => void;
+}) {
+  const meta = getEventMeta(event);
   return (
-    <View style={styles.eventCard}>
+    <Pressable style={styles.eventCard} onPress={onOpen}>
       {/* Full-bleed gradient hero banner */}
       <LinearGradient
-        colors={[...event.gradientColors, 'rgba(13,17,23,0.95)'] as any}
+        colors={[...meta.gradientColors, 'rgba(13,17,23,0.95)'] as any}
         locations={[0, 0.45, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -214,11 +155,13 @@ function EventCard({ event, onInvite }: { event: typeof MOCK_EVENTS[0]; onInvite
       >
         <View style={styles.eventBannerContent}>
           <View style={styles.eventIconWrap}>
-            <AppIcon name={event.icon} size={22} color="#FFFFFF" />
+            <AppIcon name={meta.icon} size={22} color="#FFFFFF" />
           </View>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{event.category.toUpperCase()}</Text>
-          </View>
+          {!!event.category && (
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{event.category.toUpperCase()}</Text>
+            </View>
+          )}
         </View>
       </LinearGradient>
 
@@ -228,25 +171,25 @@ function EventCard({ event, onInvite }: { event: typeof MOCK_EVENTS[0]; onInvite
         <View style={styles.eventMetaRow}>
           <View style={styles.eventMetaInline}>
             <AppIcon name="calendar" size={13} color={TEXT_SECONDARY} />
-            <Text style={styles.eventMeta}>{event.date}</Text>
+            <Text style={styles.eventMeta}>{formatEventDate(event.startsAt)}</Text>
           </View>
           <View style={styles.attendeesBadge}>
             <View style={styles.attendeesBadgeInner}>
               <AppIcon name="users" size={12} color={TEXT_MUTED} />
-              <Text style={styles.attendeesBadgeText}>{event.attendees}</Text>
+              <Text style={styles.attendeesBadgeText}>{event.attendeesCount}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.eventActions}>
-          <Pressable style={styles.joinBtn}>
+          <Pressable style={styles.joinBtn} onPress={onOpen}>
             <LinearGradient
-              colors={[event.gradientColors[0], event.gradientColors[1]]}
+              colors={[meta.gradientColors[0], meta.gradientColors[1]]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.joinBtnInner}
             >
-              <Text style={styles.joinBtnText}>Join →</Text>
+              <Text style={styles.joinBtnText}>{event.joined ? 'View again' : 'View event'}</Text>
             </LinearGradient>
           </Pressable>
           <TouchableOpacity
@@ -258,7 +201,7 @@ function EventCard({ event, onInvite }: { event: typeof MOCK_EVENTS[0]; onInvite
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -300,15 +243,12 @@ function CommunityCard({ post, onInvite }: { post: typeof COMMUNITY_POSTS[0]; on
         <Text style={styles.communityText}>{post.text}</Text>
 
         <View style={styles.communityActions}>
-          <Pressable style={[styles.joinActivityBtn, { backgroundColor: post.color }]}>
-            <Text style={styles.joinActivityText}>Join</Text>
-          </Pressable>
           <TouchableOpacity
-            style={styles.inviteSmallBtn}
+            style={[styles.inviteSmallBtn, { borderColor: post.color + '35' }]}
             onPress={onInvite}
             activeOpacity={0.8}
           >
-            <Text style={styles.inviteSmallText}>Share</Text>
+            <Text style={[styles.inviteSmallText, { color: post.color }]}>Share idea</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -320,12 +260,41 @@ function CommunityCard({ post, onInvite }: { post: typeof COMMUNITY_POSTS[0]; on
 
 export default function ExploreScreen({ navigation }: any) {
   const [activeCategory, setActiveCategory] = useState('All');
+  const [events, setEvents] = useState<EventSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleInvite = async () => {
+  const fetchEvents = useCallback(async (silent = false) => {
+    if (silent) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+
     try {
-      await Share.share({ message: "Join me on BRDG. Let's move together." });
+      const response = await eventsApi.list();
+      setEvents(response.data || []);
+    } catch (err) {
+      setError(normalizeApiError(err).message);
+    } finally {
+      if (silent) setRefreshing(false);
+      else setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchEvents();
+    }, [fetchEvents]),
+  );
+
+  const handleInvite = async (event?: EventSummary) => {
+    try {
+      const message = event
+        ? `Join me for ${event.title} on BRDG${event.location ? ` at ${event.location}` : ''}.`
+        : "Join me on BRDG. Let's move together.";
+      await Share.share({ message });
     } catch {
-      navigation.navigate('Matches');
+      navigation.navigate('Create');
     }
   };
 
@@ -335,16 +304,26 @@ export default function ExploreScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <AppBackdrop />
       {/* Ambient glow */}
       <View style={styles.ambientGlow} pointerEvents="none" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchEvents(true)}
+            tintColor={PRIMARY}
+          />
+        }
+      >
 
-        {/* ── Hero Header ── */}
         <View style={styles.hero}>
-          <Text style={styles.heroEyebrow}>EXPLORE</Text>
+          <Text style={styles.heroEyebrow}>CITY GUIDE / CURATED MOVEMENT</Text>
           <Text style={styles.heroTitle}>What's{'\n'}happening.</Text>
-          <Text style={styles.heroSubtitle}>Events · spots · community</Text>
+          <Text style={styles.heroSubtitle}>A cleaner browse with stronger editorial framing.</Text>
         </View>
 
         {/* ── Category Filter Row ── */}
@@ -385,9 +364,33 @@ export default function ExploreScreen({ navigation }: any) {
                 <Text style={styles.seeAll}>My Events →</Text>
               </TouchableOpacity>
             </View>
-            {MOCK_EVENTS.map((event) => (
-              <EventCard key={event.id} event={event} onInvite={handleInvite} />
-            ))}
+            {loading ? (
+              <AppState title="Loading events" loading />
+            ) : error ? (
+              <AppState
+                title="Couldn't load events"
+                description={error}
+                actionLabel="Try again"
+                onAction={fetchEvents}
+                isError
+              />
+            ) : events.length === 0 ? (
+              <AppState
+                title="No live events yet"
+                description="Create the first plan nearby or check back after a refresh."
+                actionLabel="Create event"
+                onAction={() => navigation.navigate('Create')}
+              />
+            ) : (
+              events.slice(0, 6).map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onOpen={() => navigation.navigate('EventDetail', { eventId: event.id })}
+                  onInvite={() => handleInvite(event)}
+                />
+              ))
+            )}
           </View>
         )}
 
@@ -401,7 +404,7 @@ export default function ExploreScreen({ navigation }: any) {
               contentContainerStyle={styles.spotsRow}
               style={{ marginTop: spacing.md }}
             >
-              {ACTIVITY_SPOTS.map((spot) => (
+              {ACTIVITY_SPOTS.slice(0, 5).map((spot) => (
                 <SpotCard key={spot.id} spot={spot} />
               ))}
             </ScrollView>
@@ -417,7 +420,7 @@ export default function ExploreScreen({ navigation }: any) {
                 <Text style={[styles.seeAll, { color: ACCENT }]}>+ Post →</Text>
               </TouchableOpacity>
             </View>
-            {COMMUNITY_POSTS.map((post) => (
+            {COMMUNITY_POSTS.slice(0, 2).map((post) => (
               <CommunityCard key={post.id} post={post} onInvite={handleInvite} />
             ))}
           </View>
@@ -454,8 +457,8 @@ const styles = StyleSheet.create({
   // Hero
   hero: {
     paddingHorizontal: CARD_PADDING,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   heroEyebrow: {
     fontSize: 10,
@@ -465,31 +468,31 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   heroTitle: {
-    fontSize: 44,
-    fontWeight: '900',
-    letterSpacing: -1.5,
+    fontSize: 38,
+    fontWeight: '800',
+    letterSpacing: -1.2,
     color: TEXT_PRIMARY,
-    lineHeight: 48,
+    lineHeight: 40,
     marginBottom: spacing.sm,
   },
   heroSubtitle: {
-    fontSize: typography.bodySmall,
+    fontSize: typography.body,
     fontWeight: '500',
     color: TEXT_MUTED,
-    letterSpacing: 0.5,
-    textTransform: 'lowercase',
+    lineHeight: 22,
+    maxWidth: 290,
   },
 
   // Categories
-  categoriesScroll: { marginBottom: spacing.lg },
+  categoriesScroll: { marginBottom: spacing.md },
   categoriesRow: {
     paddingHorizontal: CARD_PADDING,
     gap: spacing.sm,
     paddingRight: CARD_PADDING,
   },
   categoryPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 7,
     borderRadius: radii.pill,
     borderWidth: 1,
   },
@@ -510,7 +513,7 @@ const styles = StyleSheet.create({
   // Section
   section: {
     paddingHorizontal: CARD_PADDING,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -519,8 +522,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
     letterSpacing: -0.5,
     color: TEXT_PRIMARY,
   },
@@ -532,7 +535,7 @@ const styles = StyleSheet.create({
 
   // Event Card
   eventCard: {
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: BORDER,
     marginBottom: spacing.md,
@@ -540,7 +543,7 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE,
   },
   eventBanner: {
-    height: 120,
+    height: 88,
     justifyContent: 'flex-end',
     padding: spacing.md,
   },
@@ -550,9 +553,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   eventIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.16)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.24)',
@@ -574,20 +577,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   eventBody: {
-    padding: spacing.lg,
+    padding: spacing.md + 2,
   },
   eventTitle: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 16,
+    fontWeight: '800',
     letterSpacing: -0.4,
     color: TEXT_PRIMARY,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   eventMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   eventMetaInline: {
     flexDirection: 'row',
@@ -626,8 +629,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   joinBtnInner: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 9,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 8,
     borderRadius: radii.pill,
   },
   joinBtnText: {
@@ -638,7 +641,7 @@ const styles = StyleSheet.create({
   },
   inviteBtn: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 9,
+    paddingVertical: 8,
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: BORDER,
@@ -657,7 +660,7 @@ const styles = StyleSheet.create({
   },
   spotCard: {
     width: SPOT_CARD_WIDTH,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     padding: spacing.md,
     backgroundColor: SURFACE,
