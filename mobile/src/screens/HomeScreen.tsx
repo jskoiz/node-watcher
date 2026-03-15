@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import AppState from '../components/ui/AppState';
+import { StatePanel } from '../design/primitives';
 import { normalizeApiError } from '../api/errors';
 import type { User } from '../api/types';
 import { useAuthStore } from '../store/authStore';
@@ -58,12 +58,12 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
   const activeFilterCount = countActiveFilters(currentFilters, filterState);
 
   if (isLoading) {
-    return <AppState title="Tuning your feed" description="Finding people who match your pace." loading />;
+    return <StatePanel title="Tuning your feed" description="Finding people who match your pace." loading />;
   }
 
   if (errorMessage) {
     return (
-      <AppState
+      <StatePanel
         title="Couldn't load discovery"
         description={errorMessage}
         actionLabel="Try again"

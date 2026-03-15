@@ -14,7 +14,7 @@ import type { AppNotification } from '../api/types';
 import AppBackButton from '../components/ui/AppBackButton';
 import AppBackdrop from '../components/ui/AppBackdrop';
 import AppIcon from '../components/ui/AppIcon';
-import AppState from '../components/ui/AppState';
+import { StatePanel } from '../design/primitives';
 import { useTheme } from '../theme/useTheme';
 import { radii, spacing, typography } from '../theme/tokens';
 import { useNotifications } from '../features/notifications/hooks/useNotifications';
@@ -177,9 +177,9 @@ export default function NotificationsScreen() {
       </View>
 
       {loading ? (
-        <AppState title="Loading notifications" loading />
+        <StatePanel title="Loading notifications" loading />
       ) : errorMessage && notifs.length === 0 ? (
-        <AppState
+        <StatePanel
           title="Couldn't load notifications"
           description={errorMessage}
           actionLabel="Try again"

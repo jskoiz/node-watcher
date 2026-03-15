@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import AppState from '../components/ui/AppState';
+import { StatePanel } from '../design/primitives';
 import { normalizeApiError } from '../api/errors';
 import { useAuthStore } from '../store/authStore';
 import { useProfile } from '../features/profile/hooks/useProfile';
@@ -39,12 +39,12 @@ export default function ProfileScreen() {
 
   const errorMessage = error ?? (queryError ? normalizeApiError(queryError).message : null);
 
-  if (isLoading) return <AppState title="Loading your profile" loading />;
+  if (isLoading) return <StatePanel title="Loading your profile" loading />;
   if (errorMessage && !profile) {
-    return <AppState title="Couldn't load profile" description={errorMessage} actionLabel="Retry" onAction={() => { void refetch(); }} isError />;
+    return <StatePanel title="Couldn't load profile" description={errorMessage} actionLabel="Retry" onAction={() => { void refetch(); }} isError />;
   }
   if (!profile) {
-    return <AppState title="No profile found" actionLabel="Refresh" onAction={() => { void refetch(); }} />;
+    return <StatePanel title="No profile found" actionLabel="Refresh" onAction={() => { void refetch(); }} />;
   }
 
   return (

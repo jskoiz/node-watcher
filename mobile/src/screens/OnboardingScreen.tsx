@@ -15,7 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { profileApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { normalizeApiError } from '../api/errors';
-import AppButton from '../components/ui/AppButton';
+import { Button } from '../design/primitives';
 import AppBackButton from '../components/ui/AppBackButton';
 import AppIcon from '../components/ui/AppIcon';
 import AppBackdrop from '../components/ui/AppBackdrop';
@@ -206,7 +206,7 @@ export default function OnboardingScreen({
               </Text>
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <AppButton label="Let's go →" onPress={goNext} />
+              <Button label="Let's go →" onPress={goNext} />
             </View>
           </View>
         );
@@ -253,7 +253,7 @@ export default function OnboardingScreen({
               })}
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <AppButton label="Continue" onPress={goNext} />
+              <Button label="Continue" onPress={goNext} />
             </View>
           </ScrollView>
         );
@@ -297,7 +297,7 @@ export default function OnboardingScreen({
               })}
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <AppButton label="Continue" onPress={goNext} disabled={data.activities.length === 0} />
+              <Button label="Continue" onPress={goNext} disabled={data.activities.length === 0} />
             </View>
           </ScrollView>
         );
@@ -343,7 +343,7 @@ export default function OnboardingScreen({
               })}
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <AppButton label="Continue" onPress={goNext} />
+              <Button label="Continue" onPress={goNext} />
             </View>
           </ScrollView>
         );
@@ -387,7 +387,7 @@ export default function OnboardingScreen({
               })}
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <AppButton label="Continue" onPress={goNext} disabled={data.environment.length === 0} />
+              <Button label="Continue" onPress={goNext} disabled={data.environment.length === 0} />
             </View>
           </ScrollView>
         );
@@ -431,7 +431,7 @@ export default function OnboardingScreen({
               })}
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <AppButton label="Continue" onPress={goNext} disabled={data.schedule.length === 0} />
+              <Button label="Continue" onPress={goNext} disabled={data.schedule.length === 0} />
             </View>
           </ScrollView>
         );
@@ -481,7 +481,7 @@ export default function OnboardingScreen({
               })}
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <AppButton label="Continue" onPress={goNext} disabled={!data.socialComfort} />
+              <Button label="Continue" onPress={goNext} disabled={!data.socialComfort} />
             </View>
           </ScrollView>
         );
@@ -541,7 +541,7 @@ export default function OnboardingScreen({
               />
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <AppButton label="That's me →" onPress={goNext} />
+              <Button label="That's me →" onPress={goNext} />
             </View>
           </ScrollView>
         );
@@ -588,7 +588,7 @@ export default function OnboardingScreen({
             </View>
 
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <AppButton
+              <Button
                 label={isSubmitting ? 'Setting up your profile…' : 'Meet them now'}
                 onPress={submitOnboarding}
                 loading={isSubmitting}

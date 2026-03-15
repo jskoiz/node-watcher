@@ -7,8 +7,8 @@ import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { normalizeApiError } from '../api/errors';
 import type { Match } from '../api/types';
-import AppState from '../components/ui/AppState';
 import AppBackdrop from '../components/ui/AppBackdrop';
+import { StatePanel } from '../design/primitives';
 import { radii, spacing, typography } from '../theme/tokens';
 import { useMatches } from '../features/matches/hooks/useMatches';
 import type { MainTabScreenProps } from '../core/navigation/types';
@@ -143,9 +143,9 @@ export default function MatchesScreen() {
       </View>
 
       {loading ? (
-        <AppState title="Loading conversations" loading />
+        <StatePanel title="Loading conversations" loading />
       ) : errorMessage ? (
-        <AppState
+        <StatePanel
           title="Couldn't load inbox"
           description={errorMessage}
           actionLabel="Try again"
@@ -155,7 +155,7 @@ export default function MatchesScreen() {
           isError
         />
       ) : matches.length === 0 ? (
-        <AppState
+        <StatePanel
           title="Nothing here yet"
           description="Keep discovering — your next connection is just a swipe away."
           actionLabel="Go explore"

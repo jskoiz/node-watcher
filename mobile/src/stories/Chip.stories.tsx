@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
 import React from 'react';
 import { View } from 'react-native';
-import AppButton from '../components/ui/AppButton';
+import { Chip } from '../design/primitives';
 
 const meta = {
-  title: 'UI/AppButton',
-  component: AppButton,
+  title: 'Design/Chip',
+  component: Chip,
   decorators: [
     (Story) => (
       <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
@@ -13,23 +13,34 @@ const meta = {
       </View>
     ),
   ],
-} satisfies Meta<typeof AppButton>;
+} satisfies Meta<typeof Chip>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Primary: Story = {
+export const Active: Story = {
   args: {
-    label: 'Join BRDG',
+    label: 'Running',
+    active: true,
+    accentColor: '#7C6AF7',
     onPress: () => undefined,
   },
 };
 
-export const Accent: Story = {
+export const Inactive: Story = {
   args: {
-    label: 'Create Activity',
+    label: 'Strength',
+    active: false,
     onPress: () => undefined,
-    variant: 'accent',
+  },
+};
+
+export const ReadOnly: Story = {
+  args: {
+    label: 'Outdoors',
+    active: true,
+    interactive: false,
+    accentColor: '#34D399',
   },
 };

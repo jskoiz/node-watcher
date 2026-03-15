@@ -48,11 +48,10 @@ npm run check:mobile
 Use Storybook for isolated component work instead of ad hoc preview routes:
 
 ```bash
-cd mobile
 npm run storybook
 ```
 
-This is the supported component-level preview surface for BRDG UI primitives and composed cards/modules.
+This is the supported root-level component preview command for BRDG UI primitives and composed cards/modules.
 
 ## Backend reset path for QA
 

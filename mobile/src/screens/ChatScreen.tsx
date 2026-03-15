@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AppBackdrop from '../components/ui/AppBackdrop';
-import AppState from '../components/ui/AppState';
+import { StatePanel } from '../design/primitives';
 import { normalizeApiError } from '../api/errors';
 import { useChatThread } from '../features/chat/hooks/useChatThread';
 import { ChatComposer } from '../features/chat/components/ChatComposer';
@@ -56,9 +56,9 @@ export default function ChatScreen() {
       />
 
       {loading ? (
-        <AppState title="Loading messages" loading />
+        <StatePanel title="Loading messages" loading />
       ) : errorMessage && messages.length === 0 ? (
-        <AppState title="Couldn't load messages" description={errorMessage} actionLabel="Retry" onAction={() => { void refresh(); }} />
+        <StatePanel title="Couldn't load messages" description={errorMessage} actionLabel="Retry" onAction={() => { void refresh(); }} />
       ) : (
         <ChatMessageList
           messages={messages}

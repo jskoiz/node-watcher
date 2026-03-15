@@ -3,11 +3,10 @@ import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { normalizeApiError } from '../api/errors';
-import AppState from '../components/ui/AppState';
-import AppButton from '../components/ui/AppButton';
 import AppBackButton from '../components/ui/AppBackButton';
 import AppBackdrop from '../components/ui/AppBackdrop';
 import AppIcon from '../components/ui/AppIcon';
+import { Button, StatePanel } from '../design/primitives';
 import { useTheme } from '../theme/useTheme';
 import { radii, spacing, typography } from '../theme/tokens';
 import { useEventDetail } from '../features/events/hooks/useEventDetail';
@@ -42,8 +41,8 @@ export default function EventDetailScreen({
     } catch {}
   };
 
-  if (loading) return <AppState title="Loading event" loading />;
-  if (errorMessage || !event) return <AppState title="Couldn't load event" description={errorMessage ?? 'Event not found'} actionLabel="Try again" onAction={() => { void refetch(); }} isError />;
+  if (loading) return <StatePanel title="Loading event" loading />;
+  if (errorMessage || !event) return <StatePanel title="Couldn't load event" description={errorMessage ?? 'Event not found'} actionLabel="Try again" onAction={() => { void refetch(); }} isError />;
 
   const dateInfo = formatDateRange(event.startsAt, event.endsAt);
 
@@ -107,7 +106,7 @@ export default function EventDetailScreen({
 
           {/* CTA pinned inside card */}
           <View style={styles.ctaArea}>
-            <AppButton
+            <Button
               label={event.joined ? "You're going" : joining ? 'Joining…' : 'Join event'}
               onPress={handleJoin}
               disabled={event.joined}

@@ -5,11 +5,10 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/authStore';
 import { normalizeApiError } from '../api/errors';
-import AppButton from '../components/ui/AppButton';
-import AppInput from '../components/ui/AppInput';
 import AppBackButton from '../components/ui/AppBackButton';
 import AppBackdrop from '../components/ui/AppBackdrop';
 import AppSelect from '../components/ui/AppSelect';
+import { Button, Input } from '../design/primitives';
 import { GENDER_OPTIONS } from '../constants/signup';
 import { useTheme } from '../theme/useTheme';
 import { radii, spacing, typography } from '../theme/tokens';
@@ -184,7 +183,7 @@ export default function SignupScreen({
                 control={control}
                 name="firstName"
                 render={({ field: { onBlur, onChange, value } }) => (
-                  <AppInput
+                  <Input
                     label="First name"
                     placeholder="Alex"
                     value={value}
@@ -203,7 +202,7 @@ export default function SignupScreen({
                   control={control}
                   name="email"
                   render={({ field: { onBlur, onChange, value } }) => (
-                    <AppInput
+                    <Input
                       label="Email"
                       placeholder="you@example.com"
                       value={value}
@@ -221,7 +220,7 @@ export default function SignupScreen({
                   control={control}
                   name="password"
                   render={({ field: { onBlur, onChange, value } }) => (
-                    <AppInput
+                    <Input
                       label="Password"
                       placeholder="At least 8 characters"
                       value={value}
@@ -308,7 +307,7 @@ export default function SignupScreen({
               </>
             )}
 
-            <AppButton
+            <Button
               label={step < STEPS - 1 ? 'Continue' : 'Create my account'}
               onPress={() => {
                 void handleNext();

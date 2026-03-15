@@ -44,7 +44,7 @@ This document records what was changed, why it was changed, what was verified, a
   - `mobile/.rnstorybook/index.ts`
   - `mobile/.rnstorybook/main.ts`
   - `mobile/.rnstorybook/preview.ts`
-  - `mobile/src/stories/AppButton.stories.tsx`
+  - `mobile/src/stories/Button.stories.tsx`
 - Added Metro config to support Storybook integration: `mobile/metro.config.js`
 - Added a `storybook` script in `mobile/package.json`.
 - Removed duplicate preview surfaces:
@@ -299,12 +299,7 @@ Target rules:
   - `Input`
   - `Chip`
   - `StatePanel`
-- legacy wrappers remain transitional for route-level compatibility:
-  - `AppButton`
-  - `AppCard`
-  - `AppInput`
-  - `AppState`
-- feature modules should import the design primitives directly instead of the legacy wrappers
+- legacy wrapper removal completed after migration; feature modules and stories should import the design primitives directly
 
 ### Phase 3: Complete iOS-first interaction cleanup
 

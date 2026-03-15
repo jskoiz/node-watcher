@@ -15,8 +15,8 @@ import type { EventSummary } from '../api/types';
 import { useAuthStore } from '../store/authStore';
 import AppBackButton from '../components/ui/AppBackButton';
 import AppBackdrop from '../components/ui/AppBackdrop';
-import AppState from '../components/ui/AppState';
 import AppIcon from '../components/ui/AppIcon';
+import { StatePanel } from '../design/primitives';
 import { useTheme } from '../theme/useTheme';
 import { radii, spacing, typography } from '../theme/tokens';
 import { useMyEvents } from '../features/events/hooks/useMyEvents';
@@ -181,9 +181,9 @@ export default function MyEventsScreen({
       </View>
 
       {loading ? (
-        <AppState title="Loading your events" loading />
+        <StatePanel title="Loading your events" loading />
       ) : errorMessage ? (
-        <AppState
+        <StatePanel
           title="Couldn't load events"
           description={errorMessage}
           actionLabel="Try again"

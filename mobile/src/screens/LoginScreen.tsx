@@ -5,9 +5,8 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/authStore';
 import { normalizeApiError } from '../api/errors';
-import AppButton from '../components/ui/AppButton';
-import AppInput from '../components/ui/AppInput';
 import AppBackdrop from '../components/ui/AppBackdrop';
+import { Button, Input } from '../design/primitives';
 import { useTheme } from '../theme/useTheme';
 import { radii, spacing, typography } from '../theme/tokens';
 import { loginSchema, type LoginFormValues } from '../features/auth/schema';
@@ -83,7 +82,7 @@ export default function LoginScreen({
               control={control}
               name="email"
               render={({ field: { onBlur, onChange, value } }) => (
-                <AppInput
+                <Input
                   label="Email"
                   placeholder="you@example.com"
                   value={value}
@@ -103,7 +102,7 @@ export default function LoginScreen({
               control={control}
               name="password"
               render={({ field: { onBlur, onChange, value } }) => (
-                <AppInput
+                <Input
                   label="Password"
                   placeholder="••••••••"
                   value={value}
@@ -125,7 +124,7 @@ export default function LoginScreen({
               </View>
             ) : null}
 
-            <AppButton
+            <Button
               label="Sign in"
               onPress={handleLogin}
               loading={isSubmitting}

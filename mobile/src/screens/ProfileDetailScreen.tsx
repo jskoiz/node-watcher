@@ -15,9 +15,9 @@ import { Image } from 'expo-image';
 import { normalizeApiError } from '../api/errors';
 import { discoveryApi, matchesApi } from '../services/api';
 import AppBackButton from '../components/ui/AppBackButton';
-import AppButton from '../components/ui/AppButton';
 import AppIcon from '../components/ui/AppIcon';
 import AppBackdrop from '../components/ui/AppBackdrop';
+import { Button } from '../design/primitives';
 import { useTheme } from '../theme/useTheme';
 import { radii, spacing, typography } from '../theme/tokens';
 import { type SessionIntent } from '../types/sessionIntent';
@@ -254,14 +254,14 @@ export default function ProfileDetailScreen() {
         style={styles.actionBar}
       >
         <View style={styles.actionRow}>
-          <AppButton
+          <Button
             label="Pass"
             variant="secondary"
             onPress={handlePass}
             disabled={submitting}
             style={styles.actionBtn}
           />
-          <AppButton
+          <Button
             label="Like"
             variant="primary"
             onPress={handleLike}
