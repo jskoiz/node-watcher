@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { env } from '../../config/env';
 import { connectMatchMessageStream } from '../matchRealtime';
 import { STORAGE_KEYS } from '../../constants/storage';
 
@@ -50,7 +51,7 @@ describe('connectMatchMessageStream', () => {
     expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith(STORAGE_KEYS.accessToken);
     expect(MockEventSource.instances).toHaveLength(1);
     expect(MockEventSource.instances[0].url).toBe(
-      'http://127.0.0.1:3010/matches/match-1/messages/stream',
+      `${env.apiUrl}/matches/match-1/messages/stream`,
     );
     expect(MockEventSource.instances[0].init).toMatchObject({
       headers: { Authorization: 'Bearer secure-token' },
