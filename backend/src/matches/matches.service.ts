@@ -14,7 +14,7 @@ export class MatchesService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  async getMatches(userId: string) {
+  async getMatches(userId: string, take = 20, skip = 0) {
     const matches = await this.prisma.match.findMany({
       where: {
         OR: [{ userAId: userId }, { userBId: userId }],
@@ -40,6 +40,8 @@ export class MatchesService {
         },
       },
       orderBy: { updatedAt: 'desc' },
+      take,
+      skip,
     });
 
     // Transform to return the *other* user, filtering out deleted/banned users
