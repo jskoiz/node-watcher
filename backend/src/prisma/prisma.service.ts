@@ -18,11 +18,7 @@ export class PrismaService
     const { connectionLimit, connectionTimeout, url } = appConfig.database;
 
     super({
-      datasources: {
-        db: {
-          url,
-        },
-      },
+      ...(url ? { datasources: { db: { url } } } : {}),
       log: appConfig.isProduction
         ? ['error', 'warn']
         : ['query', 'info', 'warn', 'error'],
