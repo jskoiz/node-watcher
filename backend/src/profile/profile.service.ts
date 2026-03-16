@@ -70,8 +70,8 @@ export class ProfileService {
 
   async getProfile(userId: string) {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
+      const user = await this.prisma.user.findFirst({
+        where: { id: userId, isDeleted: false, isBanned: false },
         include: {
           fitnessProfile: true,
           profile: true,

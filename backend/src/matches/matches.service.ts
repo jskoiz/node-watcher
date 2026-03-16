@@ -159,8 +159,13 @@ export class MatchesService {
       orderBy: { updatedAt: 'desc' },
     });
 
-    // Transform to return the *other* user
-    return matches.map((match) => {
+    // Transform to return the *other* user, filtering out deleted/banned users
+    return matches
+      .filter((match) => {
+        const otherUser = match.userAId === userId ? match.userB : match.userA;
+        return !otherUser.isDeleted && !otherUser.isBanned;
+      })
+      .map((match) => {
       const isUserA = match.userAId === userId;
       const otherUser = isUserA ? match.userB : match.userA;
       return {

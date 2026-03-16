@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import type { EventCategory } from '@prisma/client';
 import type { CreateEventInput } from './create-event.types';
 
 interface EventWithRsvps {
@@ -19,7 +20,7 @@ function mapEventSummary(
     description: string | null;
     location: string;
     imageUrl: string | null;
-    category: string | null;
+    category: EventCategory | null;
     startsAt: Date;
     endsAt: Date | null;
     host: { id: string; firstName: string };
@@ -100,7 +101,7 @@ export class EventsService {
     const title = payload.title?.trim();
     const location = payload.location?.trim();
     const description = payload.description?.trim();
-    const category = payload.category?.trim();
+    const category = payload.category ?? null;
     const startsAt = new Date(payload.startsAt);
     const endsAt = payload.endsAt ? new Date(payload.endsAt) : null;
 

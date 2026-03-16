@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { IntensityLevel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { deriveMatchClassification } from '../matches/match-classification';
@@ -25,7 +26,7 @@ interface UserWithRelations {
   fitnessProfile: {
     primaryGoal: string | null;
     secondaryGoal: string | null;
-    intensityLevel: string;
+    intensityLevel: IntensityLevel;
     prefersMorning: boolean | null;
     prefersEvening: boolean | null;
     favoriteActivities: string | null;
@@ -209,12 +210,18 @@ export class DiscoveryService {
     }
 
     if (normalizedIntensity.length) {
-      andFilters.push({
-        intensityLevel: {
-          in: normalizedIntensity,
-          mode: 'insensitive' as const,
-        },
-      });
+      const intensityEnums = normalizedIntensity
+        .map((i) => i.toUpperCase())
+        .filter((i): i is IntensityLevel =>
+          Object.values(IntensityLevel).includes(i as IntensityLevel),
+        );
+      if (intensityEnums.length) {
+        andFilters.push({
+          intensityLevel: {
+            in: intensityEnums,
+          },
+        });
+      }
     }
 
     if (availabilityFilter) {
@@ -250,7 +257,7 @@ export class DiscoveryService {
   private computeRecommendationScore(
     me: {
       fitnessProfile?: {
-        intensityLevel?: string | null;
+        intensityLevel?: IntensityLevel | null;
         primaryGoal?: string | null;
         secondaryGoal?: string | null;
       } | null;
@@ -282,8 +289,8 @@ export class DiscoveryService {
     if (
       me?.fitnessProfile?.intensityLevel &&
       candidate.fitnessProfile?.intensityLevel &&
-      me.fitnessProfile.intensityLevel.toLowerCase() ===
-        candidate.fitnessProfile.intensityLevel.toLowerCase()
+      me.fitnessProfile.intensityLevel ===
+        candidate.fitnessProfile.intensityLevel
     ) {
       score += 20;
     }

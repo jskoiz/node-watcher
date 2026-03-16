@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { AuthProvider, Gender } from '@prisma/client';
 
 export interface SignupDto {
   email: string;
@@ -35,6 +36,14 @@ type AuthenticatedUser = {
 
 type EmailAuthUser = AuthenticatedUser & {
   passwordHash: string | null;
+};
+
+const GENDER_MAP: Record<string, Gender> = {
+  woman: Gender.FEMALE,
+  man: Gender.MALE,
+  'non-binary': Gender.NON_BINARY,
+  female: Gender.FEMALE,
+  male: Gender.MALE,
 };
 
 const ALLOWED_GENDERS = ['woman', 'man', 'non-binary'] as const;
@@ -70,7 +79,7 @@ export class AuthService {
     return parsedBirthdate;
   }
 
-  private normalizeGender(gender: string) {
+  private normalizeGender(gender: string): Gender {
     const normalizedGender = gender.trim().toLowerCase();
     if (
       !ALLOWED_GENDERS.includes(
@@ -82,7 +91,14 @@ export class AuthService {
       );
     }
 
-    return normalizedGender;
+    const mapped = GENDER_MAP[normalizedGender];
+    if (!mapped) {
+      throw new BadRequestException(
+        'Gender must be one of: woman, man, non-binary',
+      );
+    }
+
+    return mapped;
   }
 
   private buildEmailLookup(email: string) {
@@ -91,13 +107,17 @@ export class AuthService {
         equals: email,
         mode: 'insensitive' as const,
       },
-      authProvider: 'email',
+      authProvider: AuthProvider.EMAIL,
     };
   }
 
   private async findEmailAuthUser(email: string): Promise<EmailAuthUser | null> {
     return this.prisma.user.findFirst({
-      where: this.buildEmailLookup(email),
+      where: {
+        ...this.buildEmailLookup(email),
+        isDeleted: false,
+        isBanned: false,
+      },
       orderBy: {
         createdAt: 'asc',
       },
@@ -143,7 +163,7 @@ export class AuthService {
           firstName,
           birthdate: parsedBirthdate,
           gender: normalizedGender,
-          authProvider: 'email',
+          authProvider: AuthProvider.EMAIL,
         },
       });
 
@@ -224,8 +244,8 @@ export class AuthService {
 
   async getCurrentUser(userId: string) {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
+      const user = await this.prisma.user.findFirst({
+        where: { id: userId, isDeleted: false, isBanned: false },
         select: {
           id: true,
           email: true,
@@ -272,12 +292,21 @@ export class AuthService {
         throw new UnauthorizedException('User not found');
       }
 
-      await this.prisma.user.delete({
+      await this.prisma.user.update({
         where: { id: userId },
+        data: {
+          isDeleted: true,
+          email: `deleted-${userId}@deleted.invalid`,
+          passwordHash: null,
+          phoneNumber: null,
+          providerId: null,
+          firstName: 'Deleted',
+          pronouns: null,
+        },
       });
 
       this.logger.log(
-        `Deleted account for userId=${user.id}${user.email ? ` email=${user.email}` : ''}`,
+        `Soft-deleted account for userId=${user.id}${user.email ? ` email=${user.email}` : ''}`,
       );
     } catch (error) {
       if (error instanceof UnauthorizedException) {

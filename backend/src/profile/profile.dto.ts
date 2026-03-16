@@ -12,7 +12,7 @@ export type UpdateProfileDto = {
 
 export type UpdateFitnessProfileDto = {
   userId?: string;
-  intensityLevel?: string;
+  intensityLevel?: import('@prisma/client').IntensityLevel;
   weeklyFrequencyBand?: string;
   primaryGoal?: string;
   secondaryGoal?: string;
