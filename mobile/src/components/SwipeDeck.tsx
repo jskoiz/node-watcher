@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Swiper from 'react-native-deck-swiper';
+import type { DiscoveryUser, User } from '../api/types';
 import { editorialColors, radii, spacing, typography } from '../theme/tokens';
 import { fontFamily } from '../lib/fonts';
 import {
@@ -17,11 +18,12 @@ import { getAvatarInitial, getPrimaryPhotoUri } from '../lib/profilePhotos';
 const DEFAULT_CARD_HEIGHT = 520;
 const MIN_CARD_HEIGHT = 360;
 const MAX_CARD_HEIGHT = 680;
+type SwipeDeckUser = User & Pick<Partial<DiscoveryUser>, 'distanceKm' | 'recommendationScore'>;
 
 interface SwipeDeckCardProps {
   cardHeight: number;
   onPress?: () => void;
-  user: any;
+  user: SwipeDeckUser;
 }
 
 const getAlignmentLabel = (score?: number) => {
@@ -30,6 +32,12 @@ const getAlignmentLabel = (score?: number) => {
   const percentage = Math.max(0, Math.min(100, Math.round(normalizedScore)));
   return `${percentage}% aligned`;
 };
+
+const formatDistanceLabel = (distanceKm?: number) => {
+  if (typeof distanceKm !== 'number' || Number.isNaN(distanceKm)) return '';
+  return ` · ${Math.round(distanceKm)} km away`;
+};
+
 
 const clampCardHeight = (value?: number) => {
   if (typeof value !== 'number' || Number.isNaN(value)) return DEFAULT_CARD_HEIGHT;
@@ -117,7 +125,7 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
           </Text>
           <Text style={styles.metaLine}>
             {user.profile?.city || 'Nearby'}
-            {user.distanceKm ? ` · ${Math.round(user.distanceKm)} km away` : ''}
+            {formatDistanceLabel(user.distanceKm)}
           </Text>
           <Text style={[styles.bio, compact && styles.bioCompact]} numberOfLines={ultraCompact ? 1 : 2}>
             {user.profile?.bio || 'Aligned on rhythm, intent, and the kind of plans that actually happen.'}
@@ -139,10 +147,10 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
 
 interface SwipeDeckProps {
   cardHeight?: number;
-  data: any[];
-  onPress?: (user: any) => void;
-  onSwipeLeft: (user: any) => void;
-  onSwipeRight: (user: any) => void;
+  data: SwipeDeckUser[];
+  onPress?: (user: SwipeDeckUser) => void;
+  onSwipeLeft: (user: SwipeDeckUser) => void;
+  onSwipeRight: (user: SwipeDeckUser) => void;
 }
 
 export default function SwipeDeck({
@@ -152,7 +160,7 @@ export default function SwipeDeck({
   onSwipeRight,
   onPress,
 }: SwipeDeckProps) {
-  const swiperRef = useRef<Swiper<any>>(null);
+  const swiperRef = useRef<Swiper<SwipeDeckUser>>(null);
   const resolvedCardHeight = clampCardHeight(cardHeight);
   const resolvedCardFrameStyle = React.useMemo(
     () => ({

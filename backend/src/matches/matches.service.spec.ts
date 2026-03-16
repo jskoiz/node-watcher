@@ -18,6 +18,7 @@ describe('MatchesService realtime', () => {
       create: jest.fn(),
     },
     match: {
+      findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -41,6 +42,94 @@ describe('MatchesService realtime', () => {
     jest.clearAllMocks();
     jest.mocked(prisma.userProfile.findMany).mockResolvedValue([] as any);
     service = new MatchesService(prisma, realtime, notifications);
+  });
+
+  it('narrows getMatches payloads and normalizes nullable fields', async () => {
+    jest.mocked(prisma.match.findMany).mockResolvedValue([
+      {
+        id: 'match-1',
+        createdAt: new Date('2026-03-01T00:00:00.000Z'),
+        userAId: 'user-1',
+        userBId: 'user-2',
+        userA: {
+          id: 'user-1',
+          firstName: 'Self',
+          isDeleted: false,
+          isBanned: false,
+          photos: [],
+        },
+        userB: {
+          id: 'user-2',
+          firstName: 'Other',
+          isDeleted: false,
+          isBanned: false,
+          photos: [],
+        },
+        messages: [],
+      },
+    ] as any);
+
+    const result = await service.getMatches('user-1', 5, 10);
+
+    expect(jest.mocked(prisma.match.findMany)).toHaveBeenCalledWith({
+      where: {
+        OR: [{ userAId: 'user-1' }, { userBId: 'user-1' }],
+        isBlocked: false,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        userAId: true,
+        userBId: true,
+        userA: {
+          select: {
+            id: true,
+            firstName: true,
+            isDeleted: true,
+            isBanned: true,
+            photos: {
+              where: { isPrimary: true },
+              select: { storageKey: true },
+              take: 1,
+            },
+          },
+        },
+        userB: {
+          select: {
+            id: true,
+            firstName: true,
+            isDeleted: true,
+            isBanned: true,
+            photos: {
+              where: { isPrimary: true },
+              select: { storageKey: true },
+              take: 1,
+            },
+          },
+        },
+        messages: {
+          select: { body: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+      skip: 10,
+    });
+    expect(result).toEqual([
+      {
+        id: 'match-1',
+        createdAt: new Date('2026-03-01T00:00:00.000Z'),
+        user: {
+          id: 'user-2',
+          firstName: 'Other',
+          photoUrl: null,
+        },
+        lastMessage: null,
+      },
+    ]);
   });
 
   it('publishes realtime event when sending a message', async () => {
@@ -157,48 +246,38 @@ describe('MatchesService realtime', () => {
     expect(messages[1].id).toBe('msg-2');
   });
 
-  it('rejects message access for archived matches with a forbidden error', async () => {
-    jest.mocked(prisma.match.findUnique).mockResolvedValue({
-      id: 'match-1',
-      userAId: 'user-1',
-      userBId: 'user-2',
-      isBlocked: false,
-      isArchived: true,
-    } as any);
+  it.each([
+    {
+      label: 'message reads',
+      call: () => service.getMessages('match-1', 'user-1'),
+      assertNoSideEffect: () =>
+        expect(jest.mocked(prisma.message.findMany)).not.toHaveBeenCalled(),
+    },
+    {
+      label: 'message streaming',
+      call: () => service.streamMessages('match-1', 'user-1'),
+      assertNoSideEffect: () =>
+        expect(jest.mocked(realtime.stream)).not.toHaveBeenCalled(),
+    },
+    {
+      label: 'message sends',
+      call: () => service.sendMessage('match-1', 'user-1', 'hey'),
+      assertNoSideEffect: () =>
+        expect(jest.mocked(prisma.message.create)).not.toHaveBeenCalled(),
+    },
+  ])(
+    'rejects $label for archived matches with a forbidden error',
+    async ({ call, assertNoSideEffect }) => {
+      jest.mocked(prisma.match.findUnique).mockResolvedValue({
+        id: 'match-1',
+        userAId: 'user-1',
+        userBId: 'user-2',
+        isBlocked: false,
+        isArchived: true,
+      } as any);
 
-    await expect(service.getMessages('match-1', 'user-1')).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
-    expect(jest.mocked(prisma.message.findMany)).not.toHaveBeenCalled();
-  });
-
-  it('rejects message reads for archived matches with a forbidden error', async () => {
-    jest.mocked(prisma.match.findUnique).mockResolvedValue({
-      id: 'match-1',
-      userAId: 'user-1',
-      userBId: 'user-2',
-      isBlocked: false,
-      isArchived: true,
-    } as any);
-
-    await expect(service.getMessages('match-1', 'user-1')).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
-    expect(jest.mocked(prisma.message.findMany)).not.toHaveBeenCalled();
-  });
-
-  it('rejects message sends for archived matches with a forbidden error', async () => {
-    jest.mocked(prisma.match.findUnique).mockResolvedValue({
-      id: 'match-1',
-      userAId: 'user-1',
-      userBId: 'user-2',
-      isBlocked: false,
-      isArchived: true,
-    } as any);
-
-    await expect(
-      service.sendMessage('match-1', 'user-1', 'hey'),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(jest.mocked(prisma.message.create)).not.toHaveBeenCalled();
-  });
+      await expect(call()).rejects.toBeInstanceOf(ForbiddenException);
+      assertNoSideEffect();
+    },
+  );
 });

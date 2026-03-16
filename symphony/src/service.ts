@@ -1,9 +1,11 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type { Issue, LoadedWorkflow, Logger, RetryEntry } from './types.js';
 import { WorkflowStore } from './workflow-store.js';
 import { LinearTracker } from './tracker/linear.js';
 import { WorkspaceManager } from './workspace.js';
 import { AgentRunner } from './agent-runner.js';
-import { sleep } from './utils.js';
+import { ensureDir, sleep } from './utils.js';
 
 interface RunningEntry {
   issue: Issue;
@@ -11,15 +13,39 @@ interface RunningEntry {
   abortController: AbortController;
 }
 
+interface CompletedRunEntry {
+  issueId: string;
+  identifier: string;
+  fingerprint: string;
+  completedAt: string;
+}
+
+interface CompletedRunsFile {
+  completedRuns: Record<string, CompletedRunEntry>;
+}
+
 function computeRetryDelay(workflow: LoadedWorkflow, attempt: number): number {
   const raw = workflow.config.agent.retryBaseDelayMs * (2 ** Math.max(0, attempt - 1));
   return Math.min(raw, workflow.config.agent.retryMaxDelayMs);
+}
+
+export function buildIssueDispatchFingerprint(issue: Issue): string {
+  return JSON.stringify({
+    updatedAt: issue.updatedAt ?? null,
+    stateId: issue.state.id ?? null,
+    stateName: issue.state.name,
+    branchName: issue.branchName ?? null,
+    description: issue.description ?? null,
+    labels: issue.labels,
+  });
 }
 
 export class SymphonyService {
   private stopped = false;
   private readonly running = new Map<string, RunningEntry>();
   private readonly retries = new Map<string, RetryEntry>();
+  private readonly completedRuns = new Map<string, CompletedRunEntry>();
+  private completedRunsPath: string | null = null;
 
   constructor(
     private readonly workflowStore: WorkflowStore,
@@ -33,6 +59,69 @@ export class SymphonyService {
     }
   }
 
+  private getCompletedRunsPath(workflow: LoadedWorkflow): string {
+    return path.resolve(workflow.config.workspace.root, '..', 'run-state.json');
+  }
+
+  private loadCompletedRuns(workflow: LoadedWorkflow): void {
+    const nextPath = this.getCompletedRunsPath(workflow);
+    if (this.completedRunsPath === nextPath) {
+      return;
+    }
+
+    this.completedRuns.clear();
+    this.completedRunsPath = nextPath;
+
+    if (!fs.existsSync(nextPath)) {
+      return;
+    }
+
+    try {
+      const raw = fs.readFileSync(nextPath, 'utf8');
+      const parsed = JSON.parse(raw) as CompletedRunsFile;
+      for (const entry of Object.values(parsed.completedRuns ?? {})) {
+        this.completedRuns.set(entry.issueId, entry);
+      }
+    } catch (error) {
+      this.logger.warn('completed_runs.load_failed', {
+        path: nextPath,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private writeCompletedRuns(): void {
+    if (!this.completedRunsPath) {
+      return;
+    }
+
+    ensureDir(path.dirname(this.completedRunsPath));
+    const payload: CompletedRunsFile = {
+      completedRuns: Object.fromEntries(
+        [...this.completedRuns.entries()].map(([issueId, entry]) => [issueId, entry]),
+      ),
+    };
+    fs.writeFileSync(this.completedRunsPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  }
+
+  private markIssueCompleted(issue: Issue): void {
+    const entry: CompletedRunEntry = {
+      issueId: issue.id,
+      identifier: issue.identifier,
+      fingerprint: buildIssueDispatchFingerprint(issue),
+      completedAt: new Date().toISOString(),
+    };
+    this.completedRuns.set(issue.id, entry);
+    this.writeCompletedRuns();
+  }
+
+  private clearCompletedIssue(issueId: string): void {
+    if (!this.completedRuns.delete(issueId)) {
+      return;
+    }
+    this.writeCompletedRuns();
+  }
+
   private async cleanupTerminalWorkspaces(workflow: LoadedWorkflow, tracker: LinearTracker, workspaceManager: WorkspaceManager): Promise<void> {
     const terminalIssues = await tracker.listTerminalIssues(
       workflow.config.tracker.projectSlug,
@@ -42,6 +131,7 @@ export class SymphonyService {
     for (const issue of terminalIssues) {
       await workspaceManager.removeWorkspace(issue.identifier);
       this.retries.delete(issue.id);
+      this.clearCompletedIssue(issue.id);
     }
   }
 
@@ -103,6 +193,8 @@ export class SymphonyService {
       });
       if (result.status !== 'completed') {
         this.scheduleRetry(workflow, issue, attempt + 1, result.error ?? null);
+      } else {
+        this.markIssueCompleted(issue);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -120,6 +212,7 @@ export class SymphonyService {
   async start(): Promise<void> {
     while (!this.stopped) {
       const workflow = this.workflowStore.reloadIfChanged();
+      this.loadCompletedRuns(workflow);
       const tracker = new LinearTracker(workflow.config.tracker.apiKey, this.logger);
       const workspaceManager = new WorkspaceManager(workflow.config, this.logger);
 
@@ -142,6 +235,14 @@ export class SymphonyService {
         for (const issue of issues) {
           if (availableSlots <= 0) {
             break;
+          }
+          const completed = this.completedRuns.get(issue.id);
+          const fingerprint = buildIssueDispatchFingerprint(issue);
+          if (completed && completed.fingerprint === fingerprint) {
+            continue;
+          }
+          if (completed && completed.fingerprint !== fingerprint) {
+            this.clearCompletedIssue(issue.id);
           }
           const gate = this.canDispatch(issue);
           if (!gate.allowed) {
