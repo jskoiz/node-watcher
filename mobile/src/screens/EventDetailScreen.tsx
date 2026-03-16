@@ -132,7 +132,7 @@ function MetaRow({
   const theme = useTheme();
   return (
     <View style={styles.metaRow}>
-      <View style={[styles.metaIconWrap, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
+      <View style={[styles.metaIconWrap, { backgroundColor: theme.surfaceElevated }]}>
         <AppIcon name={icon} size={15} color={theme.primary} />
       </View>
       <View>
@@ -161,16 +161,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: HERO_HEIGHT * 0.5,
-    backgroundColor: 'rgba(13,17,23,0.55)',
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   backBtnOverlay: {
     position: 'absolute',
     top: spacing.lg,
     left: spacing.lg,
-    backgroundColor: 'rgba(13,17,23,0.50)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   heroBadge: {
     position: 'absolute',
@@ -192,10 +197,8 @@ const styles = StyleSheet.create({
     marginTop: -28,
     paddingTop: spacing.xxl,
     paddingHorizontal: spacing.xxl,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
     shadowColor: '#000',
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.08,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: -4 },
     elevation: 8,
@@ -217,7 +220,7 @@ const styles = StyleSheet.create({
   hostStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 22,
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -250,7 +253,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   hostPill: {
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
@@ -272,7 +275,6 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
