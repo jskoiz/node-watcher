@@ -1,6 +1,8 @@
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 
+ENV SCARF_ANALYTICS=false
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
@@ -21,6 +23,7 @@ FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV SCARF_ANALYTICS=false
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl \
