@@ -92,6 +92,11 @@ jobs:
             const body = fs.readFileSync(process.env.REPORT_PATH, 'utf8')
               + `\nCurrent failure state: ${process.env.FAILURE_STATE === '1' ? 'attention needed' : 'clean'}\n`;
             const { owner, repo } = context.repo;
+            const repository = await github.rest.repos.get({ owner, repo });
+            if (!repository.data.has_issues) {
+              core.info('Repository issues are disabled; skipping maintenance issue sync.');
+              return;
+            }
             const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner,
               repo,
