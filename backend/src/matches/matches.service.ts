@@ -1,4 +1,11 @@
-import { ForbiddenException, Injectable, Logger, MessageEvent } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  MessageEvent,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchesRealtimeService } from './matches-realtime.service';
 import { map, Observable } from 'rxjs';
@@ -135,6 +142,10 @@ export class MatchesService {
   }
 
   async sendMessage(matchId: string, userId: string, content: string) {
+    if (!content?.trim()) {
+      throw new BadRequestException('Message content is required');
+    }
+
     const match = await this.assertMatchAccess(matchId, userId);
 
     const message = await this.prisma.message.create({
@@ -189,13 +200,16 @@ export class MatchesService {
       },
     });
 
-    if (
-      !match ||
-      (match.userAId !== userId && match.userBId !== userId) ||
-      match.isBlocked ||
-      match.isArchived
-    ) {
+    if (!match) {
+      throw new NotFoundException('Match not found');
+    }
+
+    if (match.userAId !== userId && match.userBId !== userId) {
       throw new ForbiddenException('Access denied');
+    }
+
+    if (match.isBlocked || match.isArchived) {
+      throw new ForbiddenException('This conversation is no longer available');
     }
 
     return match;

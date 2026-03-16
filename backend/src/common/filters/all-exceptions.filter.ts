@@ -7,6 +7,34 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
+interface PrismaError {
+  code: string;
+  meta?: Record<string, unknown>;
+}
+
+function isPrismaError(error: unknown): error is PrismaError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as PrismaError).code === 'string' &&
+    (error as PrismaError).code.startsWith('P')
+  );
+}
+
+function prismaErrorToHttp(error: PrismaError): { status: number; message: string } {
+  switch (error.code) {
+    case 'P2025':
+      return { status: 404, message: 'Record not found' };
+    case 'P2002':
+      return { status: 409, message: 'A record with this value already exists' };
+    case 'P2003':
+      return { status: 400, message: 'Related record not found' };
+    default:
+      return { status: 500, message: 'Internal server error' };
+  }
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionFilter');
@@ -15,6 +43,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+
+    // Handle Prisma-specific errors with appropriate HTTP status codes
+    if (isPrismaError(exception)) {
+      const { status, message } = prismaErrorToHttp(exception);
+
+      this.logger.error(
+        `${request.method} ${request.url} ${status}: Prisma ${exception.code} – ${message}`,
+        exception instanceof Error ? (exception as Error).stack : undefined,
+      );
+
+      response.status(status).json({ statusCode: status, message });
+      return;
+    }
 
     const status =
       exception instanceof HttpException ? exception.getStatus() : 500;

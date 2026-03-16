@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Keyboard, ScrollView, Share } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { normalizeApiError } from '../api/errors';
 import type { EventSummary } from '../api/types';
 import type { MainTabScreenProps } from '../core/navigation/types';
 import { useCreateEvent } from '../features/events/hooks/useCreateEvent';
@@ -74,9 +75,9 @@ export default function CreateScreen({ navigation }: MainTabScreenProps<'Create'
       requestAnimationFrame(() => {
         scrollRef.current?.scrollToEnd({ animated: true });
       });
-    } catch {
+    } catch (err) {
       void triggerErrorHaptic();
-      setSubmitError(createError ?? 'Unable to create event.');
+      setSubmitError(normalizeApiError(err).message ?? createError ?? 'Unable to create event.');
     }
   });
 

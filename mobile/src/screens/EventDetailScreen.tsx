@@ -141,7 +141,11 @@ export default function EventDetailScreen({
     if (!event || joining || event.joined) return;
     try {
       await joinEvent();
-    } catch {}
+    } catch (err) {
+      // Optimistic update rollback is handled by the useEventDetail hook's onError.
+      // Surface errors are shown via errorMessage derived from query error state.
+      void err;
+    }
   };
 
   return (
