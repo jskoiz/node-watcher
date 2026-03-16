@@ -25,7 +25,7 @@ export function EventCard({
 
   return (
     <Card style={styles.eventCard}>
-      <Pressable onPress={onOpen}>
+      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Event: ${event.title}. ${formatEventDate(event.startsAt)}. ${event.attendeesCount} attending`}>
       <LinearGradient
         colors={[...meta.gradientColors, 'rgba(253,251,248,0.85)']}
         locations={[0, 0.45, 1]}
@@ -119,7 +119,13 @@ export function CommunityCard({
         <Text style={styles.communityText}>{post.text}</Text>
 
         <View style={styles.communityActions}>
-          <TouchableOpacity style={[styles.inviteSmallBtn, { borderColor: post.color + '35' }]} onPress={onInvite} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={[styles.inviteSmallBtn, { borderColor: post.color + '35', minHeight: 44, justifyContent: 'center' }]}
+            onPress={onInvite}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Share this community idea"
+          >
             <Text style={[styles.inviteSmallText, { color: post.color }]}>Share idea</Text>
           </TouchableOpacity>
         </View>

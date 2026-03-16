@@ -246,7 +246,13 @@ export function SignupScreenView({
           {step === 0 && (
             <View style={styles.footer}>
               <Text style={[styles.footerText, { color: theme.textMuted }]}>Already have an account? </Text>
-              <Pressable onPress={onNavigateLogin}>
+              <Pressable
+                onPress={onNavigateLogin}
+                accessibilityRole="link"
+                accessibilityLabel="Sign in"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ minHeight: 44, justifyContent: 'center' }}
+              >
                 <Text style={[styles.footerLink, { color: theme.accent }]}>Sign in</Text>
               </Pressable>
             </View>

@@ -141,7 +141,14 @@ export function LoginScreenView({
 
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: theme.textMuted }]}>Don't have an account? </Text>
-            <Pressable onPress={onNavigateSignup} disabled={isSubmitting}>
+            <Pressable
+              onPress={onNavigateSignup}
+              disabled={isSubmitting}
+              accessibilityRole="link"
+              accessibilityLabel="Join BRDG"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ minHeight: 44, justifyContent: 'center' }}
+            >
               <Text style={[styles.footerLink, { color: theme.accent }]}>Join BRDG</Text>
             </Pressable>
           </View>

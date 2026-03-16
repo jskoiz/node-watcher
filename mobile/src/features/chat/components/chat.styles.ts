@@ -15,7 +15,7 @@ export const chatStyles = StyleSheet.create({
   headerAvatar: { width: 44, height: 44, borderRadius: 22 },
   headerInfo: { flex: 1, gap: 2 },
   quickActionTrigger: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  quickActionTriggerGlass: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  quickActionTriggerGlass: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerEyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
   headerName: { fontSize: typography.h3, fontWeight: '800', letterSpacing: -0.3 },
   headerTag: {

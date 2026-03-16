@@ -25,7 +25,13 @@ export function HomeQuickFilters({
         contentContainerStyle={styles.filterPillsRow}
         style={styles.filterPillsScroll}
       >
-        <Pressable onPress={onPressRefine} style={styles.refineTrigger}>
+        <Pressable
+          onPress={onPressRefine}
+          style={[styles.refineTrigger, { minHeight: 44 }]}
+          accessibilityRole="button"
+          accessibilityLabel={refineLabel}
+          accessibilityHint="Opens filter options"
+        >
           <AppIcon
             name="sliders"
             size={14}
@@ -48,7 +54,10 @@ export function HomeQuickFilters({
             <Pressable
               key={filter.id}
               onPress={() => onPressFilter(filter.id)}
-              style={[styles.filterPill, active ? styles.filterPillActive : styles.filterPillInactive]}
+              style={[styles.filterPill, active ? styles.filterPillActive : styles.filterPillInactive, { minHeight: 44, justifyContent: 'center' }]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`Filter by ${filter.label}`}
             >
               <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>
                 {filter.label}

@@ -34,8 +34,8 @@ export default function AppBackButton({ label, onPress, disabled, style }: AppBa
 
 const styles = StyleSheet.create({
   button: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',

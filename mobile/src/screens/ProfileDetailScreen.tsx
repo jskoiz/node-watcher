@@ -9,7 +9,7 @@ import {
   Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image } from 'expo-image';
@@ -38,6 +38,7 @@ const TEXT_MUTED = '#B0A89E';
 
 export default function ProfileDetailScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'ProfileDetail'>>();
   const { user } = route.params;
@@ -135,7 +136,7 @@ export default function ProfileDetailScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.heroContainer}>
           {primaryPhoto ? (
-            <Image source={{ uri: primaryPhoto }} style={styles.heroImage} contentFit="cover" />
+            <Image source={{ uri: primaryPhoto }} style={styles.heroImage} contentFit="cover" accessibilityLabel={`Photo of ${user.firstName || 'profile'}`} />
           ) : (
             <LinearGradient
               colors={['#F7F4F0', '#E8E2DA']}
@@ -243,7 +244,11 @@ export default function ProfileDetailScreen() {
 
           <Pressable
             onPress={handleSuggestActivity}
-            style={styles.suggestBtn}
+            style={[styles.suggestBtn, { minHeight: 48 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Suggest an activity"
+            accessibilityHint="Opens a chat with a suggested plan"
+            disabled={submitting}
           >
             <LinearGradient
               colors={['#D4C9B0', PRIMARY]}
@@ -257,7 +262,7 @@ export default function ProfileDetailScreen() {
 
       <LinearGradient
         colors={['rgba(253,251,248,0)', 'rgba(253,251,248,0.95)', '#FDFBF8']}
-        style={styles.actionBar}
+        style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.xxl) }]}
       >
         <View style={styles.actionRow}>
           <Button

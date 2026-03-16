@@ -27,7 +27,7 @@ export function ChatHeader({
     <GlassView tier="medium" borderRadius={0} style={styles.header}>
       <AppBackButton onPress={onBack} style={styles.backBtn} />
       {photoUrl ? (
-        <Image source={{ uri: photoUrl }} style={[styles.headerAvatar, { borderColor: theme.primary }]} contentFit="cover" />
+        <Image source={{ uri: photoUrl }} style={[styles.headerAvatar, { borderColor: theme.primary }]} contentFit="cover" accessibilityLabel={`Photo of ${user?.firstName || 'match'}`} />
       ) : (
         <View
           style={[
@@ -54,7 +54,13 @@ export function ChatHeader({
           </View>
         ) : null}
       </View>
-      <Pressable onPress={onOpenQuickActions}>
+      <Pressable
+        onPress={onOpenQuickActions}
+        accessibilityRole="button"
+        accessibilityLabel="Quick actions"
+        accessibilityHint="Opens conversation options"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
         <GlassView tier="thin" borderRadius={19} style={styles.quickActionTriggerGlass}>
           <AppIcon name="more-horizontal" size={16} color={theme.textPrimary} />
         </GlassView>

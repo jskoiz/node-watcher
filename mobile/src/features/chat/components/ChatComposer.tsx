@@ -39,10 +39,16 @@ export function ChatComposer({
         submitBehavior="submit"
         onSubmitEditing={onSend}
         blurOnSubmit={false}
+        accessibilityLabel="Message input"
+        accessibilityHint="Type your message here"
       />
       <Pressable
         onPress={onSend}
         disabled={sending || !canSend}
+        accessibilityRole="button"
+        accessibilityLabel="Send message"
+        accessibilityState={{ disabled: sending || !canSend }}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
       >
         <GlassView
           tier={canSend ? 'medium' : 'thin'}

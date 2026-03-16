@@ -36,8 +36,8 @@ export default function MatchAnimation({ visible, onFinish }: MatchAnimationProp
     if (!visible) return null;
 
     return (
-        <Modal transparent visible={visible} animationType="fade">
-            <View style={styles.container}>
+        <Modal transparent visible={visible} animationType="fade" accessibilityViewIsModal>
+            <View style={styles.container} accessibilityRole="alert" accessibilityLabel="It's a match! You matched with someone.">
                 <Animated.View style={[styles.content, { opacity, transform: [{ scale }] }]}>
                     <LottieView
                         source={require('../../assets/animations/match.json')}

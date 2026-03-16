@@ -141,9 +141,13 @@ export default function MyEventsScreen({
             style={[
               styles.tab,
               activeTab === tab && [styles.tabActive, { backgroundColor: theme.primary }],
+              { minHeight: 44, justifyContent: 'center' },
             ]}
             onPress={() => setActiveTab(tab)}
             activeOpacity={0.8}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === tab }}
+            accessibilityLabel={`${tab} events, ${tabCounts[tab]} items`}
           >
             <View style={styles.tabContent}>
               <Text
@@ -209,9 +213,11 @@ export default function MyEventsScreen({
             {emptyMeta.body}
           </Text>
           <TouchableOpacity
-            style={[styles.emptyCta, { backgroundColor: theme.primary }]}
+            style={[styles.emptyCta, { backgroundColor: theme.primary, minHeight: 48 }]}
             onPress={() => navigation.navigate('Main', { screen: emptyMeta.route })}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={emptyMeta.cta}
           >
             <Text style={[styles.emptyCtaText, { color: theme.white }]}>
               {emptyMeta.cta}

@@ -145,6 +145,9 @@ export function Button({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={isDisabled}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: isDisabled ?? false }}
         style={({ pressed }) => [{ opacity: isDisabled ? 0.48 : pressed ? 0.85 : 1 }]}
       >
         <Animated.View style={[{ transform: [{ scale }] }, style]}>
@@ -169,6 +172,9 @@ export function Button({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled ?? false }}
       style={({ pressed }) => [{ opacity: isDisabled ? 0.48 : pressed ? 0.88 : 1 }]}
     >
       <Animated.View style={[primitiveStyles.buttonBase, getContainerStyle(), sizeStyle, { transform: [{ scale }] }, style]}>
@@ -291,6 +297,7 @@ export function Input({
           textAlignVertical={multiline ? 'top' : 'center'}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          accessibilityLabel={props.accessibilityLabel ?? label}
           style={[
             primitiveStyles.input,
             { color: theme.textPrimary },
@@ -327,6 +334,9 @@ export function Chip({
     <Pressable
       onPress={interactive ? onPress : undefined}
       disabled={!interactive}
+      accessibilityRole={interactive ? 'button' : 'text'}
+      accessibilityState={interactive ? { selected: active } : undefined}
+      accessibilityLabel={label}
       style={[
         primitiveStyles.chip,
         active
@@ -385,7 +395,7 @@ export function StatePanel({
 
 const primitiveStyles = StyleSheet.create({
   buttonBase: {
-    minHeight: 46,
+    minHeight: 48,
     borderRadius: 999,
     paddingHorizontal: spacing.xxl,
     alignItems: 'center',
@@ -468,6 +478,8 @@ const primitiveStyles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: radii.pill,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   chipText: {
     fontSize: typography.bodySmall,

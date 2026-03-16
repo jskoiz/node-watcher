@@ -103,7 +103,13 @@ export function ExploreScreenContent({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{eventSectionTitle}</Text>
-              <TouchableOpacity onPress={onOpenMyEvents}>
+              <TouchableOpacity
+                onPress={onOpenMyEvents}
+                accessibilityRole="button"
+                accessibilityLabel="View my events"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{ minHeight: 44, justifyContent: 'center' }}
+              >
                 <Text style={styles.seeAll}>My Events →</Text>
               </TouchableOpacity>
             </View>
@@ -142,7 +148,13 @@ export function ExploreScreenContent({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Community</Text>
-              <TouchableOpacity onPress={onOpenCreate}>
+              <TouchableOpacity
+                onPress={onOpenCreate}
+                accessibilityRole="button"
+                accessibilityLabel="Create a community post"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{ minHeight: 44, justifyContent: 'center' }}
+              >
                 <Text style={[styles.seeAll, { color: '#8BAA7A' }]}>+ Post →</Text>
               </TouchableOpacity>
             </View>

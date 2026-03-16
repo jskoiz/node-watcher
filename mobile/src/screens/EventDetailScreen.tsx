@@ -67,7 +67,7 @@ export function EventDetailView({
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.heroContainer}>
           {event.imageUrl ? (
-            <Image source={{ uri: event.imageUrl }} style={styles.heroImage} contentFit="cover" />
+            <Image source={{ uri: event.imageUrl }} style={styles.heroImage} contentFit="cover" accessibilityLabel={`Event image for ${event.title}`} />
           ) : (
             <View style={[styles.heroImage, { backgroundColor: theme.surfaceElevated }]} />
           )}
@@ -95,7 +95,7 @@ export function EventDetailView({
               <Text style={[styles.hostLabel, { color: theme.textMuted }]}>Hosted by</Text>
               <Text style={[styles.hostName, { color: theme.textPrimary }]}>{event.host.firstName}</Text>
             </View>
-            <Pressable style={[styles.hostPill, { borderColor: theme.border }]}>
+            <Pressable style={[styles.hostPill, { borderColor: theme.border, minHeight: 36 }]} accessibilityLabel="Open invite">
               <Text style={[styles.hostPillText, { color: theme.textSecondary }]}>Open invite</Text>
             </Pressable>
           </View>
