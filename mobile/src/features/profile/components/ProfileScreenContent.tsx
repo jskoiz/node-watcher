@@ -35,10 +35,17 @@ function SettingsRow({
   testID?: string;
 }) {
   return (
-    <TouchableOpacity testID={testID} style={styles.settingsRow} onPress={onPress} activeOpacity={0.7}>
-      <Text style={styles.settingsIcon}>{icon}</Text>
+    <TouchableOpacity
+      testID={testID}
+      style={[styles.settingsRow, { minHeight: 48 }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Text style={styles.settingsIcon} importantForAccessibility="no">{icon}</Text>
       <Text style={styles.settingsLabel}>{label}</Text>
-      <Text style={styles.settingsArrow}>{accessory}</Text>
+      <Text style={styles.settingsArrow} importantForAccessibility="no">{accessory}</Text>
     </TouchableOpacity>
   );
 }
@@ -167,7 +174,7 @@ export function ProfileScreenContent({
             <LinearGradient colors={['#C4A882', '#B8A9C4']} style={styles.avatarGlowRing}>
               <View style={styles.avatarInnerWrap}>
                 {primaryPhoto ? (
-                  <Image source={{ uri: primaryPhoto }} style={styles.avatar} />
+                  <Image source={{ uri: primaryPhoto }} style={styles.avatar} accessibilityLabel={`Your profile photo`} />
                 ) : (
                   <View style={styles.avatarFallback}>
                     <Text style={styles.avatarFallbackText}>{getAvatarInitial(profile.firstName)}</Text>
@@ -384,7 +391,7 @@ export function ProfileScreenContent({
             {showBuildInfo ? (
               <>
                 <View style={styles.fieldDivider} />
-                <Card testID="build-provenance-panel" style={styles.buildInfoCard as any}>
+                <Card testID="build-provenance-panel" style={styles.buildInfoCard}>
                   {buildRows.map((row, index) => (
                     <View key={row.label}>
                       <BuildInfoRow label={row.label} value={row.value} />
@@ -406,7 +413,13 @@ export function ProfileScreenContent({
           </Card>
         </View>
 
-        <TouchableOpacity onPress={onLogout} style={styles.logoutBtn} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={onLogout}
+          style={[styles.logoutBtn, { minHeight: 48 }]}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
+        >
           <Text style={styles.logoutText}>Log out</Text>
         </TouchableOpacity>
       </ScrollView>

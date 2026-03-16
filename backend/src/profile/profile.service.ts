@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PhotoStorageService } from './photo-storage.service';
-import type { UpdateFitnessProfileDto, UpdatePhotoDto, UpdateProfileDto } from './profile.dto';
+import type {
+  UpdateFitnessProfileDto,
+  UpdatePhotoDto,
+  UpdateProfileDto,
+} from './profile.dto';
 
 @Injectable()
 export class ProfileService {
@@ -57,6 +61,13 @@ export class ProfileService {
         photos: {
           where: { isHidden: false },
           orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            storageKey: true,
+            isPrimary: true,
+            sortOrder: true,
+            createdAt: true,
+          },
         },
       },
     });
@@ -138,9 +149,13 @@ export class ProfileService {
       const updated = await tx.userPhoto.update({
         where: { id: photoId },
         data: {
-          ...(data.isPrimary !== undefined ? { isPrimary: data.isPrimary } : {}),
+          ...(data.isPrimary !== undefined
+            ? { isPrimary: data.isPrimary }
+            : {}),
           ...(data.isHidden !== undefined ? { isHidden: data.isHidden } : {}),
-          ...(typeof data.sortOrder === 'number' ? { sortOrder: data.sortOrder } : {}),
+          ...(typeof data.sortOrder === 'number'
+            ? { sortOrder: data.sortOrder }
+            : {}),
         },
       });
 

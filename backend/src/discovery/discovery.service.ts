@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { IntensityLevel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -68,6 +73,10 @@ export class DiscoveryService {
       include: { profile: true, fitnessProfile: true },
     });
 
+    if (!me) {
+      throw new NotFoundException('User not found');
+    }
+
     const birthdateFilter = this.buildBirthdateFilter(filters);
     const fitnessProfileFilter = this.buildFitnessProfileFilter(filters);
 
@@ -88,12 +97,37 @@ export class DiscoveryService {
             }
           : {}),
       },
-      include: {
-        fitnessProfile: true,
-        profile: true,
+      select: {
+        id: true,
+        firstName: true,
+        birthdate: true,
+        fitnessProfile: {
+          select: {
+            primaryGoal: true,
+            secondaryGoal: true,
+            intensityLevel: true,
+            prefersMorning: true,
+            prefersEvening: true,
+            favoriteActivities: true,
+          },
+        },
+        profile: {
+          select: {
+            city: true,
+            bio: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
         photos: {
           where: { isHidden: false },
           orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            storageKey: true,
+            isPrimary: true,
+            sortOrder: true,
+          },
         },
       },
       take: DISCOVERY_FEED_QUERY_LIMIT,
@@ -150,7 +184,11 @@ export class DiscoveryService {
           distanceKm,
         );
         const { profile, ...userWithoutProfile } = user;
-        const { latitude, longitude, ...safeProfile } = profile ?? {};
+        const {
+          latitude: _lat,
+          longitude: _lon,
+          ...safeProfile
+        } = profile ?? {};
         return {
           ...userWithoutProfile,
           profile: safeProfile,
@@ -161,8 +199,7 @@ export class DiscoveryService {
       })
       .filter(Boolean)
       .sort(
-        (a, b) =>
-          (b?.recommendationScore || 0) - (a?.recommendationScore || 0),
+        (a, b) => (b?.recommendationScore || 0) - (a?.recommendationScore || 0),
       )
       .slice(0, DISCOVERY_FEED_RESULT_LIMIT);
 
@@ -345,20 +382,16 @@ export class DiscoveryService {
     toLat?: number | null,
     toLon?: number | null,
   ): number | null {
-    if (
-      [fromLat, fromLon, toLat, toLon].some(
-        (value) => value === null || value === undefined,
-      )
-    )
+    if (fromLat == null || fromLon == null || toLat == null || toLon == null)
       return null;
 
     const toRad = (value: number) => (value * Math.PI) / 180;
-    const dLat = toRad((toLat as number) - (fromLat as number));
-    const dLon = toRad((toLon as number) - (fromLon as number));
+    const dLat = toRad(toLat - fromLat);
+    const dLon = toRad(toLon - fromLon);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(fromLat as number)) *
-        Math.cos(toRad(toLat as number)) *
+      Math.cos(toRad(fromLat)) *
+        Math.cos(toRad(toLat)) *
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
@@ -366,6 +399,18 @@ export class DiscoveryService {
   }
 
   async likeUser(userId: string, targetUserId: string) {
+    if (userId === targetUserId) {
+      throw new BadRequestException('Cannot like yourself');
+    }
+
+    const targetUser = await this.prisma.user.findFirst({
+      where: { id: targetUserId, isDeleted: false, isBanned: false },
+      select: { id: true },
+    });
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
     const existingLike = await this.prisma.like.findUnique({
       where: {
         fromUserId_toUserId: {
@@ -446,6 +491,18 @@ export class DiscoveryService {
   }
 
   async passUser(userId: string, targetUserId: string) {
+    if (userId === targetUserId) {
+      throw new BadRequestException('Cannot pass on yourself');
+    }
+
+    const targetUser = await this.prisma.user.findFirst({
+      where: { id: targetUserId, isDeleted: false, isBanned: false },
+      select: { id: true },
+    });
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
     const existingPass = await this.prisma.pass.findUnique({
       where: {
         fromUserId_toUserId: {
@@ -520,7 +577,10 @@ export class DiscoveryService {
     });
 
     if (!user) {
-      return { score: 0, prompts: [PROFILE_COMPLETENESS_PROMPTS.missingProfile] };
+      return {
+        score: 0,
+        prompts: [PROFILE_COMPLETENESS_PROMPTS.missingProfile],
+      };
     }
 
     const checks = [

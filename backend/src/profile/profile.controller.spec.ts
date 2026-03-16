@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ProfileController } from './profile.controller';
 import { ProfileService } from './profile.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
@@ -66,16 +67,24 @@ describe('ProfileController', () => {
       userId: 'user-1',
       ...dto,
     });
-    expect(profileServiceMock.updateProfile).toHaveBeenCalledWith('user-1', dto);
+    expect(profileServiceMock.updateProfile).toHaveBeenCalledWith(
+      'user-1',
+      dto,
+    );
   });
 
   it('delegates uploadPhoto to profile service', async () => {
     const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
-    const file = { mimetype: 'image/jpeg', buffer: Buffer.from('img') } as Express.Multer.File;
+    const file = {
+      mimetype: 'image/jpeg',
+      buffer: Buffer.from('img'),
+    } as Express.Multer.File;
 
     profileServiceMock.uploadPhoto.mockResolvedValue({ id: 'photo-1' });
 
-    await expect(controller.uploadPhoto(req, file)).resolves.toEqual({ id: 'photo-1' });
+    await expect(controller.uploadPhoto(req, file)).resolves.toEqual({
+      id: 'photo-1',
+    });
     expect(profileServiceMock.uploadPhoto).toHaveBeenCalledWith('user-1', file);
   });
 
@@ -83,24 +92,104 @@ describe('ProfileController', () => {
     const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
     const dto = { isPrimary: true };
 
-    profileServiceMock.updatePhoto.mockResolvedValue({ id: 'photo-1', isPrimary: true });
+    profileServiceMock.updatePhoto.mockResolvedValue({
+      id: 'photo-1',
+      isPrimary: true,
+    });
 
     await expect(controller.updatePhoto(req, 'photo-1', dto)).resolves.toEqual({
       id: 'photo-1',
       isPrimary: true,
     });
-    expect(profileServiceMock.updatePhoto).toHaveBeenCalledWith('user-1', 'photo-1', dto);
+    expect(profileServiceMock.updatePhoto).toHaveBeenCalledWith(
+      'user-1',
+      'photo-1',
+      dto,
+    );
+  });
+
+  it('delegates getProfile to profile service', async () => {
+    const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
+
+    profileServiceMock.getProfile.mockResolvedValue({
+      id: 'user-1',
+      firstName: 'Jordan',
+      age: 30,
+    });
+
+    await expect(controller.getProfile(req)).resolves.toEqual({
+      id: 'user-1',
+      firstName: 'Jordan',
+      age: 30,
+    });
+    expect(profileServiceMock.getProfile).toHaveBeenCalledWith('user-1');
+  });
+
+  it('throws NotFoundException when getProfile returns null', async () => {
+    const req = { user: { id: 'missing' } } as AuthenticatedRequest;
+
+    profileServiceMock.getProfile.mockResolvedValue(null);
+
+    await expect(controller.getProfile(req)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('throws BadRequestException when uploading without a file', async () => {
+    const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
+
+    await expect(controller.uploadPhoto(req, undefined)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('throws BadRequestException when uploading unsupported mime type', async () => {
+    const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
+    const file = {
+      mimetype: 'application/pdf',
+      buffer: Buffer.from('pdf'),
+    } as Express.Multer.File;
+
+    await expect(controller.uploadPhoto(req, file)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('delegates getProfileById to profile service', async () => {
+    profileServiceMock.getProfile.mockResolvedValue({
+      id: 'user-2',
+      firstName: 'Other',
+    });
+
+    await expect(controller.getProfileById('user-2')).resolves.toEqual({
+      id: 'user-2',
+      firstName: 'Other',
+    });
+  });
+
+  it('throws NotFoundException when getProfileById returns null', async () => {
+    profileServiceMock.getProfile.mockResolvedValue(null);
+
+    await expect(controller.getProfileById('missing')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('delegates deletePhoto to profile service', async () => {
     const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
 
-    profileServiceMock.deletePhoto.mockResolvedValue({ id: 'photo-1', isHidden: true });
+    profileServiceMock.deletePhoto.mockResolvedValue({
+      id: 'photo-1',
+      isHidden: true,
+    });
 
     await expect(controller.deletePhoto(req, 'photo-1')).resolves.toEqual({
       id: 'photo-1',
       isHidden: true,
     });
-    expect(profileServiceMock.deletePhoto).toHaveBeenCalledWith('user-1', 'photo-1');
+    expect(profileServiceMock.deletePhoto).toHaveBeenCalledWith(
+      'user-1',
+      'photo-1',
+    );
   });
 });

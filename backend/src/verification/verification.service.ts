@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { appConfig } from '../config/app.config';
 
 interface PendingVerification {
   userId: string;
@@ -27,12 +28,13 @@ export class VerificationService {
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
-    // Scaffold only: return code in response until real provider integrations exist.
+    // In production, dispatch via real SMS/email provider and never return the code.
+    const isDev = !appConfig.isProduction;
     return {
       started: true,
       channel,
       maskedTarget: this.maskTarget(channel, target),
-      devCode: code,
+      ...(isDev ? { devCode: code } : {}),
     };
   }
 
@@ -52,16 +54,28 @@ export class VerificationService {
     // code from also passing the guard and double-verifying.
     this.pending.delete(key);
 
-    if (channel === 'email') {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { hasVerifiedEmail: true },
-      });
-    } else {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { hasVerifiedPhone: true },
-      });
+    try {
+      if (channel === 'email') {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { hasVerifiedEmail: true },
+        });
+      } else {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { hasVerifiedPhone: true },
+        });
+      }
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2025'
+      ) {
+        throw new NotFoundException('User not found');
+      }
+      throw error;
     }
 
     return { verified: true };
@@ -77,6 +91,10 @@ export class VerificationService {
         phoneNumber: true,
       },
     });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     return user;
   }

@@ -5,13 +5,14 @@ import { useTheme } from '../../theme/useTheme';
 type FeatherName = React.ComponentProps<typeof Feather>['name'];
 
 interface AppIconProps {
+  accessibilityLabel?: string;
   name: FeatherName | string;
   size?: number;
   color?: string;
   style?: React.ComponentProps<typeof Feather>['style'];
 }
 
-export default function AppIcon({ name, size = 18, color, style }: AppIconProps) {
+export default function AppIcon({ accessibilityLabel, name, size = 18, color, style }: AppIconProps) {
   const theme = useTheme();
 
   return (
@@ -20,6 +21,8 @@ export default function AppIcon({ name, size = 18, color, style }: AppIconProps)
       size={size}
       color={color ?? theme.textPrimary}
       style={style}
+      accessibilityLabel={accessibilityLabel}
+      importantForAccessibility={accessibilityLabel ? 'yes' : 'no-hide-descendants'}
     />
   );
 }

@@ -45,6 +45,7 @@ npm run check
 
 This runs:
 - `npm run typecheck`
+- `npm run check:boundaries`
 - `npm run test`
 
 Optional full gate:
@@ -58,16 +59,16 @@ npm run check
 ```
 
 This runs:
-- `npm run lint`
+- `npm run lint` (typecheck + boundaries)
 - `npm run test`
 
 ## CI checks
 
 GitHub Actions runs `.github/workflows/ci.yml` on pushes to `main` and all pull requests.
 
-It executes:
-- **Backend:** `typecheck`, `test`
-- **Mobile:** `typecheck`, `test`
+It executes the repo harness via `scripts/run-harness-lane.mjs`:
+- **PR pushes:** `pr-fast` lane (diff-driven validation for changed packages)
+- **Main pushes:** `full-main` lane (complete validation across all packages)
 
 ### Temporary skips
 
@@ -78,6 +79,6 @@ It executes:
 
 - Work from the repo root by default and let Codex stay there too.
 - Use one Codex thread per task and one git worktree per active task.
-- Prefer [`scripts/codex-worktree.sh`](/Users/jerry/Desktop/brdg/scripts/codex-worktree.sh) when you want a fresh worktree for a new Codex task.
-- Keep durable repo instructions in [`AGENTS.md`](/Users/jerry/Desktop/brdg/AGENTS.md) and review guidance in [`code_review.md`](/Users/jerry/Desktop/brdg/code_review.md).
+- Prefer [`scripts/codex-worktree.sh`](scripts/codex-worktree.sh) when you want a fresh worktree for a new Codex task.
+- Keep durable repo instructions in [`AGENTS.md`](AGENTS.md) and review guidance in [`code_review.md`](code_review.md).
 - Prefer the repo-root scripts over retyping package-local commands in prompts.

@@ -1,12 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import {
-  BadRequestException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AuthProvider, Gender } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { Gender as AppGender } from '../common/enums';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt', () => ({
@@ -66,7 +64,7 @@ describe('AuthService', () => {
       passwordHash: 'hashed-password',
       isOnboarded: true,
     });
-    mockedCompare.mockImplementation(async () => true);
+    mockedCompare.mockImplementation(() => Promise.resolve(true));
 
     const result = await service.login({
       email: 'test@example.com',
@@ -115,14 +113,14 @@ describe('AuthService', () => {
       isOnboarded: false,
     });
     jwtServiceMock.sign.mockReturnValue('signed-token');
-    mockedHash.mockImplementation(async () => 'hashed-password');
+    mockedHash.mockImplementation(() => Promise.resolve('hashed-password'));
 
     const result = await service.signup({
       email: ' Jordan@Example.com ',
       password: 'password123',
       firstName: 'Jordan',
       birthdate: '1995-02-03',
-      gender: 'non-binary',
+      gender: AppGender.NonBinary,
     });
 
     expect(prismaMock.user.findFirst).toHaveBeenCalledWith({
@@ -162,7 +160,7 @@ describe('AuthService', () => {
         password: 'password123',
         firstName: 'Jordan',
         birthdate: '1995-02-03',
-        gender: 'non-binary',
+        gender: AppGender.NonBinary,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
 
@@ -176,7 +174,7 @@ describe('AuthService', () => {
         password: 'password123',
         firstName: 'Jordan',
         birthdate: '1995-02-03',
-        gender: 'non-binary',
+        gender: AppGender.NonBinary,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
 
@@ -191,7 +189,7 @@ describe('AuthService', () => {
         password: '',
         firstName: 'Jordan',
         birthdate: '1995-02-03',
-        gender: 'non-binary',
+        gender: AppGender.NonBinary,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
 
@@ -206,7 +204,7 @@ describe('AuthService', () => {
         password: '   ',
         firstName: 'Jordan',
         birthdate: '1995-02-03',
-        gender: 'non-binary',
+        gender: AppGender.NonBinary,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
 
@@ -221,7 +219,7 @@ describe('AuthService', () => {
         password: 'password123',
         firstName: 'Jordan',
         birthdate: '1995-02-31',
-        gender: 'non-binary',
+        gender: AppGender.NonBinary,
       }),
     ).rejects.toThrow('Birthdate must be a real date');
 
@@ -237,14 +235,14 @@ describe('AuthService', () => {
       isOnboarded: false,
     });
     jwtServiceMock.sign.mockReturnValue('signed-token');
-    mockedHash.mockImplementation(async () => 'hashed-password');
+    mockedHash.mockImplementation(() => Promise.resolve('hashed-password'));
 
     await service.signup({
       email: 'jordan@example.com',
       password: 'password123',
       firstName: 'Jordan',
       birthdate: '1995-02-03',
-      gender: ' Non-Binary ',
+      gender: ' Non-Binary ' as unknown as AppGender,
     });
 
     expect(prismaMock.user.create).toHaveBeenCalledWith({
@@ -263,7 +261,7 @@ describe('AuthService', () => {
         password: 'password123',
         firstName: 'Jordan',
         birthdate: '1995-02-31',
-        gender: 'non-binary',
+        gender: AppGender.NonBinary,
       }),
     ).rejects.toThrow('Birthdate must be a real date');
 
@@ -277,7 +275,7 @@ describe('AuthService', () => {
         password: 'password123',
         firstName: 'Jordan',
         birthdate: '1995-02-03',
-        gender: 'other',
+        gender: 'other' as unknown as AppGender,
       }),
     ).rejects.toThrow('Gender must be one of: woman, man, non-binary');
 
@@ -299,7 +297,7 @@ describe('AuthService', () => {
       password: 'pw',
       firstName: 'New',
       birthdate: '1996-02-03',
-      gender: 'woman',
+      gender: AppGender.Woman,
     });
 
     expect(jwtServiceMock.sign).toHaveBeenCalledWith({
@@ -345,9 +343,9 @@ describe('AuthService', () => {
   });
 
   it('rejects login when credentials are incomplete', async () => {
-    await expect(service.login({ email: '   ', password: '' })).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(
+      service.login({ email: '   ', password: '' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(jwtServiceMock.sign).not.toHaveBeenCalled();
     expect(prismaMock.user.findFirst).not.toHaveBeenCalled();
   });
@@ -360,7 +358,7 @@ describe('AuthService', () => {
       isOnboarded: true,
     });
     jwtServiceMock.sign.mockReturnValue('signed-token');
-    mockedCompare.mockImplementation(async () => true);
+    mockedCompare.mockImplementation(() => Promise.resolve(true));
 
     const result = await service.login({
       email: ' Jordan@Example.com ',
@@ -398,6 +396,67 @@ describe('AuthService', () => {
     });
   });
 
+  it('rejects login when the user is not found', async () => {
+    prismaMock.user.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.login({ email: 'nobody@example.com', password: 'password123' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(jwtServiceMock.sign).not.toHaveBeenCalled();
+  });
+
+  it('rejects login when the password does not match', async () => {
+    prismaMock.user.findFirst.mockResolvedValue({
+      id: 'user-1',
+      email: 'test@example.com',
+      passwordHash: 'stored-hash',
+      isOnboarded: true,
+    });
+    mockedCompare.mockImplementation(() => Promise.resolve(false));
+
+    await expect(
+      service.login({ email: 'test@example.com', password: 'wrong' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(jwtServiceMock.sign).not.toHaveBeenCalled();
+  });
+
+  it('rejects login when passwordHash is null (social-only account)', async () => {
+    prismaMock.user.findFirst.mockResolvedValue({
+      id: 'user-1',
+      email: 'social@example.com',
+      passwordHash: null,
+      isOnboarded: true,
+    });
+
+    await expect(
+      service.login({ email: 'social@example.com', password: 'password123' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(mockedCompare).not.toHaveBeenCalled();
+  });
+
+  it('returns the current user when found', async () => {
+    prismaMock.user.findFirst.mockResolvedValue({
+      id: 'user-1',
+      email: 'test@example.com',
+      firstName: 'Test',
+      isOnboarded: true,
+    });
+
+    const result = await service.getCurrentUser('user-1');
+    expect(result).toMatchObject({ id: 'user-1', email: 'test@example.com' });
+  });
+
+  it('rejects getCurrentUser for deleted or unknown users', async () => {
+    prismaMock.user.findFirst.mockResolvedValue(null);
+
+    await expect(service.getCurrentUser('deleted-user')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
   it('matches legacy mixed-case emails during login lookup', async () => {
     prismaMock.user.findFirst.mockResolvedValue({
       id: 'user-1',
@@ -406,7 +465,7 @@ describe('AuthService', () => {
       isOnboarded: true,
     });
     jwtServiceMock.sign.mockReturnValue('signed-token');
-    mockedCompare.mockImplementation(async () => true);
+    mockedCompare.mockImplementation(() => Promise.resolve(true));
 
     const result = await service.login({
       email: 'jordan@example.com',

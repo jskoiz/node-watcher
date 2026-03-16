@@ -1,4 +1,11 @@
-import { ForbiddenException, Injectable, Logger, MessageEvent } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  MessageEvent,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchesRealtimeService } from './matches-realtime.service';
 import { map, Observable } from 'rxjs';
@@ -15,6 +22,7 @@ export class MatchesService {
   ) {}
 
   async getMatches(userId: string, take: number, skip: number) {
+    const safeTake = Math.min(Math.max(take, 1), 100);
     const matches = await this.prisma.match.findMany({
       where: {
         OR: [{ userAId: userId }, { userBId: userId }],
@@ -59,7 +67,7 @@ export class MatchesService {
         },
       },
       orderBy: { updatedAt: 'desc' },
-      take,
+      take: safeTake,
       skip,
     });
 
@@ -84,13 +92,30 @@ export class MatchesService {
         };
       });
   }
-  async getMessages(matchId: string, userId: string) {
+  async getMessages(
+    matchId: string,
+    userId: string,
+    take = 50,
+    cursor?: string,
+  ) {
     await this.assertMatchAccess(matchId, userId);
 
     const messages = await this.prisma.message.findMany({
       where: { matchId },
+      select: {
+        id: true,
+        body: true,
+        senderId: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: Math.min(take, 100),
+      ...(cursor
+        ? {
+            skip: 1,
+            cursor: { id: cursor },
+          }
+        : {}),
     });
 
     return messages.reverse().map((msg) => ({
@@ -117,6 +142,10 @@ export class MatchesService {
   }
 
   async sendMessage(matchId: string, userId: string, content: string) {
+    if (!content?.trim()) {
+      throw new BadRequestException('Message content is required');
+    }
+
     const match = await this.assertMatchAccess(matchId, userId);
 
     const message = await this.prisma.message.create({
@@ -124,6 +153,11 @@ export class MatchesService {
         matchId,
         senderId: userId,
         body: content,
+      },
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
       },
     });
 
@@ -157,15 +191,25 @@ export class MatchesService {
   private async assertMatchAccess(matchId: string, userId: string) {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
+      select: {
+        id: true,
+        userAId: true,
+        userBId: true,
+        isBlocked: true,
+        isArchived: true,
+      },
     });
 
-    if (
-      !match ||
-      (match.userAId !== userId && match.userBId !== userId) ||
-      match.isBlocked ||
-      match.isArchived
-    ) {
+    if (!match) {
+      throw new NotFoundException('Match not found');
+    }
+
+    if (match.userAId !== userId && match.userBId !== userId) {
       throw new ForbiddenException('Access denied');
+    }
+
+    if (match.isBlocked || match.isArchived) {
+      throw new ForbiddenException('This conversation is no longer available');
     }
 
     return match;

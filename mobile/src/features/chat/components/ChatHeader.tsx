@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import type { User } from '../../../api/types';
+import type { Match, User } from '../../../api/types';
 import AppBackButton from '../../../components/ui/AppBackButton';
 import AppIcon from '../../../components/ui/AppIcon';
 import { GlassView } from '../../../design/primitives/GlassView';
@@ -21,13 +21,13 @@ export function ChatHeader({
   onOpenQuickActions: () => void;
   photoUrl?: string;
   theme: Theme;
-  user: User;
+  user: Match['user'] | User;
 }) {
   return (
     <GlassView tier="medium" borderRadius={0} style={styles.header}>
       <AppBackButton onPress={onBack} style={styles.backBtn} />
       {photoUrl ? (
-        <Image source={{ uri: photoUrl }} style={[styles.headerAvatar, { borderColor: theme.primary }]} contentFit="cover" />
+        <Image source={{ uri: photoUrl }} style={[styles.headerAvatar, { borderColor: theme.primary }]} contentFit="cover" accessibilityLabel={`Photo of ${user?.firstName || 'match'}`} />
       ) : (
         <View
           style={[
@@ -54,7 +54,13 @@ export function ChatHeader({
           </View>
         ) : null}
       </View>
-      <Pressable onPress={onOpenQuickActions}>
+      <Pressable
+        onPress={onOpenQuickActions}
+        accessibilityRole="button"
+        accessibilityLabel="Quick actions"
+        accessibilityHint="Opens conversation options"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
         <GlassView tier="thin" borderRadius={19} style={styles.quickActionTriggerGlass}>
           <AppIcon name="more-horizontal" size={16} color={theme.textPrimary} />
         </GlassView>

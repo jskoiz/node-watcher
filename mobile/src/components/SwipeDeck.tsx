@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -33,7 +33,7 @@ const getAlignmentLabel = (score?: number) => {
   return `${percentage}% aligned`;
 };
 
-const formatDistanceLabel = (distanceKm?: number) => {
+const formatDistanceLabel = (distanceKm?: number | null) => {
   if (typeof distanceKm !== 'number' || Number.isNaN(distanceKm)) return '';
   return ` · ${Math.round(distanceKm)} km away`;
 };
@@ -61,6 +61,9 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
       activeOpacity={0.96}
       onPress={onPress}
       style={[styles.card, { height: cardHeight }]}
+      accessibilityRole="button"
+      accessibilityLabel={`View profile of ${user.firstName || 'Someone'}${user.age ? `, age ${user.age}` : ''}`}
+      accessibilityHint="Tap to view full profile. Swipe right to like, swipe left to pass."
     >
       <View style={styles.imageContainer}>
         {primaryPhoto ? (
@@ -70,6 +73,7 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
             contentFit="cover"
             contentPosition={{ left: '48%', top: compact ? '38%' : '41%' }}
             transition={180}
+            accessibilityLabel={`Photo of ${user.firstName || 'profile'}`}
           />
         ) : (
           <LinearGradient
@@ -161,6 +165,8 @@ export default function SwipeDeck({
   onPress,
 }: SwipeDeckProps) {
   const swiperRef = useRef<Swiper<SwipeDeckUser>>(null);
+  const [allSwiped, setAllSwiped] = useState(false);
+  const swipingRef = useRef(false);
   const resolvedCardHeight = clampCardHeight(cardHeight);
   const resolvedCardFrameStyle = React.useMemo(
     () => ({
@@ -173,9 +179,30 @@ export default function SwipeDeck({
     [resolvedCardHeight],
   );
 
-  if (!data || data.length === 0) {
+  const handleSwipedLeft = useCallback(
+    (index: number) => {
+      if (swipingRef.current) return;
+      swipingRef.current = true;
+      onSwipeLeft(data[index]);
+      requestAnimationFrame(() => { swipingRef.current = false; });
+    },
+    [data, onSwipeLeft],
+  );
+
+  const handleSwipedRight = useCallback(
+    (index: number) => {
+      if (swipingRef.current) return;
+      swipingRef.current = true;
+      onSwipeRight(data[index]);
+      requestAnimationFrame(() => { swipingRef.current = false; });
+    },
+    [data, onSwipeRight],
+  );
+
+  if (!data || data.length === 0 || allSwiped) {
     return (
-      <View style={styles.emptyContainer}>
+      <View style={styles.emptyContainer} accessibilityRole="summary" accessibilityLabel="No more profiles to show">
+        <AppIcon name="compass" size={32} color={editorialColors.textMuted} style={{ marginBottom: spacing.md }} />
         <Text style={styles.emptyTitle}>No new profiles tonight</Text>
         <Text style={styles.emptyText}>
           You have seen everyone nearby. Check back later for fresh momentum.
@@ -199,8 +226,9 @@ export default function SwipeDeck({
         containerStyle={styles.swiperContainer}
         disableBottomSwipe
         disableTopSwipe
-        onSwipedLeft={(index) => onSwipeLeft(data[index])}
-        onSwipedRight={(index) => onSwipeRight(data[index])}
+        onSwipedLeft={handleSwipedLeft}
+        onSwipedRight={handleSwipedRight}
+        onSwipedAll={() => setAllSwiped(true)}
         overlayLabels={{
           left: {
             title: 'PASS',

@@ -6,6 +6,7 @@ export function useMyEvents() {
   const query = useQuery({
     queryKey: queryKeys.events.mine,
     queryFn: async () => (await eventsApi.mine()).data || [],
+    staleTime: 60_000,
   });
 
   return {

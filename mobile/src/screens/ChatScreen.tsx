@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AppBackdrop from '../components/ui/AppBackdrop';
@@ -14,6 +14,7 @@ import { getActivityTag } from '../features/chat/components/chat.helpers';
 import { chatStyles as styles } from '../features/chat/components/chat.styles';
 import { useSheetController } from '../design/sheets/useSheetController';
 import {
+  triggerImpactHaptic,
   triggerSheetCommitHaptic,
   triggerWarningHaptic,
 } from '../lib/interaction/feedback';
@@ -46,6 +47,7 @@ export default function ChatScreen() {
 
     try {
       setSendError(null);
+      void triggerImpactHaptic();
       await sendMessage(text);
     } catch (err) {
       void triggerWarningHaptic();

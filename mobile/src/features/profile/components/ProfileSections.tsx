@@ -28,8 +28,8 @@ export function TagPill({
       active={selected}
       accentColor={color}
       interactive={interactive}
-      style={styles.tagPill as any}
-      textStyle={styles.tagPillText as any}
+      style={styles.tagPill}
+      textStyle={styles.tagPillText}
     />
   );
 }
@@ -146,21 +146,21 @@ export function PhotoManager({
               ) : null}
               {canEdit ? (
                 <View style={styles.photoActions}>
-                  <Pressable disabled={isBusy || index === 0} onPress={() => onMoveLeft(photo.id)} style={styles.photoActionChip}>
+                  <Pressable disabled={isBusy || index === 0} onPress={() => onMoveLeft(photo.id)} style={[styles.photoActionChip, { minHeight: 44 }]} accessibilityRole="button" accessibilityLabel="Move photo earlier">
                     <AppIcon name="arrow-left" size={14} color={isBusy || index === 0 ? 'rgba(0,0,0,0.2)' : '#7A7068'} />
                     <Text style={[styles.photoActionText, isBusy || index === 0 ? styles.photoActionTextDisabled : null]}>Earlier</Text>
                   </Pressable>
-                  <Pressable disabled={isBusy || index === visiblePhotos.length - 1} onPress={() => onMoveRight(photo.id)} style={styles.photoActionChip}>
+                  <Pressable disabled={isBusy || index === visiblePhotos.length - 1} onPress={() => onMoveRight(photo.id)} style={[styles.photoActionChip, { minHeight: 44 }]} accessibilityRole="button" accessibilityLabel="Move photo later">
                     <AppIcon name="arrow-right" size={14} color={isBusy || index === visiblePhotos.length - 1 ? 'rgba(0,0,0,0.2)' : '#7A7068'} />
                     <Text style={[styles.photoActionText, isBusy || index === visiblePhotos.length - 1 ? styles.photoActionTextDisabled : null]}>Later</Text>
                   </Pressable>
                   {!photo.isPrimary ? (
-                    <Pressable disabled={isBusy} onPress={() => onMakePrimary(photo.id)} style={styles.photoActionChip}>
+                    <Pressable disabled={isBusy} onPress={() => onMakePrimary(photo.id)} style={[styles.photoActionChip, { minHeight: 44 }]} accessibilityRole="button" accessibilityLabel="Make primary photo">
                       <AppIcon name="star" size={14} color={isBusy ? 'rgba(0,0,0,0.2)' : '#7A7068'} />
                       <Text style={[styles.photoActionText, isBusy ? styles.photoActionTextDisabled : null]}>Make primary</Text>
                     </Pressable>
                   ) : null}
-                  <Pressable disabled={isBusy} onPress={() => onDelete(photo.id)} style={[styles.photoActionChip, styles.photoDeleteChip]}>
+                  <Pressable disabled={isBusy} onPress={() => onDelete(photo.id)} style={[styles.photoActionChip, styles.photoDeleteChip, { minHeight: 44 }]} accessibilityRole="button" accessibilityLabel="Remove photo">
                     <AppIcon name="trash-2" size={14} color={isBusy ? 'rgba(201,112,112,0.34)' : '#C97070'} />
                     <Text style={styles.photoDeleteText}>Remove</Text>
                   </Pressable>

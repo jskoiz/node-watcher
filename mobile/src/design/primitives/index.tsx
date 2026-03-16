@@ -3,12 +3,15 @@ import {
   ActivityIndicator,
   Animated,
   ImageBackground,
+  type NativeSyntheticEvent,
   Pressable,
+  type TargetedEvent,
   type StyleProp,
   Text,
   TextInput,
   StyleSheet,
   type TextInputProps,
+  type TextStyle,
   View,
   type ViewStyle,
 } from 'react-native';
@@ -20,15 +23,15 @@ import { GlassView } from './GlassView';
 export { GlassView } from './GlassView';
 export type { GlassViewProps } from './GlassView';
 
-const StackPrimitive = View as React.ComponentType<any>;
-const InlinePrimitive = View as React.ComponentType<any>;
-const TextPrimitive = Text as React.ComponentType<any>;
+const StackPrimitive = View;
+const InlinePrimitive = View;
+const TextPrimitive = Text;
 
 export function Screen({
   children,
   padding = 16,
 }: PropsWithChildren<{ padding?: number }>) {
-  return <StackPrimitive flex={1} style={{ padding }}>{children}</StackPrimitive>;
+  return <StackPrimitive style={{ flex: 1, padding }}>{children}</StackPrimitive>;
 }
 
 export const AppStack = StackPrimitive;
@@ -142,6 +145,9 @@ export function Button({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={isDisabled}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: isDisabled ?? false }}
         style={({ pressed }) => [{ opacity: isDisabled ? 0.48 : pressed ? 0.85 : 1 }]}
       >
         <Animated.View style={[{ transform: [{ scale }] }, style]}>
@@ -166,6 +172,9 @@ export function Button({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled ?? false }}
       style={({ pressed }) => [{ opacity: isDisabled ? 0.48 : pressed ? 0.88 : 1 }]}
     >
       <Animated.View style={[primitiveStyles.buttonBase, getContainerStyle(), sizeStyle, { transform: [{ scale }] }, style]}>
@@ -236,12 +245,12 @@ export function Input({
   const theme = useTheme();
   const focusAnim = useRef(new Animated.Value(0)).current;
 
-  const handleFocus = (event: any) => {
+  const handleFocus = (event: NativeSyntheticEvent<TargetedEvent>) => {
     Animated.timing(focusAnim, { toValue: 1, duration: 180, useNativeDriver: false }).start();
     onFocus?.(event);
   };
 
-  const handleBlur = (event: any) => {
+  const handleBlur = (event: NativeSyntheticEvent<TargetedEvent>) => {
     Animated.timing(focusAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start();
     onBlur?.(event);
   };
@@ -288,6 +297,7 @@ export function Input({
           textAlignVertical={multiline ? 'top' : 'center'}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          accessibilityLabel={props.accessibilityLabel ?? label}
           style={[
             primitiveStyles.input,
             { color: theme.textPrimary },
@@ -315,8 +325,8 @@ export function Chip({
   interactive?: boolean;
   label: string;
   onPress?: () => void;
-  style?: ViewStyle;
-  textStyle?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 }) {
   const theme = useTheme();
   const color = accentColor ?? theme.primary;
@@ -324,6 +334,9 @@ export function Chip({
     <Pressable
       onPress={interactive ? onPress : undefined}
       disabled={!interactive}
+      accessibilityRole={interactive ? 'button' : 'text'}
+      accessibilityState={interactive ? { selected: active } : undefined}
+      accessibilityLabel={label}
       style={[
         primitiveStyles.chip,
         active
@@ -332,7 +345,7 @@ export function Chip({
         style,
       ]}
     >
-      <Text style={[primitiveStyles.chipText, { color: active ? color : theme.textMuted }, textStyle as any]}>{label}</Text>
+      <Text style={[primitiveStyles.chipText, { color: active ? color : theme.textMuted }, textStyle]}>{label}</Text>
     </Pressable>
   );
 }
@@ -382,7 +395,7 @@ export function StatePanel({
 
 const primitiveStyles = StyleSheet.create({
   buttonBase: {
-    minHeight: 46,
+    minHeight: 48,
     borderRadius: 999,
     paddingHorizontal: spacing.xxl,
     alignItems: 'center',
@@ -465,6 +478,8 @@ const primitiveStyles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: radii.pill,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   chipText: {
     fontSize: typography.bodySmall,

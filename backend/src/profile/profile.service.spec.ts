@@ -58,8 +58,14 @@ describe('ProfileService', () => {
   });
 
   it('marks user as onboarded when fitness profile is updated', async () => {
-    const profile = { userId: 'user-1', intensityLevel: IntensityLevel.ADVANCED };
-    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => Promise<typeof profile>) => fn(prismaMock));
+    const profile = {
+      userId: 'user-1',
+      intensityLevel: IntensityLevel.ADVANCED,
+    };
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<typeof profile>) =>
+        fn(prismaMock),
+    );
     prismaMock.userFitnessProfile.upsert.mockResolvedValue(profile);
 
     const result = await service.updateFitnessProfile('user-1', {
@@ -74,11 +80,19 @@ describe('ProfileService', () => {
   });
 
   it('runs fitness upsert and isOnboarded update inside a transaction', async () => {
-    const profile = { userId: 'user-1', intensityLevel: IntensityLevel.ADVANCED };
-    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => Promise<typeof profile>) => fn(prismaMock));
+    const profile = {
+      userId: 'user-1',
+      intensityLevel: IntensityLevel.ADVANCED,
+    };
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<typeof profile>) =>
+        fn(prismaMock),
+    );
     prismaMock.userFitnessProfile.upsert.mockResolvedValue(profile);
 
-    await service.updateFitnessProfile('user-1', { intensityLevel: IntensityLevel.ADVANCED });
+    await service.updateFitnessProfile('user-1', {
+      intensityLevel: IntensityLevel.ADVANCED,
+    });
 
     // Both DB writes must happen inside the same $transaction call
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
@@ -87,8 +101,12 @@ describe('ProfileService', () => {
   });
 
   it('strips userId from caller-supplied data in updateFitnessProfile', async () => {
-    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock));
-    prismaMock.userFitnessProfile.upsert.mockResolvedValue({ userId: 'user-1' });
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
+    );
+    prismaMock.userFitnessProfile.upsert.mockResolvedValue({
+      userId: 'user-1',
+    });
 
     await service.updateFitnessProfile('user-1', {
       userId: 'attacker-id',
@@ -166,10 +184,19 @@ describe('ProfileService', () => {
   });
 
   it('uploads photos with deterministic ordering', async () => {
-    photoStorageMock.saveProfilePhoto.mockResolvedValue({ storageKey: 'http://local/photo-1.jpg' });
-    prismaMock.userPhoto.findMany.mockResolvedValue([{ sortOrder: 0, isHidden: false }]);
-    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock));
-    prismaMock.userPhoto.create.mockResolvedValue({ id: 'photo-1', sortOrder: 1 });
+    photoStorageMock.saveProfilePhoto.mockResolvedValue({
+      storageKey: 'http://local/photo-1.jpg',
+    });
+    prismaMock.userPhoto.findMany.mockResolvedValue([
+      { sortOrder: 0, isHidden: false },
+    ]);
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
+    );
+    prismaMock.userPhoto.create.mockResolvedValue({
+      id: 'photo-1',
+      sortOrder: 1,
+    });
 
     const result = await service.uploadPhoto('user-1', {
       mimetype: 'image/jpeg',
@@ -187,9 +214,18 @@ describe('ProfileService', () => {
   });
 
   it('clears previous primary photo when setting a new one', async () => {
-    prismaMock.userPhoto.findFirst.mockResolvedValue({ id: 'photo-1', userId: 'user-1' });
-    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock));
-    prismaMock.userPhoto.update.mockResolvedValue({ id: 'photo-1', isPrimary: true, isHidden: false });
+    prismaMock.userPhoto.findFirst.mockResolvedValue({
+      id: 'photo-1',
+      userId: 'user-1',
+    });
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
+    );
+    prismaMock.userPhoto.update.mockResolvedValue({
+      id: 'photo-1',
+      isPrimary: true,
+      isHidden: false,
+    });
 
     await service.updatePhoto('user-1', 'photo-1', { isPrimary: true });
 
@@ -199,17 +235,86 @@ describe('ProfileService', () => {
     });
   });
 
+  it('returns null when profile is not found', async () => {
+    prismaMock.user.findFirst.mockResolvedValue(null);
+
+    const result = await service.getProfile('missing-user');
+    expect(result).toBeNull();
+  });
+
+  it('returns null when trying to update a photo that does not belong to the user', async () => {
+    prismaMock.userPhoto.findFirst.mockResolvedValue(null);
+
+    const result = await service.updatePhoto('user-1', 'photo-999', {
+      isPrimary: true,
+    });
+    expect(result).toBeNull();
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('returns null when trying to delete a photo that does not belong to the user', async () => {
+    prismaMock.userPhoto.findFirst.mockResolvedValue(null);
+
+    const result = await service.deletePhoto('user-1', 'photo-999');
+    expect(result).toBeNull();
+  });
+
+  it('sets first uploaded photo as primary when all existing photos are hidden', async () => {
+    photoStorageMock.saveProfilePhoto.mockResolvedValue({
+      storageKey: 'http://local/photo-2.jpg',
+    });
+    prismaMock.userPhoto.findMany.mockResolvedValue([
+      { sortOrder: 0, isHidden: true },
+    ]);
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
+    );
+    prismaMock.userPhoto.create.mockResolvedValue({
+      id: 'photo-2',
+      sortOrder: 1,
+      isPrimary: true,
+    });
+
+    const result = await service.uploadPhoto('user-1', {
+      mimetype: 'image/jpeg',
+      buffer: Buffer.from('img'),
+    } as Express.Multer.File);
+
+    expect(result).toEqual({ id: 'photo-2', sortOrder: 1, isPrimary: true });
+    // Should clear other primary flags
+    expect(prismaMock.userPhoto.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+      data: { isPrimary: false },
+    });
+  });
+
   it('hides deleted photos and promotes the next visible photo', async () => {
     prismaMock.userPhoto.findFirst
-      .mockResolvedValueOnce({ id: 'photo-1', userId: 'user-1', storageKey: 'http://local/photo-1.jpg' })
-      .mockResolvedValueOnce({ id: 'photo-2', userId: 'user-1', isHidden: false });
-    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock));
-    prismaMock.userPhoto.update.mockResolvedValue({ id: 'photo-1', isHidden: true, isPrimary: false });
+      .mockResolvedValueOnce({
+        id: 'photo-1',
+        userId: 'user-1',
+        storageKey: 'http://local/photo-1.jpg',
+      })
+      .mockResolvedValueOnce({
+        id: 'photo-2',
+        userId: 'user-1',
+        isHidden: false,
+      });
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
+    );
+    prismaMock.userPhoto.update.mockResolvedValue({
+      id: 'photo-1',
+      isHidden: true,
+      isPrimary: false,
+    });
 
     const result = await service.deletePhoto('user-1', 'photo-1');
 
     expect(result).toEqual({ id: 'photo-1', isHidden: true, isPrimary: false });
-    expect(photoStorageMock.removeProfilePhoto).toHaveBeenCalledWith('http://local/photo-1.jpg');
+    expect(photoStorageMock.removeProfilePhoto).toHaveBeenCalledWith(
+      'http://local/photo-1.jpg',
+    );
     expect(prismaMock.userPhoto.update).toHaveBeenCalledWith({
       where: { id: 'photo-2' },
       data: { isPrimary: true },

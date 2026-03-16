@@ -26,7 +26,13 @@ export function ExploreHero({
           onPress={onPressNotifications}
           style={styles.heroNotificationButton}
         />
-        <Pressable onPress={onOpenQuickActions} style={styles.heroActionButton}>
+        <Pressable
+          onPress={onOpenQuickActions}
+          style={[styles.heroActionButton, { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }]}
+          accessibilityRole="button"
+          accessibilityLabel="Quick actions"
+          accessibilityHint="Opens explore options menu"
+        >
           <AppIcon name="sliders" size={16} color="#2C2420" />
         </Pressable>
       </View>

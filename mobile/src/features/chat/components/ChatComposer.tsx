@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import AppIcon from '../../../components/ui/AppIcon';
 import { GlassView, Input } from '../../../design/primitives';
+import type { Theme } from '../../../theme/tokens';
 import { chatStyles as styles } from './chat.styles';
 
 export function ChatComposer({
@@ -15,7 +16,7 @@ export function ChatComposer({
   onChangeMessage: (value: string) => void;
   onSend: () => void;
   sending: boolean;
-  theme: any;
+  theme: Theme;
 }) {
   const canSend = message.trim().length > 0;
 
@@ -38,10 +39,16 @@ export function ChatComposer({
         submitBehavior="submit"
         onSubmitEditing={onSend}
         blurOnSubmit={false}
+        accessibilityLabel="Message input"
+        accessibilityHint="Type your message here"
       />
       <Pressable
         onPress={onSend}
         disabled={sending || !canSend}
+        accessibilityRole="button"
+        accessibilityLabel="Send message"
+        accessibilityState={{ disabled: sending || !canSend }}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
       >
         <GlassView
           tier={canSend ? 'medium' : 'thin'}

@@ -16,6 +16,7 @@ import AppBackdrop from '../components/ui/AppBackdrop';
 import AppIcon from '../components/ui/AppIcon';
 import { StatePanel } from '../design/primitives';
 import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme/tokens';
 import { radii, spacing, typography } from '../theme/tokens';
 import { useNotifications } from '../features/notifications/hooks/useNotifications';
 import type { RootStackScreenProps } from '../core/navigation/types';
@@ -55,7 +56,7 @@ function NotifRow({
   onMarkRead,
 }: {
   notif: AppNotification;
-  theme: any;
+  theme: Theme;
   onMarkRead: (id: string) => void;
 }) {
   const { color, icon } = getNotificationMeta(notif.type);
@@ -69,12 +70,16 @@ function NotifRow({
           backgroundColor: isRead ? theme.surfaceElevated : theme.surface,
           borderColor: isRead ? theme.border : color + '44',
           borderLeftColor: color,
+          minHeight: 56,
         },
       ]}
       onPress={() => {
         if (!isRead) onMarkRead(notif.id);
       }}
       activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={`${notif.title}. ${notif.body}`}
+      accessibilityHint={isRead ? 'Already read' : 'Tap to mark as read'}
     >
       {/* Icon */}
       <View style={[styles.notifIconWrap, { backgroundColor: color + '20' }]}>
@@ -91,8 +96,10 @@ function NotifRow({
         <TouchableOpacity
           style={styles.dismissBtn}
           onPress={() => onMarkRead(notif.id)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           activeOpacity={0.6}
+          accessibilityRole="button"
+          accessibilityLabel="Mark as read"
         >
           <AppIcon name="check" size={16} color={color} />
         </TouchableOpacity>
@@ -170,7 +177,14 @@ export default function NotificationsScreen() {
           <Text style={[styles.title, { color: theme.textPrimary }]}>Notifications</Text>
         </View>
         {unreadCount > 0 && (
-          <TouchableOpacity onPress={clearAll} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={clearAll}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Mark all notifications as read"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{ minHeight: 44, justifyContent: 'center' }}
+          >
             <Text style={[styles.clearAll, { color: theme.textMuted }]}>Clear all</Text>
           </TouchableOpacity>
         )}
@@ -325,6 +339,10 @@ const styles = StyleSheet.create({
   },
   dismissBtn: {
     padding: 4,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   unreadDot: {
     position: 'absolute',

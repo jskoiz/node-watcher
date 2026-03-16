@@ -120,9 +120,12 @@ model User {
   @@index([phoneNumber])
   @@index([email])
   @@index([isDeleted, isBanned, isOnboarded])
+  @@index([birthdate])
+  @@index([gender])
   @@map("users")
 }
 
+/// Extended profile fields for a user, including location, intents, and discovery preferences.
 model UserProfile {
   userId String @id @map("user_id") @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -148,20 +151,26 @@ model UserProfile {
   lastActiveAt    DateTime @default(now()) @map("last_active_at")
   discoveryPaused Boolean  @default(false) @map("discovery_paused")
 
+  @@index([latitude, longitude])
+  @@index([discoveryPaused])
   @@map("user_profile")
 }
 
+/// Fitness-specific profile data including intensity, goals, and training preferences.
 model UserFitnessProfile {
   userId String @id @map("user_id") @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   intensityLevel      IntensityLevel @default(INTERMEDIATE) @map("intensity_level")
+  /// Human-readable band like "1-2", "3-4", "5+".
   weeklyFrequencyBand String @default("3-4") @map("weekly_frequency_band") @db.VarChar(16)
   
   primaryGoal   String? @map("primary_goal") @db.VarChar(32)
   secondaryGoal String? @map("secondary_goal") @db.VarChar(32)
 
+  /// Free-text list of preferred activities (legacy; prefer UserFitnessActivity join).
   favoriteActivities String? @map("favorite_activities") @db.Text
+  /// Free-text description of training style preferences.
   trainingStyle      String? @map("training_style") @db.Text
   prefersMorning     Boolean? @map("prefers_morning")
   prefersEvening     Boolean? @map("prefers_evening")
@@ -190,12 +199,14 @@ model UserFitnessActivity {
   @@map("user_fitness_activities")
 }
 
+/// Photos uploaded by a user. One photo per user should have isPrimary=true.
 model UserPhoto {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now()) @map("created_at")
 
+  /// Relative path or URL to the stored image file.
   storageKey String  @map("storage_key") @db.Text
   isPrimary  Boolean @default(false) @map("is_primary")
   sortOrder  Int     @default(0) @map("sort_order") @db.SmallInt
@@ -239,6 +250,7 @@ model Pass {
   @@map("passes")
 }
 
+/// A mutual match between two users. userA is always the user with the lexicographically smaller id.
 model Match {
   id        String   @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
@@ -311,6 +323,7 @@ model Report {
 
   @@index([reportedUserId])
   @@index([reporterId])
+  @@index([status])
   @@map("reports")
 }
 
@@ -334,6 +347,7 @@ model Event {
 
   @@index([startsAt])
   @@index([hostId])
+  @@index([category])
   @@map("events")
 }
 
@@ -390,19 +404,22 @@ model Purchase {
   @@map("purchases")
 }
 
+/// In-app notifications delivered to a user (likes, matches, messages, events, system alerts).
 model Notification {
   id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      String
   title     String
   body      String
+  /// Optional structured payload for deep-link routing or extra context.
   data      Json?
   read      Boolean  @default(false)
-  readAt    DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId, createdAt])
   @@index([userId, read])
+  @@map("notifications")
 }
