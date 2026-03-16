@@ -2,6 +2,35 @@
 
 > Historical snapshot only.
 > This document is preserved for context and may not reflect the current implementation. Use [`docs/DEV_LOOP.md`](/Users/jerry/Desktop/brdg/docs/DEV_LOOP.md), [`docs/ARCHITECTURE.md`](/Users/jerry/Desktop/brdg/docs/ARCHITECTURE.md), [`docs/FUNCTIONAL_MATRIX.md`](/Users/jerry/Desktop/brdg/docs/FUNCTIONAL_MATRIX.md), and the current `backend/src/**` and `mobile/src/**` trees as the live source of truth.
+>
+> 2026-03-16 note: the items previously listed here as Phase 2 and Phase 3 backlog are now shipped on `main`. Keep this file as context for how the product was originally framed, but use the "Current snapshot" section below for the latest high-level planning direction.
+
+## Current Snapshot (2026-03-16)
+
+### Shipped through Phase 3
+* **Connection loop**: matching, matches list, chat thread, realtime/poll fallback messaging.
+* **Activity loop**: explore feed, event creation, RSVP, joined/hosted events.
+* **Profile management**: full profile editing for city, bio, intents, fitness profile, and account deletion.
+* **Photo system**: upload, reorder, primary-photo selection, delete/hide, and consistent fallback rendering across profile/discovery/chat/matches/detail surfaces.
+* **Interaction cleanup**: shared bottom-sheet flows for discovery filters, explore quick actions, create chooser steps, and chat quick actions.
+* **Release/readiness flow**: seeded `ui-preview` QA path, Storybook workflow, smoke coverage, and in-app build provenance checks.
+
+### Recommended next phase
+**Phase 4: Event Conversion & Re-engagement**
+
+Recommended product priorities:
+* **Event growth loop**
+  * Improve invite/share flows from event detail and chat.
+  * Make it easier to turn a match/chat into a specific plan.
+  * Add stronger host controls and attendee visibility.
+* **Notifications and re-engagement**
+  * Improve relevance and grouping.
+  * Add clearer deep links back into chat, matches, and event detail.
+* **Trust and profile quality**
+  * Profile completeness and profile-quality nudges.
+  * Stronger moderation/reporting and clearer verification cues.
+
+This file remains a historical roadmap, but if it is updated again, Phase 4 should be organized around event conversion and re-engagement rather than the old "connection update" backlog below.
 
 ## 📱 Current Status (MVP Phase 1)
 
@@ -58,20 +87,23 @@ To reach a fully functional MVP that delivers on the "Connect through movement" 
 ## 🗺️ Roadmap
 
 ### Phase 2: The "Connection" Update (Next Priority)
-*   [ ] Implement backend `Like` and `Match` endpoints.
-*   [ ] Build the **Matches Screen** (List view).
-*   [ ] Build the **Chat Screen** (Basic text messaging).
-*   [ ] **Goal**: Users can actually match and talk.
+*   [x] Implement backend `Like` and `Match` endpoints.
+*   [x] Build the **Matches Screen** (List view).
+*   [x] Build the **Chat Screen** (Basic text messaging).
+*   [x] **Goal**: Users can actually match and talk.
 
 ### Phase 3: The "Activity" Update
-*   [ ] Build the **Explore Feed** (Mock data first, then real API).
-*   [ ] Implement **Create** functionality (Post a status/invite).
-*   [ ] **Goal**: Users can plan specific activities, not just chat.
+*   [x] Build the **Explore Feed** (Mock data first, then real API).
+*   [x] Implement **Create** functionality (Post a status/invite).
+*   [x] Expand profile editing and profile-photo management.
+*   [x] Roll out shared layered interaction flows with bottom sheets.
+*   [x] **Goal**: Users can plan specific activities, not just chat.
 
 ### Phase 4: Polish & Retention
-*   [ ] **Push Notifications**: "New Match", "Message Received".
-*   [ ] **Edit Profile**: Full profile management.
-*   [ ] **Settings**: Account management, privacy controls.
+*   [ ] **Notifications & Re-engagement**: improve relevance, grouping, and deep links.
+*   [ ] **Event conversion**: improve invite/share flows and chat-to-event planning.
+*   [ ] **Trust & profile quality**: completeness, moderation/reporting, verification cues.
+*   [ ] **Settings & retention polish**: account management, privacy controls, and targeted UX refinement.
 
 ---
 

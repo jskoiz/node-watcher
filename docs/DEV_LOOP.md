@@ -46,6 +46,8 @@ npm run check:backend
 npm run check:mobile
 ```
 
+Phase 3 is complete on `main`. New work should generally branch from clean `main` and target the next product phase rather than continuing to accumulate broad "Phase 3 cleanup" work in one branch.
+
 ## Component workshop
 
 Use Storybook for isolated component work instead of ad hoc preview routes:
@@ -97,6 +99,11 @@ Recommended local QA loop for the current Phase 3 surface:
    - create activity/timing substeps
    - chat quick-action suggestions
 7. Pull to refresh or revisit downstream screens and confirm the updated primary photo and profile fields are reflected outside the Profile tab.
+
+If you are planning post-Phase-3 work, the current recommended next track is event conversion and re-engagement:
+- improve event invite/share flows
+- improve chat-to-event planning paths
+- improve notification relevance and deep links
 
 ## No-fragmentation release rule
 

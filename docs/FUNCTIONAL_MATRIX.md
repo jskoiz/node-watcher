@@ -32,3 +32,8 @@ This matrix tracks the visible MVP surfaces and whether each user-facing action 
 - `npm run smoke` is the minimum local regression gate before release or TestFlight promotion.
 - Release QA must explicitly cover Phase 3 profile edits, profile photo mutations, and the sheet-driven discovery/explore/create/chat flows before submission.
 - The seeded `ui-preview` scenario is the canonical local runtime for deterministic release/readiness checks; rerun it after backend restarts.
+
+## Planning note
+
+- Phase 3 functionality in this matrix is complete on `main`.
+- The next major product planning track should focus on event conversion, re-engagement, and trust/profile quality systems rather than reopening already-shipped Phase 3 implementation work.
