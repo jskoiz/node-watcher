@@ -3,7 +3,9 @@ import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Control, FieldErrors } from 'react-hook-form';
 import type { EventSummary } from '../../../api/types';
-import { Button } from '../../../design/primitives';
+import { Button, Card } from '../../../design/primitives';
+import { AppBottomSheet } from '../../../design/sheets/AppBottomSheet';
+import { useSheetController } from '../../../design/sheets/useSheetController';
 import type { CreateEventFormValues } from '../schema';
 import { CreateActivityPicker } from './CreateActivityPicker';
 import { CreateDetailsSection } from './CreateDetailsSection';
@@ -12,6 +14,7 @@ import { CreatePlanSummaryCard } from './CreatePlanSummaryCard';
 import { CreateSuccessCard } from './CreateSuccessCard';
 import { CreateTimingSection } from './CreateTimingSection';
 import { createStyles as styles } from './create.styles';
+import { triggerImpactHaptic, triggerSelectionHaptic } from '../../../lib/interaction/feedback';
 
 export function CreateScreenContent({
   canPost,
@@ -68,6 +71,9 @@ export function CreateScreenContent({
   timingError?: string;
   where: string;
 }) {
+  const activitySheet = useSheetController();
+  const timingSheet = useSheetController();
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={[styles.ambientGlow, { backgroundColor: selectedColor }]} pointerEvents="none" />
@@ -93,22 +99,40 @@ export function CreateScreenContent({
             selectedWhen={selectedWhen}
             where={where}
           />
-          <CreateActivityPicker selectedActivity={selectedActivity} onSelectActivity={onSelectActivity} />
+          <Card style={styles.selectionCard}>
+            <Text style={styles.selectionEyebrow}>Activity</Text>
+            <Text style={styles.selectionValue}>{selectedActivity || 'Choose the anchor activity'}</Text>
+            <Button
+              label={selectedActivity ? 'Change activity' : 'Choose activity'}
+              onPress={() => {
+                void triggerImpactHaptic();
+                activitySheet.open();
+              }}
+              variant="secondary"
+            />
+          </Card>
           {errors.selectedActivity?.message ? <Text style={styles.inlineError}>{errors.selectedActivity.message}</Text> : null}
 
-          <CreateTimingSection
-            selectedWhen={selectedWhen}
-            selectedTime={selectedTime}
-            skillLevel={skillLevel}
-            timingError={timingError}
-            onSelectSkill={onSelectSkill}
-            onSelectTime={onSelectTime}
-            onSelectWhen={onSelectWhen}
-          />
+          <Card style={styles.selectionCard}>
+            <Text style={styles.selectionEyebrow}>Plan details</Text>
+            <Text style={styles.selectionValue}>
+              {[selectedWhen, selectedTime, skillLevel].filter(Boolean).join(' · ') || 'Choose timing, pace, and spots'}
+            </Text>
+            <Button
+              label="Edit plan details"
+              onPress={() => {
+                void triggerImpactHaptic();
+                timingSheet.open();
+              }}
+              variant="secondary"
+            />
+          </Card>
+          {timingError ? <Text style={styles.inlineError}>{timingError}</Text> : null}
 
           <CreateDetailsSection
             control={control}
             errors={errors as any}
+            hideSpots
             isSubmitting={isSubmitting}
             noteInputFocus={noteInputFocus}
             onChangeSpots={onChangeSpots}
@@ -141,6 +165,56 @@ export function CreateScreenContent({
           />
         </ScrollView>
       </KeyboardAvoidingView>
+      <AppBottomSheet
+        refObject={activitySheet.ref}
+        visible={activitySheet.visible}
+        onClose={activitySheet.handleDismiss}
+        title="Choose activity"
+        subtitle="Set the movement anchor before you post."
+        snapPoints={['56%']}
+      >
+        <CreateActivityPicker
+          selectedActivity={selectedActivity}
+          onSelectActivity={(value) => {
+            void triggerSelectionHaptic();
+            onSelectActivity(value);
+            activitySheet.close();
+          }}
+        />
+      </AppBottomSheet>
+      <AppBottomSheet
+        refObject={timingSheet.ref}
+        visible={timingSheet.visible}
+        onClose={timingSheet.handleDismiss}
+        title="Plan details"
+        subtitle="Shape the timing, pace, and capacity."
+        snapPoints={['68%']}
+      >
+        <CreateTimingSection
+          selectedWhen={selectedWhen}
+          selectedTime={selectedTime}
+          skillLevel={skillLevel}
+          spots={spots}
+          timingError={timingError}
+          onChangeSpots={(value) => {
+            void triggerSelectionHaptic();
+            onChangeSpots(value);
+          }}
+          onSelectSkill={(value) => {
+            void triggerSelectionHaptic();
+            onSelectSkill(value);
+          }}
+          onSelectTime={(value) => {
+            void triggerSelectionHaptic();
+            onSelectTime(value);
+          }}
+          onSelectWhen={(value) => {
+            void triggerSelectionHaptic();
+            onSelectWhen(value);
+          }}
+        />
+        <Button label="Done" onPress={timingSheet.close} variant="primary" />
+      </AppBottomSheet>
     </SafeAreaView>
   );
 }

@@ -8,6 +8,7 @@ import { useCreateEvent } from '../features/events/hooks/useCreateEvent';
 import { createEventSchema, type CreateEventFormValues } from '../features/events/schema';
 import { CreateScreenContent } from '../features/events/create/CreateScreenContent';
 import { ACTIVITY_TYPES, buildDescription, buildStartDate, buildTitle } from '../features/events/create/create.helpers';
+import { triggerErrorHaptic, triggerSuccessHaptic } from '../lib/interaction/feedback';
 
 const DEFAULT_FORM_VALUES: CreateEventFormValues = {
   note: '',
@@ -66,11 +67,13 @@ export default function CreateScreen({ navigation }: MainTabScreenProps<'Create'
       });
 
       setCreatedEvent(event);
+      void triggerSuccessHaptic();
       resetForm(DEFAULT_FORM_VALUES);
       requestAnimationFrame(() => {
         scrollRef.current?.scrollToEnd({ animated: true });
       });
     } catch {
+      void triggerErrorHaptic();
       setSubmitError(createError ?? 'Unable to create event.');
     }
   });

@@ -9,6 +9,7 @@ import type { MainTabScreenProps } from '../core/navigation/types';
 import { ACTIVITY_SPOTS, type ExploreCategory } from '../features/events/explore/explore.data';
 import { ExploreScreenContent } from '../features/events/explore/ExploreScreenContent';
 import { getEventSectionTitle, getSpotsSectionTitle, matchesEventCategory, matchesSpotCategory } from '../features/events/explore/explore.helpers';
+import { triggerImpactHaptic, triggerSelectionHaptic } from '../lib/interaction/feedback';
 
 function openMyEvents(navigation: MainTabScreenProps<'Explore'>['navigation']) {
   const parentNavigation = navigation.getParent?.();
@@ -50,14 +51,23 @@ export default function ExploreScreen({ navigation }: MainTabScreenProps<'Explor
           : "Join me on BRDG. Let's move together.";
         void Share.share({ message }).catch(() => undefined);
       }}
-      onOpenCreate={() => navigation.navigate('Create')}
+      onOpenCreate={() => {
+        void triggerImpactHaptic();
+        navigation.navigate('Create');
+      }}
       onOpenEvent={(eventId) => navigation.navigate('EventDetail', { eventId })}
-      onOpenMyEvents={() => openMyEvents(navigation)}
+      onOpenMyEvents={() => {
+        void triggerImpactHaptic();
+        openMyEvents(navigation);
+      }}
       onPressNotifications={() => navigation.navigate('Notifications')}
       onRefresh={() => {
         void refetch();
       }}
-      onSelectCategory={setActiveCategory}
+      onSelectCategory={(category) => {
+        void triggerSelectionHaptic();
+        setActiveCategory(category);
+      }}
       showCommunity={activeCategory === 'All' || activeCategory === 'Community'}
       showEvents={activeCategory === 'All' || activeCategory === 'Events' || activeCategory === 'Trails' || activeCategory === 'Gyms'}
       showSpots={activeCategory === 'All' || activeCategory === 'Trails' || activeCategory === 'Gyms' || activeCategory === 'Spots'}

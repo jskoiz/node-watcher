@@ -43,10 +43,10 @@ This document records what was changed, why it was changed, what was verified, a
 - Added Storybook scaffolding:
   - `mobile/.rnstorybook/index.ts`
   - `mobile/.rnstorybook/main.ts`
-  - `mobile/.rnstorybook/preview.ts`
+  - `mobile/.rnstorybook/preview.tsx`
   - `mobile/src/stories/Button.stories.tsx`
 - Added Metro config to support Storybook integration: `mobile/metro.config.js`
-- Added a `storybook` script in `mobile/package.json`.
+- Added a `storybook:start` script in `mobile/package.json` and a root `npm run storybook` entrypoint.
 - Removed duplicate preview surfaces:
   - deleted `mobile/src/screens/CodexPreviewScreen.tsx`
   - deleted `mobile/src/screens/AppStorePreviewScreens.tsx`
@@ -303,17 +303,20 @@ Target rules:
 
 ### Phase 3: Complete iOS-first interaction cleanup
 
-- introduce bottom sheets for:
-  - filters
-  - quick actions
-  - menu flows
-  - create-flow substeps
-- audit motion and haptics against the current iOS-first goals
+Status: completed on March 15, 2026.
+
+- shared bottom-sheet shell now lives in `mobile/src/design/sheets/`
+- discovery filters moved off `Modal` and onto the shared sheet layer
+- explore quick actions added as a sheet-driven action surface
+- create flow activity/timing selection moved into sheet-driven substeps
+- chat quick actions added as sheet-driven suggested openers
+- haptic feedback utilities now live in `mobile/src/lib/interaction/feedback.ts`
 
 ### Phase 4: Expand Storybook and dev tooling
 
-- add component stories for real product modules
-- add a root-level convenience command for Storybook
+- added a root-level convenience command for Storybook
+- added a shared bottom-sheet story and expanded primitive coverage
+- more component stories for real product modules still remain valuable
 - add more scaffolding templates for feature slices
 
 ## Notes For Review

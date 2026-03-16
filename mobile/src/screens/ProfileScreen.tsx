@@ -1,43 +1,48 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StatePanel } from '../design/primitives';
 import { normalizeApiError } from '../api/errors';
 import { useAuthStore } from '../store/authStore';
 import { useProfile } from '../features/profile/hooks/useProfile';
-import { buildSchedulePreferences, parseFavoriteActivities } from '../features/profile/components/profile.helpers';
+import { useProfileEditor } from '../features/profile/hooks/useProfileEditor';
 import { ProfileScreenContent } from '../features/profile/components/ProfileScreenContent';
 import type { MainTabScreenProps } from '../core/navigation/types';
-
-function toggleValue(values: string[], nextValue: string) {
-  return values.includes(nextValue) ? values.filter((value) => value !== nextValue) : [...values, nextValue];
-}
+import { triggerErrorHaptic } from '../lib/interaction/feedback';
 
 export default function ProfileScreen() {
   const logout = useAuthStore((state) => state.logout);
   const deleteAccount = useAuthStore((state) => state.deleteAccount);
   const navigation = useNavigation<MainTabScreenProps<'You'>['navigation']>();
-  const { error: queryError, isLoading, isRefetching, profile, refetch, updateFitness, isSavingFitness } = useProfile();
-  const [error, setError] = useState<string | null>(null);
+  const {
+    error: queryError,
+    isLoading,
+    isRefetching,
+    profile,
+    refetch,
+    updateFitness,
+    updateProfile,
+    uploadPhoto,
+    updatePhoto,
+    deletePhoto,
+    isSavingFitness,
+    isSavingProfile,
+    isUploadingPhoto,
+    isUpdatingPhoto,
+    isDeletingPhoto,
+  } = useProfile();
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [showBuildInfo, setShowBuildInfo] = useState(false);
-  const [intensityLevel, setIntensityLevel] = useState('');
-  const [weeklyFrequencyBand, setWeeklyFrequencyBand] = useState('');
-  const [primaryGoal, setPrimaryGoal] = useState('');
-  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
-  const [selectedSchedule, setSelectedSchedule] = useState<string[]>([]);
+  const editor = useProfileEditor({
+    profile,
+    refetch,
+    updateFitness,
+    updateProfile,
+    uploadPhoto,
+    updatePhoto,
+    deletePhoto,
+  });
 
-  useEffect(() => {
-    if (!profile) return;
-    setIntensityLevel(profile.fitnessProfile?.intensityLevel || '');
-    setWeeklyFrequencyBand(profile.fitnessProfile?.weeklyFrequencyBand || '');
-    setPrimaryGoal(profile.fitnessProfile?.primaryGoal || '');
-    setSelectedActivities(parseFavoriteActivities(profile.fitnessProfile?.favoriteActivities));
-    setSelectedSchedule(buildSchedulePreferences(profile.fitnessProfile));
-  }, [profile]);
-
-  const errorMessage = error ?? (queryError ? normalizeApiError(queryError).message : null);
+  const errorMessage = editor.error ?? (queryError ? normalizeApiError(queryError).message : null);
 
   if (isLoading) return <StatePanel title="Loading your profile" loading />;
   if (errorMessage && !profile) {
@@ -50,13 +55,20 @@ export default function ProfileScreen() {
   return (
     <ProfileScreenContent
       deletingAccount={deletingAccount}
-      editMode={editMode}
+      editingPhotos={isUploadingPhoto || isUpdatingPhoto || isDeletingPhoto}
+      bio={editor.bio}
+      city={editor.city}
+      editMode={editor.editMode}
       errorMessage={errorMessage}
-      intensityLevel={intensityLevel}
+      intensityLevel={editor.intensityLevel}
+      intentDating={editor.intentDating}
+      intentFriends={editor.intentFriends}
+      intentWorkout={editor.intentWorkout}
       isRefetching={isRefetching && !isLoading}
+      isSavingProfile={isSavingProfile}
       isSavingFitness={isSavingFitness}
       navigation={navigation as any}
-      onCancelEdit={() => setEditMode(false)}
+      onCancelEdit={editor.cancelEdit}
       onConfirmDeleteAccount={() => {
         if (deletingAccount) return;
         Alert.alert(
@@ -69,11 +81,12 @@ export default function ProfileScreen() {
               style: 'destructive',
               onPress: async () => {
                 setDeletingAccount(true);
-                setError(null);
+                editor.setError(null);
                 try {
                   await deleteAccount();
                 } catch (err) {
-                  setError(normalizeApiError(err).message);
+                  void triggerErrorHaptic();
+                  editor.setError(normalizeApiError(err).message);
                 } finally {
                   setDeletingAccount(false);
                 }
@@ -82,45 +95,33 @@ export default function ProfileScreen() {
           ],
         );
       }}
+      onDeletePhoto={(photoId) => { void editor.removePhoto(photoId); }}
+      onMakePrimaryPhoto={(photoId) => { void editor.makePrimaryPhoto(photoId); }}
+      onMovePhotoLeft={(photoId) => { void editor.movePhotoLeft(photoId); }}
+      onMovePhotoRight={(photoId) => { void editor.movePhotoRight(photoId); }}
       onRefresh={() => { void refetch(); }}
       onLogout={() => {
         void logout();
       }}
-      onSave={() => {
-        if (!editMode) {
-          setEditMode(true);
-          return;
-        }
-        void (async () => {
-          setError(null);
-          try {
-            await updateFitness({
-              intensityLevel,
-              weeklyFrequencyBand,
-              primaryGoal,
-              favoriteActivities: selectedActivities.join(', '),
-              prefersMorning: selectedSchedule.includes('Morning'),
-              prefersEvening: selectedSchedule.includes('Evening'),
-            });
-            setEditMode(false);
-            await refetch();
-          } catch (err) {
-            setError(normalizeApiError(err).message);
-          }
-        })();
-      }}
-      onSetIntensityLevel={setIntensityLevel}
-      onSetPrimaryGoal={setPrimaryGoal}
-      onSetSelectedActivities={(value) => setSelectedActivities((current) => toggleValue(current, value))}
-      onSetSelectedSchedule={(value) => setSelectedSchedule((current) => toggleValue(current, value))}
-      onSetWeeklyFrequencyBand={setWeeklyFrequencyBand}
-      onToggleBuildInfo={() => setShowBuildInfo((current) => !current)}
-      primaryGoal={primaryGoal}
+      onSave={() => { void editor.save(); }}
+      onSetBio={editor.setBio}
+      onSetCity={editor.setCity}
+      onSetIntensityLevel={editor.setIntensityLevel}
+      onSetIntentDating={editor.setIntentDating}
+      onSetIntentFriends={editor.setIntentFriends}
+      onSetIntentWorkout={editor.setIntentWorkout}
+      onSetPrimaryGoal={editor.setPrimaryGoal}
+      onSetSelectedActivities={editor.toggleActivity}
+      onSetSelectedSchedule={editor.toggleSchedule}
+      onSetWeeklyFrequencyBand={editor.setWeeklyFrequencyBand}
+      onToggleBuildInfo={() => editor.setShowBuildInfo((current) => !current)}
+      onUploadPhoto={() => { void editor.uploadPhoto(); }}
+      primaryGoal={editor.primaryGoal}
       profile={profile}
-      selectedActivities={selectedActivities}
-      selectedSchedule={selectedSchedule}
-      showBuildInfo={showBuildInfo}
-      weeklyFrequencyBand={weeklyFrequencyBand}
+      selectedActivities={editor.selectedActivities}
+      selectedSchedule={editor.selectedSchedule}
+      showBuildInfo={editor.showBuildInfo}
+      weeklyFrequencyBand={editor.weeklyFrequencyBand}
     />
   );
 }

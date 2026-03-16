@@ -28,6 +28,7 @@ jest.mock('react-native-safe-area-context', () => {
 
   return {
     SafeAreaView: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
+    useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
   };
 });
 
@@ -57,7 +58,9 @@ describe('CreateScreen', () => {
     const { UNSAFE_getByType } = render(<CreateScreen navigation={navigation} route={route} />);
 
     const keyboardAvoider = UNSAFE_getByType(KeyboardAvoidingView);
-    const scrollView = UNSAFE_getByType(ScrollView);
+    const scrollView = screen.UNSAFE_getAllByType(ScrollView).find(
+      (view) => view.props.keyboardShouldPersistTaps === 'handled',
+    );
     const noteInput = screen.getByPlaceholderText(
       'Easy pace, bring water, no experience needed...',
     );
@@ -65,6 +68,7 @@ describe('CreateScreen', () => {
     expect(keyboardAvoider.props.behavior).toBe(
       Platform.OS === 'ios' ? 'padding' : undefined,
     );
+    expect(scrollView).toBeTruthy();
     expect(scrollView.props.keyboardShouldPersistTaps).toBe('handled');
     expect(scrollView.props.keyboardDismissMode).toBe(
       Platform.OS === 'ios' ? 'interactive' : 'on-drag',

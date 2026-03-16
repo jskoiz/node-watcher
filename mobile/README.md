@@ -1,14 +1,16 @@
 # BRDG mobile testing
 
-The mobile workspace now has a real Jest + React Native Testing Library foundation for app-level screen and navigation coverage.
+The mobile workspace now has app-level coverage for auth, discovery, explore, create, chat, profile, and shared primitive interactions.
 
 ## What is covered first
 
-Initial suite focus:
-- `AppNavigator` auth gating
-- `SignupScreen` multi-step validation and submission flow
-
-This gives us meaningful protection around a core user journey without requiring simulators, Detox, or backend services in CI.
+Current suite focus:
+- auth entry and signup flows
+- discovery and explore screen interactions
+- create flow substeps and success state
+- chat composer/send flow
+- profile save flow
+- shared primitive regression coverage
 
 ## Run locally
 
@@ -23,17 +25,19 @@ Other useful checks:
 ```bash
 npm run typecheck
 npm run check
+npm run storybook:start
 ```
 
 ## Notes
 
 - Tests use `jest-expo` and `@testing-library/react-native`
+- Shared native test seams are mocked in `jest.setup.js` for Expo image picker, haptics, and bottom sheets
 - Network/store boundaries are mocked where needed so the suite stays deterministic
-- This is intended as a foundation for expanding into login, onboarding, discovery feed, and profile flows
+- Storybook is available for component and interaction review; use the repo-root `npm run storybook` convenience command when working from the monorepo root
 
 ## Recommended next targets
 
-1. `LoginScreen` success + API failure states
-2. `HomeScreen` empty/error/feed states with mocked discovery API
-3. onboarding completion path
+1. profile photo-management edge cases and failure states
+2. bottom-sheet module stories for explore/chat/create
+3. integrated seeded QA passes against the running backend
 4. auth store persistence behavior (`loadToken`, invalid token fallback)

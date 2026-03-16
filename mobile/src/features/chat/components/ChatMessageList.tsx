@@ -1,6 +1,5 @@
-import React from 'react';
-import { RefreshControl, Text, View } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import React, { useMemo } from 'react';
+import { FlatList, RefreshControl, Text, View } from 'react-native';
 import type { ChatMessage } from '../../../api/types';
 import { chatStyles as styles } from './chat.styles';
 
@@ -31,16 +30,16 @@ export function ChatMessageList({
   refreshing: boolean;
   theme: any;
 }) {
+  const orderedMessages = useMemo(() => [...messages].reverse(), [messages]);
+
   return (
-    <FlashList
-      data={messages}
+    <FlatList
+      data={orderedMessages}
       renderItem={({ item }) => <ChatBubble item={item} theme={theme} />}
       keyExtractor={(item) => item.id}
-      inverted
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
     />
   );
 }
-

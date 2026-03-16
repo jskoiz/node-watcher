@@ -6,7 +6,7 @@
     "check:backend": "npm --prefix backend run check",
     "check:mobile": "npm --prefix mobile run check",
     "smoke": "./scripts/smoke-e2e.sh",
-    "storybook": "npm --prefix mobile run storybook",
+    "storybook": "npm --prefix mobile run storybook:start",
     "dev:backend": "npm --prefix backend run start:dev",
     "dev:mobile": "npm --prefix mobile run start",
     "dev:scenario": "npm --prefix backend run dev:scenario --",

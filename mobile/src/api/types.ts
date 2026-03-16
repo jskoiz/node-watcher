@@ -19,11 +19,11 @@ export interface FitnessProfile {
 }
 
 export interface UserPhoto {
-  id?: string;
-  storageKey?: string;
-  isPrimary?: boolean;
-  isHidden?: boolean;
-  sortOrder?: number;
+  id: string;
+  storageKey: string;
+  isPrimary: boolean;
+  isHidden: boolean;
+  sortOrder: number;
 }
 
 export interface User {
@@ -41,6 +41,38 @@ export interface User {
   profile?: UserProfile;
   fitnessProfile?: FitnessProfile;
   photos?: UserPhoto[];
+}
+
+export interface UpdateProfilePayload {
+  bio?: string;
+  city?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+  intentDating?: boolean;
+  intentWorkout?: boolean;
+  intentFriends?: boolean;
+}
+
+export interface UpdateFitnessPayload {
+  intensityLevel: string;
+  weeklyFrequencyBand: string;
+  primaryGoal: string;
+  favoriteActivities: string;
+  prefersMorning?: boolean;
+  prefersEvening?: boolean;
+}
+
+export interface UploadPhotoPayload {
+  uri: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+}
+
+export interface UpdatePhotoPayload {
+  isPrimary?: boolean;
+  isHidden?: boolean;
+  sortOrder?: number;
 }
 
 export interface AuthResponse {

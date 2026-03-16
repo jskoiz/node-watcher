@@ -15,6 +15,7 @@ export const chatStyles = StyleSheet.create({
   backBtn: { marginBottom: 0 },
   headerAvatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 2 },
   headerInfo: { flex: 1, gap: 2 },
+  quickActionTrigger: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   headerEyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
   headerName: { fontSize: typography.h3, fontWeight: '800', letterSpacing: -0.3 },
   headerTag: {
@@ -69,5 +70,20 @@ export const chatStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  quickActionCard: {
+    borderRadius: 18,
+  },
+  quickActionBody: {
+    gap: spacing.sm,
+  },
+  quickActionTitle: {
+    fontSize: typography.body,
+    fontWeight: '800',
+    color: '#F0F6FC',
+  },
+  quickActionCopy: {
+    fontSize: typography.bodySmall,
+    color: 'rgba(240,246,252,0.68)',
+    lineHeight: 20,
+  },
 });
-

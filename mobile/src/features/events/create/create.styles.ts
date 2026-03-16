@@ -109,6 +109,27 @@ export const createStyles = StyleSheet.create({
   planPillLabelActive: {
     color: TEXT_PRIMARY,
   },
+  selectionCard: {
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.md,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: 'rgba(28,35,48,0.68)',
+    gap: spacing.sm,
+  },
+  selectionEyebrow: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: TEXT_MUTED,
+  },
+  selectionValue: {
+    fontSize: typography.body,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
   activitySection: {
     marginBottom: spacing.md,
   },
@@ -358,4 +379,3 @@ export const createStyles = StyleSheet.create({
     marginTop: spacing.md,
   },
 });
-

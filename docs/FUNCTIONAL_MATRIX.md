@@ -9,14 +9,18 @@ This matrix tracks the visible MVP surfaces and whether each user-facing action 
 | Discovery | Load feed, like, pass, open profile detail | live | `discovery` API |
 | Profile detail | Load another user and open chat when already matched | live only for existing matches | `GET /profile/:id` + `GET /matches` |
 | Profile | Load profile, edit fitness basics, delete account | live | `GET /profile`, `PUT /profile/fitness`, `DELETE /auth/me` |
-| Profile | Edit bio/city/photos from the app | not live | no current mobile-to-backend route for basic profile or photo mutation |
+| Profile | Edit bio/city/intent from the app | live | `PUT /profile` |
+| Profile | Upload, reorder, set primary, and remove photos | live | `POST /profile/photos`, `PATCH /profile/photos/:id`, `DELETE /profile/photos/:id` |
 | Explore | Browse live events and open event detail | live | `events` API |
+| Explore | Quick actions sheet for category and event navigation | live | explore feature + bottom-sheet shell |
 | Explore | Community and spot cards | editorial only | local curated content, no backend join CTA |
 | Create | Create event and open event detail | live | `POST /events` |
+| Create | Sheet-driven activity/timing substeps | live | create feature + bottom-sheet shell |
 | Event detail | Load event, RSVP | live | `GET /events/:id`, `POST /events/:id/rsvp` |
 | My Events | Joined and hosted event list | live | `GET /events/me` |
 | Matches | Load conversations and open chat | live | `GET /matches` |
 | Chat | Load messages, send message, realtime stream and poll fallback | live | `matches` API + realtime service |
+| Chat | Quick-action suggested openers | live | chat feature + bottom-sheet shell |
 | Notifications | List, mark one read, mark all read | live | `notifications` API |
 | Component workshop | Storybook for isolated mobile UI review | dev-only | Storybook for React Native |
 | Seeded QA runtime | Deterministic seeded app flows | dev-only | `npm run dev:scenario -- ui-preview` |

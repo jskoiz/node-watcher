@@ -9,8 +9,13 @@ import type {
   LikeResponse,
   Match,
   ProfileCompletenessResponse,
+  UpdateFitnessPayload,
+  UpdatePhotoPayload,
+  UpdateProfilePayload,
   UndoSwipeResponse,
+  UploadPhotoPayload,
   User,
+  UserPhoto,
 } from "../api/types";
 import { logApiFailure } from "../api/observability";
 
@@ -78,6 +83,49 @@ export const profileApi = {
       return await client.put("/profile/fitness", payload);
     } catch (error) {
       logApiFailure("profile", "updateFitness", error);
+      throw error;
+    }
+  },
+  updateProfile: async (payload: UpdateProfilePayload) => {
+    try {
+      return await client.put<User>("/profile", payload);
+    } catch (error) {
+      logApiFailure("profile", "updateProfile", error);
+      throw error;
+    }
+  },
+  uploadPhoto: async (payload: UploadPhotoPayload) => {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: payload.uri,
+      name: payload.fileName ?? `profile-${Date.now()}.jpg`,
+      type: payload.mimeType ?? 'image/jpeg',
+    } as any);
+
+    try {
+      return await client.post<UserPhoto>('/profile/photos', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    } catch (error) {
+      logApiFailure('profile', 'uploadPhoto', error);
+      throw error;
+    }
+  },
+  updatePhoto: async (photoId: string, payload: UpdatePhotoPayload) => {
+    try {
+      return await client.patch<UserPhoto | null>(`/profile/photos/${photoId}`, payload);
+    } catch (error) {
+      logApiFailure('profile', 'updatePhoto', error, { photoId });
+      throw error;
+    }
+  },
+  deletePhoto: async (photoId: string) => {
+    try {
+      return await client.delete<UserPhoto | null>(`/profile/photos/${photoId}`);
+    } catch (error) {
+      logApiFailure('profile', 'deletePhoto', error, { photoId });
       throw error;
     }
   },

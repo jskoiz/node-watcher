@@ -8,9 +8,12 @@ import { normalizeApiError } from '../api/errors';
 import { useChatThread } from '../features/chat/hooks/useChatThread';
 import { ChatComposer } from '../features/chat/components/ChatComposer';
 import { ChatHeader } from '../features/chat/components/ChatHeader';
+import { ChatQuickActionsSheet } from '../features/chat/components/ChatQuickActionsSheet';
 import { ChatMessageList } from '../features/chat/components/ChatMessageList';
 import { getActivityTag } from '../features/chat/components/chat.helpers';
 import { chatStyles as styles } from '../features/chat/components/chat.styles';
+import { useSheetController } from '../design/sheets/useSheetController';
+import { triggerImpactHaptic, triggerSelectionHaptic, triggerWarningHaptic } from '../lib/interaction/feedback';
 import { useTheme } from '../theme/useTheme';
 import type { RootStackScreenProps } from '../core/navigation/types';
 
@@ -21,6 +24,7 @@ export default function ChatScreen() {
   const { matchId, user, prefillMessage } = route.params;
   const [message, setMessage] = useState(prefillMessage?.trim() ?? '');
   const [sendError, setSendError] = useState<string | null>(null);
+  const quickActionsSheet = useSheetController();
   const { connectionStatus, error, loading, messages, refresh, refreshing, sendMessage, sending } = useChatThread(matchId);
   const errorMessage = error ? normalizeApiError(error).message : null;
   const photoUrl = user?.photoUrl || user?.photos?.find?.((photo: any) => photo.isPrimary)?.storageKey || user?.photos?.[0]?.storageKey;
@@ -40,6 +44,7 @@ export default function ChatScreen() {
       setSendError(null);
       await sendMessage(text);
     } catch (err) {
+      void triggerWarningHaptic();
       setSendError(normalizeApiError(err).message);
     }
   };
@@ -50,6 +55,10 @@ export default function ChatScreen() {
       <ChatHeader
         activityTag={getActivityTag(user)}
         onBack={() => navigation.goBack()}
+        onOpenQuickActions={() => {
+          void triggerImpactHaptic();
+          quickActionsSheet.open();
+        }}
         photoUrl={photoUrl}
         theme={theme}
         user={user}
@@ -86,6 +95,16 @@ export default function ChatScreen() {
           theme={theme}
         />
       </KeyboardAvoidingView>
+      <ChatQuickActionsSheet
+        onClose={quickActionsSheet.handleDismiss}
+        onSelectMessage={(nextMessage) => {
+          void triggerSelectionHaptic();
+          setMessage(nextMessage);
+          quickActionsSheet.close();
+        }}
+        refObject={quickActionsSheet.ref}
+        visible={quickActionsSheet.visible}
+      />
     </SafeAreaView>
   );
 }

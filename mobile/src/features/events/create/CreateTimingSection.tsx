@@ -9,20 +9,24 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 export function CreateTimingSection({
+  onChangeSpots,
   onSelectSkill,
   onSelectTime,
   onSelectWhen,
   selectedTime,
   selectedWhen,
   skillLevel,
+  spots,
   timingError,
 }: {
+  onChangeSpots?: (value: number) => void;
   onSelectSkill: (value: string) => void;
   onSelectTime: (value: string) => void;
   onSelectWhen: (value: string) => void;
   selectedTime: string;
   selectedWhen: string;
   skillLevel: string;
+  spots?: number;
   timingError?: string;
 }) {
   return (
@@ -68,6 +72,19 @@ export function CreateTimingSection({
           ))}
         </View>
       </View>
+      {typeof spots === 'number' && onChangeSpots ? (
+        <View style={styles.formSection}>
+          <SectionLabel label="Spots available" />
+          <View style={styles.stepperRow}>
+            <Chip label="Less" onPress={() => onChangeSpots(Math.max(1, spots - 1))} accentColor="#F59E0B" />
+            <View style={styles.stepperValueWrap}>
+              <Text style={styles.stepperValue}>{spots}</Text>
+              <Text style={styles.stepperSub}>open spots</Text>
+            </View>
+            <Chip label="More" onPress={() => onChangeSpots(Math.min(10, spots + 1))} accentColor="#34D399" />
+          </View>
+        </View>
+      ) : null}
     </>
   );
 }

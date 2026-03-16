@@ -1,12 +1,15 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import AppIcon from '../../../components/ui/AppIcon';
 import AppNotificationButton from '../../../components/ui/AppNotificationButton';
 import { exploreStyles as styles } from './explore.styles';
 
 export function ExploreHero({
+  onOpenQuickActions,
   onPressNotifications,
   unreadCount,
 }: {
+  onOpenQuickActions: () => void;
   onPressNotifications: () => void;
   unreadCount: number;
 }) {
@@ -23,8 +26,10 @@ export function ExploreHero({
           onPress={onPressNotifications}
           style={styles.heroNotificationButton}
         />
+        <Pressable onPress={onOpenQuickActions} style={styles.heroActionButton}>
+          <AppIcon name="sliders" size={16} color="#F0F6FC" />
+        </Pressable>
       </View>
     </View>
   );
 }
-

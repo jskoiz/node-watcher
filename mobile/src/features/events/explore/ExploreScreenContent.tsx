@@ -3,11 +3,13 @@ import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { EventSummary } from '../../../api/types';
 import AppBackdrop from '../../../components/ui/AppBackdrop';
+import { useSheetController } from '../../../design/sheets/useSheetController';
 import { StatePanel } from '../../../design/primitives';
 import { ACTIVITY_SPOTS, COMMUNITY_POSTS, type ExploreCategory } from './explore.data';
 import { EventCard, CommunityCard, SpotsRow } from './ExploreCards';
 import { ExploreCategoryBar } from './ExploreCategoryBar';
 import { ExploreHero } from './ExploreHero';
+import { ExploreQuickActionsSheet } from './ExploreQuickActionsSheet';
 import { getEventEmptyDescription } from './explore.helpers';
 import { exploreStyles as styles } from './explore.styles';
 
@@ -54,6 +56,8 @@ export function ExploreScreenContent({
   spotsSectionTitle: string;
   unreadCount: number;
 }) {
+  const quickActionsSheet = useSheetController();
+
   return (
     <SafeAreaView style={styles.container}>
       <AppBackdrop />
@@ -66,7 +70,11 @@ export function ExploreScreenContent({
           <RefreshControl refreshing={isRefreshing && !isLoading} onRefresh={onRefresh} tintColor="#7C6AF7" />
         }
       >
-        <ExploreHero unreadCount={unreadCount} onPressNotifications={onPressNotifications} />
+        <ExploreHero
+          unreadCount={unreadCount}
+          onPressNotifications={onPressNotifications}
+          onOpenQuickActions={quickActionsSheet.open}
+        />
         <ExploreCategoryBar activeCategory={activeCategory} onSelectCategory={onSelectCategory} />
 
         {showEvents && (
@@ -130,6 +138,15 @@ export function ExploreScreenContent({
           </View>
         )}
       </ScrollView>
+      <ExploreQuickActionsSheet
+        activeCategory={activeCategory}
+        onClose={quickActionsSheet.handleDismiss}
+        onOpenCreate={onOpenCreate}
+        onOpenMyEvents={onOpenMyEvents}
+        onSelectCategory={onSelectCategory}
+        refObject={quickActionsSheet.ref}
+        visible={quickActionsSheet.visible}
+      />
     </SafeAreaView>
   );
 }

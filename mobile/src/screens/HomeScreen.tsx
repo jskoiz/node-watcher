@@ -8,6 +8,11 @@ import { useDiscoveryFeed } from '../features/discovery/hooks/useDiscoveryFeed';
 import type { MainTabScreenProps } from '../core/navigation/types';
 import { HomeScreenContent } from '../features/discovery/components/HomeScreenContent';
 import {
+  triggerImpactHaptic,
+  triggerSelectionHaptic,
+  triggerSuccessHaptic,
+} from '../lib/interaction/feedback';
+import {
   buildDiscoveryFilters,
   countActiveFilters,
   FilterModalState,
@@ -84,10 +89,14 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
       greeting={getGreeting(user?.firstName)}
       intentOption={intentOption}
       onApplyFilters={() => {
+        void triggerSelectionHaptic();
         void refetch();
         setShowFiltersModal(false);
       }}
-      onOpenFilters={() => setShowFiltersModal(true)}
+      onOpenFilters={() => {
+        void triggerImpactHaptic();
+        setShowFiltersModal(true);
+      }}
       onMatchAnimationFinish={() => {
         setShowMatch(false);
         if (matchedProfile && matchId) {
@@ -99,17 +108,23 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
       onPressNotifications={() => navigation.navigate('Notifications')}
       onPressProfile={(profile) => navigation.navigate('ProfileDetail', { user: profile })}
       onQuickFilterPress={(filterId) =>
-        setActiveQuickFilter((current) => (current === filterId ? 'all' : filterId))
+        {
+          void triggerSelectionHaptic();
+          setActiveQuickFilter((current) => (current === filterId ? 'all' : filterId));
+        }
       }
       onRefetch={() => {
         void refetch();
       }}
       onSwipeLeft={(profile) => {
+        void triggerSelectionHaptic();
         void passUser(profile.id);
       }}
       onSwipeRight={(profile) => {
+        void triggerSelectionHaptic();
         void likeUser(profile.id).then((response) => {
           if (response.status === 'match' && response.match) {
+            void triggerSuccessHaptic();
             setMatchedProfile(profile);
             setMatchId(response.match.id);
             setShowMatch(true);
@@ -132,6 +147,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
         }))
       }
       onUndoAndClose={() => {
+        void triggerImpactHaptic();
         void undoSwipe().then((response) => {
           if (response.status === 'undone') {
             void refetch();

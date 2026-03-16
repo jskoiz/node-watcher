@@ -51,7 +51,7 @@ Use Storybook for isolated component work instead of ad hoc preview routes:
 npm run storybook
 ```
 
-This is the supported root-level component preview command for BRDG UI primitives and composed cards/modules.
+This is the supported root-level component preview command for BRDG UI primitives, bottom-sheet interactions, and composed cards/modules.
 
 ## Backend reset path for QA
 
@@ -64,6 +64,13 @@ npm run dev:scenario -- ui-preview
 This recreates fixed preview users, a mutual match, chat history, notifications, and an event RSVP path.
 
 Use this seeded runtime path for integrated QA inside the real app navigation.
+
+The current seeded QA path is especially useful for validating:
+- discovery filters and quick filters
+- explore quick actions
+- create flow substeps
+- chat quick-action suggestions
+- profile editing and photo management
 
 ## No-fragmentation release rule
 
@@ -94,6 +101,7 @@ Use this seeded runtime path for integrated QA inside the real app navigation.
   - `DiscoveryService`
 - Mobile routes should not call the raw axios client directly.
 - Server reads/mutations should flow through React Query-backed feature hooks and the service layer.
+- Profile photo uploads now flow through backend-managed local storage in dev via the `profile` API; if uploads fail, inspect backend logs first.
 
 ### Mobile can't hit backend from device
 

@@ -7,7 +7,7 @@ import type { User } from '../../../api/types';
 import { Button, Card } from '../../../design/primitives';
 import { profileStyles as styles } from './profile.styles';
 import { ACTIVITY_OPTIONS, ENVIRONMENT_OPTIONS, SCHEDULE_OPTIONS } from './profile.helpers';
-import { EditableField, TagPill } from './ProfileSections';
+import { EditableField, PhotoManager, TagPill } from './ProfileSections';
 
 function SettingsRow({
   accessory = '›',
@@ -42,23 +42,40 @@ function BuildInfoRow({ label, value }: { label: string; value: string }) {
 
 export function ProfileScreenContent({
   deletingAccount,
+  editingPhotos,
+  bio,
+  city,
   editMode,
   errorMessage,
   intensityLevel,
+  intentDating,
+  intentFriends,
+  intentWorkout,
   isRefetching,
+  isSavingProfile,
   isSavingFitness,
   navigation,
   onCancelEdit,
   onConfirmDeleteAccount,
+  onDeletePhoto,
+  onMakePrimaryPhoto,
+  onMovePhotoLeft,
+  onMovePhotoRight,
   onRefresh,
   onLogout,
   onSave,
+  onSetBio,
+  onSetCity,
   onSetIntensityLevel,
+  onSetIntentDating,
+  onSetIntentFriends,
+  onSetIntentWorkout,
   onSetPrimaryGoal,
   onSetSelectedActivities,
   onSetSelectedSchedule,
   onSetWeeklyFrequencyBand,
   onToggleBuildInfo,
+  onUploadPhoto,
   primaryGoal,
   profile,
   selectedActivities,
@@ -67,23 +84,40 @@ export function ProfileScreenContent({
   weeklyFrequencyBand,
 }: {
   deletingAccount: boolean;
+  editingPhotos: boolean;
+  bio: string;
+  city: string;
   editMode: boolean;
   errorMessage: string | null;
   intensityLevel: string;
+  intentDating: boolean;
+  intentFriends: boolean;
+  intentWorkout: boolean;
   isRefetching: boolean;
+  isSavingProfile: boolean;
   isSavingFitness: boolean;
   navigation: { navigate: (screen: string) => void };
   onCancelEdit: () => void;
   onConfirmDeleteAccount: () => void;
+  onDeletePhoto: (photoId: string) => void;
+  onMakePrimaryPhoto: (photoId: string) => void;
+  onMovePhotoLeft: (photoId: string) => void;
+  onMovePhotoRight: (photoId: string) => void;
   onRefresh: () => void;
   onLogout: () => void;
   onSave: () => void;
+  onSetBio: (value: string) => void;
+  onSetCity: (value: string) => void;
   onSetIntensityLevel: (value: string) => void;
+  onSetIntentDating: (value: boolean) => void;
+  onSetIntentFriends: (value: boolean) => void;
+  onSetIntentWorkout: (value: boolean) => void;
   onSetPrimaryGoal: (value: string) => void;
   onSetSelectedActivities: (value: string) => void;
   onSetSelectedSchedule: (value: string) => void;
   onSetWeeklyFrequencyBand: (value: string) => void;
   onToggleBuildInfo: () => void;
+  onUploadPhoto: () => void;
   primaryGoal: string;
   profile: User;
   selectedActivities: string[];
@@ -154,7 +188,7 @@ export function ProfileScreenContent({
               style={styles.editBtn}
             >
               <Text style={[styles.editBtnText, { color: editMode ? '#FFFFFF' : 'rgba(240,246,252,0.6)' }]}>
-                {isSavingFitness ? 'Saving...' : editMode ? '✓ Save Changes' : '✏️ Edit Profile'}
+                {isSavingFitness || isSavingProfile ? 'Saving...' : editMode ? '✓ Save Changes' : '✏️ Edit Profile'}
               </Text>
             </LinearGradient>
           </Pressable>
@@ -170,6 +204,38 @@ export function ProfileScreenContent({
             <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
         ) : null}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrow}>Profile basics</Text>
+          <Card style={styles.fieldsCard}>
+            <EditableField label="City" value={city} onChangeText={onSetCity} placeholder="Honolulu" editMode={editMode} />
+            <View style={styles.fieldDivider} />
+            <EditableField label="Bio" value={bio} onChangeText={onSetBio} placeholder="Tell people what kind of movement and company you want." editMode={editMode} multiline />
+          </Card>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrow}>Intent</Text>
+          <View style={styles.tagCloud}>
+            <TagPill label="Dating" selected={intentDating} onPress={() => onSetIntentDating(!intentDating)} color="#F87171" interactive={editMode} />
+            <TagPill label="Workout" selected={intentWorkout} onPress={() => onSetIntentWorkout(!intentWorkout)} color="#7C6AF7" interactive={editMode} />
+            <TagPill label="Friends" selected={intentFriends} onPress={() => onSetIntentFriends(!intentFriends)} color="#34D399" interactive={editMode} />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrow}>Photos</Text>
+          <PhotoManager
+            canEdit={editMode}
+            isBusy={editingPhotos}
+            onDelete={onDeletePhoto}
+            onMakePrimary={onMakePrimaryPhoto}
+            onMoveLeft={onMovePhotoLeft}
+            onMoveRight={onMovePhotoRight}
+            onUpload={onUploadPhoto}
+            photos={profile.photos ?? []}
+          />
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionEyebrow}>Movement Identity</Text>

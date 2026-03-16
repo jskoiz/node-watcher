@@ -15,6 +15,7 @@ const requireEnv = (value: string | undefined, key: string): string => {
 const apiPort = toNumber(process.env.PORT, 3000);
 const localApiBaseUrl = `http://127.0.0.1:${apiPort}`;
 const apiBaseUrl = process.env.API_BASE_URL || localApiBaseUrl;
+const assetBaseUrl = process.env.BASE_URL || apiBaseUrl;
 
 export const appConfig = {
   apiPort,
@@ -23,7 +24,11 @@ export const appConfig = {
     expiresIn: '60m' as const,
   },
   seed: {
-    assetBaseUrl: process.env.BASE_URL || apiBaseUrl,
+    assetBaseUrl,
+  },
+  uploads: {
+    profileDir: 'public/uploads/profile',
+    profilePublicBaseUrl: `${assetBaseUrl}/uploads/profile`,
   },
   scripts: {
     apiBaseUrl,

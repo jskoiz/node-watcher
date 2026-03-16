@@ -6,6 +6,10 @@ const mockNavigate = jest.fn();
 const mockLogout = jest.fn();
 const mockDeleteAccount = jest.fn();
 const mockUpdateFitness = jest.fn();
+const mockUpdateProfile = jest.fn();
+const mockUploadPhoto = jest.fn();
+const mockUpdatePhoto = jest.fn();
+const mockDeletePhotoMutation = jest.fn();
 const mockRefetch = jest.fn();
 const mockProfile = {
   id: "user-1",
@@ -46,9 +50,17 @@ jest.mock("../../features/profile/hooks/useProfile", () => ({
     isLoading: false,
     isRefetching: false,
     isSavingFitness: false,
+    isSavingProfile: false,
+    isUploadingPhoto: false,
+    isUpdatingPhoto: false,
+    isDeletingPhoto: false,
     profile: mockProfile,
     refetch: mockRefetch,
     updateFitness: mockUpdateFitness,
+    updateProfile: mockUpdateProfile,
+    uploadPhoto: mockUploadPhoto,
+    updatePhoto: mockUpdatePhoto,
+    deletePhoto: mockDeletePhotoMutation,
   }),
 }));
 
@@ -56,6 +68,7 @@ describe("ProfileScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUpdateFitness.mockResolvedValue(undefined);
+    mockUpdateProfile.mockResolvedValue(undefined);
     mockRefetch.mockResolvedValue(undefined);
   });
 

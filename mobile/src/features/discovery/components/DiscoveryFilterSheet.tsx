@@ -1,5 +1,7 @@
 import React from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-native';
+import { AppBottomSheet } from '../../../design/sheets/AppBottomSheet';
+import { useSheetController } from '../../../design/sheets/useSheetController';
 import { Button, Chip } from '../../../design/primitives';
 import { homeStyles as styles } from './home.styles';
 import {
@@ -55,21 +57,22 @@ export function DiscoveryFilterSheet({
   state: FilterModalState;
   visible: boolean;
 }) {
+  const sheet = useSheetController();
+
   return (
-    <Modal
+    <AppBottomSheet
+      refObject={sheet.ref}
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title="Filters"
+      subtitle="Tighten the feed without leaving discovery."
+      snapPoints={['78%']}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalContainer}
       >
-        <View style={styles.modalHandle} />
-        <Text style={styles.modalTitle}>Filters</Text>
-
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalContent}>
+        <View style={styles.modalContent}>
           <Text style={styles.filterSectionLabel}>Distance & Age</Text>
           <View style={styles.filterInputRow}>
             <TextInput
@@ -138,8 +141,8 @@ export function DiscoveryFilterSheet({
             <Button label="Undo swipe" onPress={onUndoSwipe} variant="ghost" style={{ flex: 1 }} />
             <Button label="Apply" onPress={onApply} variant="primary" style={{ flex: 1 }} />
           </View>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
-    </Modal>
+    </AppBottomSheet>
   );
 }

@@ -32,6 +32,17 @@ npm run check:full
 npm run dev:scenario -- ui-preview
 ```
 
+Profile/photo APIs now include:
+
+```bash
+GET /profile
+PUT /profile
+PUT /profile/fitness
+POST /profile/photos
+PATCH /profile/photos/:id
+DELETE /profile/photos/:id
+```
+
 ## Environment
 
 - `DATABASE_URL`: Prisma Postgres connection
@@ -39,6 +50,12 @@ npm run dev:scenario -- ui-preview
 - `PORT`: backend port, defaults to `3010` in local `.env.example`
 - `BASE_URL`: public asset base used for uploaded photo URLs and seed assets
 - `API_BASE_URL`: base URL used by helper scripts
+
+## Local photo uploads
+
+- In local/dev flows, uploaded profile photos are stored under `public/uploads/profile`.
+- The backend serves these assets directly through the existing static asset setup.
+- This is intentionally a local-first storage seam so a cloud adapter can replace it later without changing the mobile API contract.
 
 ## Dev Scenarios
 

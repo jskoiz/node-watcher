@@ -17,6 +17,7 @@ export function CreateDetailsSection({
   onChangeSpots,
   onClearError,
   spots,
+  hideSpots = false,
 }: {
   control: Control<CreateEventFormValues>;
   errors: Partial<Record<keyof CreateEventFormValues, { message?: string }>>;
@@ -25,6 +26,7 @@ export function CreateDetailsSection({
   onChangeSpots: (value: number) => void;
   onClearError: () => void;
   spots: number;
+  hideSpots?: boolean;
 }) {
   return (
     <>
@@ -50,6 +52,7 @@ export function CreateDetailsSection({
         {errors.where?.message ? <Text style={styles.inlineError}>{errors.where.message}</Text> : null}
       </View>
 
+      {!hideSpots ? (
       <View style={styles.formSection}>
         <SectionLabel label="Spots available" />
         <View style={styles.stepperRow}>
@@ -75,6 +78,7 @@ export function CreateDetailsSection({
           </TouchableOpacity>
         </View>
       </View>
+      ) : null}
 
       <View style={styles.formSection}>
         <SectionLabel label="Add a note" />

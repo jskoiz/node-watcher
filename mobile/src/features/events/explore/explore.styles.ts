@@ -34,6 +34,7 @@ export const exploreStyles = StyleSheet.create({
   heroHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   heroCopy: { flex: 1 },
   heroNotificationButton: { marginTop: spacing.xs },
+  heroActionButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: BORDER, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginTop: spacing.xs },
   heroEyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 3.5, color: ACCENT, marginBottom: spacing.sm },
   heroTitle: { fontSize: 38, fontWeight: '800', letterSpacing: -1.2, color: TEXT_PRIMARY, lineHeight: 40, marginBottom: spacing.sm },
   heroSubtitle: { fontSize: typography.body, fontWeight: '500', color: TEXT_MUTED, lineHeight: 22, maxWidth: 290 },
@@ -43,6 +44,9 @@ export const exploreStyles = StyleSheet.create({
   categoryPillActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
   categoryPillInactive: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: BORDER },
   categoryPillText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+  sheetSectionLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase', color: TEXT_MUTED, marginBottom: spacing.md },
+  sheetChipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  sheetActionStack: { gap: spacing.sm, marginTop: spacing.md },
   section: { paddingHorizontal: CARD_PADDING, marginBottom: spacing.lg },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   sectionTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5, color: TEXT_PRIMARY },
@@ -93,4 +97,3 @@ export const exploreStyles = StyleSheet.create({
   inviteSmallText: { fontSize: typography.bodySmall, fontWeight: '600', color: TEXT_MUTED },
   screenWidth: { width: SCREEN_WIDTH },
 });
-

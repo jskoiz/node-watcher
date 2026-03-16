@@ -48,6 +48,7 @@ jest.mock('react-native-safe-area-context', () => {
 
   return {
     SafeAreaView: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
+    useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
   };
 });
 
@@ -98,7 +99,7 @@ describe('ExploreScreen', () => {
     expect(await screen.findByText('Makapuu Sunrise Hike')).toBeTruthy();
     expect(screen.getByText('Downtown Strength Hour')).toBeTruthy();
 
-    fireEvent.press(screen.getByText('Trails'));
+    fireEvent.press(screen.getAllByText('Trails')[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Trail Events')).toBeTruthy();
@@ -107,7 +108,7 @@ describe('ExploreScreen', () => {
       expect(screen.getByText('Trail Spots')).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByText('Gyms'));
+    fireEvent.press(screen.getAllByText('Gyms')[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Gym Events')).toBeTruthy();

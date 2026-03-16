@@ -1,5 +1,6 @@
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity } from 'react-native';
+import { ScrollView } from 'react-native';
+import { Chip } from '../../../design/primitives';
 import { CATEGORIES, type ExploreCategory } from './explore.data';
 import { exploreStyles as styles } from './explore.styles';
 
@@ -21,19 +22,17 @@ export function ExploreCategoryBar({
         const active = activeCategory === category;
 
         return (
-          <TouchableOpacity
+          <Chip
             key={category}
-            style={[styles.categoryPill, active ? styles.categoryPillActive : styles.categoryPillInactive]}
+            style={[styles.categoryPill, active ? styles.categoryPillActive : styles.categoryPillInactive] as any}
             onPress={() => onSelectCategory(category)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.categoryPillText, { color: active ? '#FFFFFF' : 'rgba(240,246,252,0.38)' }]}>
-              {category}
-            </Text>
-          </TouchableOpacity>
+            active={active}
+            label={category}
+            accentColor="#7C6AF7"
+            textStyle={[styles.categoryPillText, { color: active ? '#FFFFFF' : 'rgba(240,246,252,0.38)' }] as any}
+          />
         );
       })}
     </ScrollView>
   );
 }
-

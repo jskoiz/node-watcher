@@ -1,18 +1,21 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import AppBackButton from '../../../components/ui/AppBackButton';
+import AppIcon from '../../../components/ui/AppIcon';
 import { chatStyles as styles } from './chat.styles';
 
 export function ChatHeader({
   activityTag,
   onBack,
+  onOpenQuickActions,
   photoUrl,
   theme,
   user,
 }: {
   activityTag: string;
   onBack: () => void;
+  onOpenQuickActions: () => void;
   photoUrl?: string;
   theme: any;
   user: any;
@@ -48,7 +51,12 @@ export function ChatHeader({
           </View>
         ) : null}
       </View>
+      <Pressable
+        onPress={onOpenQuickActions}
+        style={[styles.quickActionTrigger, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
+      >
+        <AppIcon name="more-horizontal" size={16} color={theme.textPrimary} />
+      </Pressable>
     </View>
   );
 }
-
