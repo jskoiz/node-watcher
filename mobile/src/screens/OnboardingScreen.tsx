@@ -253,8 +253,12 @@ export default function OnboardingScreen({
                         backgroundColor: selected ? theme.primarySubtle : theme.surface,
                         borderColor: selected ? theme.primary : theme.border,
                         borderWidth: selected ? 2 : 1.5,
+                        minHeight: 56,
                       },
                     ]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${opt.title}. ${opt.sub}`}
                   >
                     <View style={[styles.intentCardIconWrap, { backgroundColor: selected ? theme.primarySubtle : theme.surfaceElevated }]}>
                       <AppIcon name={opt.icon} size={18} color={selected ? theme.primary : theme.textSecondary} />
@@ -300,6 +304,9 @@ export default function OnboardingScreen({
                         borderWidth: selected ? 2 : 1.5,
                       },
                     ]}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    accessibilityLabel={act.label}
                   >
                     <View style={[styles.activityIconWrap, { backgroundColor: selected ? theme.primarySubtle : theme.surfaceElevated }]}>
                       <AppIcon name={act.icon} size={16} color={selected ? theme.primary : theme.textSecondary} />
@@ -346,8 +353,12 @@ export default function OnboardingScreen({
                         backgroundColor: selected ? theme.primarySubtle : theme.surface,
                         borderColor: selected ? theme.primary : theme.border,
                         borderWidth: selected ? 2 : 1.5,
+                        minHeight: 48,
                       },
                     ]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${opt.label} per week. ${opt.subtitle}`}
                   >
                     <Text style={[styles.largeCardLabel, { color: selected ? theme.primary : theme.textPrimary }]}>
                       {opt.label}
@@ -390,6 +401,9 @@ export default function OnboardingScreen({
                         borderWidth: selected ? 2 : 1.5,
                       },
                     ]}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    accessibilityLabel={env.label}
                   >
                     <View style={[styles.activityIconWrap, { backgroundColor: selected ? theme.accentSubtle : theme.surfaceElevated }]}>
                       <AppIcon name={env.icon} size={16} color={selected ? theme.accent : theme.textSecondary} />
@@ -432,8 +446,12 @@ export default function OnboardingScreen({
                         backgroundColor: selected ? theme.accentSubtle : theme.surface,
                         borderColor: selected ? theme.accent : theme.border,
                         borderWidth: selected ? 2 : 1.5,
+                        minHeight: 48,
                       },
                     ]}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    accessibilityLabel={opt.label}
                   >
                     <View style={[styles.scheduleIconWrap, { backgroundColor: selected ? theme.accentSubtle : theme.surfaceElevated }]}>
                       <AppIcon name={opt.icon} size={16} color={selected ? theme.accent : theme.textSecondary} />
@@ -474,8 +492,12 @@ export default function OnboardingScreen({
                         backgroundColor: selected ? theme.primarySubtle : theme.surface,
                         borderColor: selected ? theme.primary : theme.border,
                         borderWidth: selected ? 2 : 1.5,
+                        minHeight: 56,
                       },
                     ]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${opt.label}. ${opt.subtitle}`}
                   >
                     <View style={[styles.socialCardIconWrap, { backgroundColor: selected ? theme.primarySubtle : theme.surfaceElevated }]}>
                       <AppIcon name={opt.icon} size={16} color={selected ? theme.primary : theme.textSecondary} />

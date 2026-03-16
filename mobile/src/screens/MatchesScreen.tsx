@@ -54,8 +54,11 @@ function MatchRow({ item, onPress }: { item: Match; onPress: () => void }) {
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.row, { opacity: pressed ? 0.85 : 1 }]}
+      style={({ pressed }) => [styles.row, { opacity: pressed ? 0.85 : 1, minHeight: 56 }]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Conversation with ${item.user.firstName || 'Match'}. ${item.lastMessage || 'No messages yet'}`}
+      accessibilityHint="Tap to open conversation"
     >
       {/* Avatar */}
       <View style={styles.avatarWrapper}>
@@ -64,6 +67,7 @@ function MatchRow({ item, onPress }: { item: Match; onPress: () => void }) {
             source={{ uri: photoUrl }}
             style={[styles.avatar, { borderColor: hasUnread ? accent : BORDER }]}
             contentFit="cover"
+            accessibilityLabel={`Photo of ${item.user.firstName || 'match'}`}
           />
         ) : (
           <View
