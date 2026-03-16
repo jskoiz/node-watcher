@@ -25,6 +25,7 @@
     "scaffold:mobile-feature",
     "smoke",
     "storybook",
+    "symphony",
     "test:backend",
     "test:mobile",
     "test:root"
@@ -446,9 +447,11 @@
           "mobile/src/design/sheets/useSheetController.ts",
           "mobile/src/design/tamagui.config.ts",
           "mobile/src/design/theme.tsx",
+          "mobile/src/lib/__tests__/profile-helpers.test.ts",
           "mobile/src/lib/__tests__/profilePhotos.test.ts",
           "mobile/src/lib/fonts.ts",
           "mobile/src/lib/interaction/feedback.ts",
+          "mobile/src/lib/profile-helpers.ts",
           "mobile/src/lib/profilePhotos.ts"
         ]
       },
