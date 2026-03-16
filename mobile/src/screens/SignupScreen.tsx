@@ -1,7 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Controller, useForm } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  type Control,
+  type FieldErrors,
+} from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/authStore';
 import { normalizeApiError } from '../api/errors';
@@ -21,77 +26,35 @@ import type { RootStackScreenProps } from '../core/navigation/types';
 
 const STEPS = 3;
 const STEP_LABELS = ['Account', 'Profile', 'Done'];
+const STEP_TITLES = ["Let's start with you.", 'Secure your account.', 'One last thing.'];
+const STEP_SUBTITLES = [
+  'Your name, so we can greet you right.',
+  'Your email and a strong password.',
+  'Your birthday and how you identify.',
+];
 
-export default function SignupScreen({
-  navigation,
-}: RootStackScreenProps<'Signup'>) {
+export type SignupScreenViewProps = {
+  canProceed: boolean;
+  control: Control<SignupFormValues>;
+  errors: FieldErrors<SignupFormValues>;
+  isSubmitting: boolean;
+  onBack: () => void;
+  onNavigateLogin: () => void;
+  onSubmitStep: () => void;
+  step: number;
+};
+
+export function SignupScreenView({
+  canProceed,
+  control,
+  errors,
+  isSubmitting,
+  onBack,
+  onNavigateLogin,
+  onSubmitStep,
+  step,
+}: SignupScreenViewProps) {
   const theme = useTheme();
-  const [step, setStep] = useState(0);
-  const signup = useAuthStore((state) => state.signup);
-  const {
-    control,
-    handleSubmit,
-    trigger,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<SignupFormValues>({
-    defaultValues: {
-      birthdate: '',
-      email: '',
-      firstName: '',
-      gender: '',
-      password: '',
-    },
-    resolver: zodResolver(signupSchema),
-  });
-  const firstName = watch('firstName');
-  const email = watch('email');
-  const password = watch('password');
-  const birthdate = watch('birthdate');
-  const gender = watch('gender');
-
-  const stepTitles = ["Let's start with you.", 'Secure your account.', 'One last thing.'];
-  const stepSubtitles = [
-    'Your name, so we can greet you right.',
-    'Your email and a strong password.',
-    'Your birthday and how you identify.',
-  ];
-  const fieldsByStep: Array<Array<keyof SignupFormValues>> = [
-    ['firstName'],
-    ['email', 'password'],
-    ['birthdate', 'gender'],
-  ];
-
-  const handleNext = async () => {
-    const isValid = await trigger(fieldsByStep[step], { shouldFocus: true });
-    if (!isValid) return;
-    if (step < STEPS - 1) {
-      setStep((current) => current + 1);
-    } else {
-      await handleSubmit(async (values) => {
-        try {
-          await signup({
-            email: values.email.trim().toLowerCase(),
-            password: values.password,
-            firstName: values.firstName.trim(),
-            birthdate: values.birthdate,
-            gender: values.gender,
-          });
-        } catch (error) {
-          Alert.alert("Couldn't create account", normalizeApiError(error).message);
-        }
-      })();
-    }
-  };
-
-  const canProceed = useMemo(() => {
-    if (step === 0) return !!firstName.trim();
-    if (step === 1) return !!email.trim() && !!password.trim();
-    if (step === 2) {
-      return !!birthdate && !!gender.trim();
-    }
-    return false;
-  }, [step, firstName, email, password, birthdate, gender]);
   const birthdateError = errors.birthdate?.message;
 
   return (
@@ -105,7 +68,7 @@ export default function SignupScreen({
           <AppBackdrop />
 
           <AppBackButton
-            onPress={() => step > 0 ? setStep(step - 1) : navigation.goBack()}
+            onPress={onBack}
             disabled={isSubmitting}
           />
 
@@ -145,8 +108,8 @@ export default function SignupScreen({
             <Text style={[styles.stepNum, { color: theme.accent }]}>
               Step {step + 1} of {STEPS}
             </Text>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>{stepTitles[step]}</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{stepSubtitles[step]}</Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>{STEP_TITLES[step]}</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{STEP_SUBTITLES[step]}</Text>
           </View>
 
           <View style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -171,7 +134,7 @@ export default function SignupScreen({
                     returnKeyType="next"
                     submitBehavior="submit"
                     onSubmitEditing={() => {
-                      void handleNext();
+                      void onSubmitStep();
                     }}
                   />
                 )}
@@ -199,7 +162,7 @@ export default function SignupScreen({
                       returnKeyType="next"
                       submitBehavior="submit"
                       onSubmitEditing={() => {
-                        void handleNext();
+                        void onSubmitStep();
                       }}
                     />
                   )}
@@ -223,7 +186,7 @@ export default function SignupScreen({
                       returnKeyType="done"
                       submitBehavior="submit"
                       onSubmitEditing={() => {
-                        void handleNext();
+                        void onSubmitStep();
                       }}
                     />
                   )}
@@ -272,7 +235,7 @@ export default function SignupScreen({
             <Button
               label={step < STEPS - 1 ? 'Continue' : 'Create my account'}
               onPress={() => {
-                void handleNext();
+                void onSubmitStep();
               }}
               loading={isSubmitting}
               disabled={!canProceed || isSubmitting}
@@ -283,7 +246,7 @@ export default function SignupScreen({
           {step === 0 && (
             <View style={styles.footer}>
               <Text style={[styles.footerText, { color: theme.textMuted }]}>Already have an account? </Text>
-              <Pressable onPress={() => navigation.goBack()}>
+              <Pressable onPress={onNavigateLogin}>
                 <Text style={[styles.footerLink, { color: theme.accent }]}>Sign in</Text>
               </Pressable>
             </View>
@@ -291,6 +254,84 @@ export default function SignupScreen({
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+export default function SignupScreen({
+  navigation,
+}: RootStackScreenProps<'Signup'>) {
+  const [step, setStep] = useState(0);
+  const signup = useAuthStore((state) => state.signup);
+  const {
+    control,
+    handleSubmit,
+    trigger,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<SignupFormValues>({
+    defaultValues: {
+      birthdate: '',
+      email: '',
+      firstName: '',
+      gender: '',
+      password: '',
+    },
+    resolver: zodResolver(signupSchema),
+  });
+  const firstName = watch('firstName');
+  const email = watch('email');
+  const password = watch('password');
+  const birthdate = watch('birthdate');
+  const gender = watch('gender');
+
+  const fieldsByStep: Array<Array<keyof SignupFormValues>> = [
+    ['firstName'],
+    ['email', 'password'],
+    ['birthdate', 'gender'],
+  ];
+
+  const handleNext = async () => {
+    const isValid = await trigger(fieldsByStep[step], { shouldFocus: true });
+    if (!isValid) return;
+    if (step < STEPS - 1) {
+      setStep((current) => current + 1);
+    } else {
+      await handleSubmit(async (values) => {
+        try {
+          await signup({
+            email: values.email.trim().toLowerCase(),
+            password: values.password,
+            firstName: values.firstName.trim(),
+            birthdate: values.birthdate,
+            gender: values.gender,
+          });
+        } catch (error) {
+          Alert.alert("Couldn't create account", normalizeApiError(error).message);
+        }
+      })();
+    }
+  };
+
+  const canProceed = useMemo(() => {
+    if (step === 0) return !!firstName.trim();
+    if (step === 1) return !!email.trim() && !!password.trim();
+    if (step === 2) {
+      return !!birthdate && !!gender.trim();
+    }
+    return false;
+  }, [step, firstName, email, password, birthdate, gender]);
+
+  return (
+    <SignupScreenView
+      canProceed={canProceed}
+      control={control}
+      errors={errors}
+      isSubmitting={isSubmitting}
+      onBack={() => (step > 0 ? setStep(step - 1) : navigation.goBack())}
+      onNavigateLogin={() => navigation.goBack()}
+      onSubmitStep={handleNext}
+      step={step}
+    />
   );
 }
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import type { EventDetail } from '../api/types';
 import { normalizeApiError } from '../api/errors';
 import AppBackButton from '../components/ui/AppBackButton';
 import AppBackdrop from '../components/ui/AppBackdrop';
@@ -24,25 +25,39 @@ function formatDateRange(startsAt: string, endsAt?: string | null) {
   return { date, time: endTime ? `${startTime} – ${endTime}` : startTime };
 }
 
-export default function EventDetailScreen({
-  route,
-  navigation,
-}: RootStackScreenProps<'EventDetail'>) {
+export type EventDetailViewProps = {
+  errorMessage: string | null;
+  event: EventDetail | null;
+  isJoining: boolean;
+  isLoading: boolean;
+  onBack: () => void;
+  onJoin: () => void;
+  onRefresh: () => void;
+};
+
+export function EventDetailView({
+  errorMessage,
+  event,
+  isJoining,
+  isLoading,
+  onBack,
+  onJoin,
+  onRefresh,
+}: EventDetailViewProps) {
   const theme = useTheme();
-  const eventId = route.params?.eventId;
-  const { error, event, isJoining: joining, isLoading: loading, joinEvent, refetch } =
-    useEventDetail(eventId);
-  const errorMessage = error ? normalizeApiError(error).message : null;
 
-  const handleJoin = async () => {
-    if (!event || joining || event.joined) return;
-    try {
-      await joinEvent();
-    } catch {}
-  };
-
-  if (loading) return <StatePanel title="Loading event" loading />;
-  if (errorMessage || !event) return <StatePanel title="Couldn't load event" description={errorMessage ?? 'Event not found'} actionLabel="Try again" onAction={() => { void refetch(); }} isError />;
+  if (isLoading) return <StatePanel title="Loading event" loading />;
+  if (errorMessage || !event) {
+    return (
+      <StatePanel
+        title="Couldn't load event"
+        description={errorMessage ?? 'Event not found'}
+        actionLabel="Try again"
+        onAction={onRefresh}
+        isError
+      />
+    );
+  }
 
   const dateInfo = formatDateRange(event.startsAt, event.endsAt);
 
@@ -50,8 +65,6 @@ export default function EventDetailScreen({
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <AppBackdrop />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-        {/* Full-bleed hero */}
         <View style={styles.heroContainer}>
           {event.imageUrl ? (
             <Image source={{ uri: event.imageUrl }} style={styles.heroImage} contentFit="cover" />
@@ -60,12 +73,10 @@ export default function EventDetailScreen({
           )}
           <View style={styles.heroOverlay} />
 
-          {/* Back button overlay */}
           <View style={styles.backBtnOverlay}>
-            <AppBackButton onPress={() => navigation.goBack()} style={{ marginBottom: 0 }} />
+            <AppBackButton onPress={onBack} style={{ marginBottom: 0 }} />
           </View>
 
-          {/* Category badge */}
           {!!event.category && (
             <View style={[styles.heroBadge, { backgroundColor: theme.primary }]}>
               <Text style={[styles.heroBadgeText, { color: theme.white }]}>{event.category}</Text>
@@ -73,7 +84,6 @@ export default function EventDetailScreen({
           )}
         </View>
 
-        {/* Content card overlapping hero */}
         <View style={[styles.contentCard, { backgroundColor: theme.surface }]}>
           <Text style={[styles.kicker, { color: theme.accent }]}>EVENT DETAIL / SOCIAL MOTION</Text>
           <Text style={[styles.title, { color: theme.textPrimary }]}>{event.title}</Text>
@@ -90,7 +100,6 @@ export default function EventDetailScreen({
             </Pressable>
           </View>
 
-          {/* Metadata rows */}
           <View style={styles.metaList}>
             <MetaRow icon="calendar" label={dateInfo.date} sub={dateInfo.time} />
             <MetaRow icon="map-pin" label={event.location} />
@@ -104,19 +113,49 @@ export default function EventDetailScreen({
             </View>
           ) : null}
 
-          {/* CTA pinned inside card */}
           <View style={styles.ctaArea}>
             <Button
-              label={event.joined ? "You're going" : joining ? 'Joining…' : 'Join event'}
-              onPress={handleJoin}
+              label={event.joined ? "You're going" : isJoining ? 'Joining…' : 'Join event'}
+              onPress={onJoin}
               disabled={event.joined}
-              loading={joining}
+              loading={isJoining}
               variant="energy"
             />
           </View>
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+export default function EventDetailScreen({
+  route,
+  navigation,
+}: RootStackScreenProps<'EventDetail'>) {
+  const eventId = route.params?.eventId;
+  const { error, event, isJoining: joining, isLoading: loading, joinEvent, refetch } =
+    useEventDetail(eventId);
+  const errorMessage = error ? normalizeApiError(error).message : null;
+
+  const handleJoin = async () => {
+    if (!event || joining || event.joined) return;
+    try {
+      await joinEvent();
+    } catch {}
+  };
+
+  return (
+    <EventDetailView
+      errorMessage={errorMessage}
+      event={event}
+      isJoining={joining}
+      isLoading={loading}
+      onBack={() => navigation.goBack()}
+      onJoin={handleJoin}
+      onRefresh={() => {
+        void refetch();
+      }}
+    />
   );
 }
 

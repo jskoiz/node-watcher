@@ -2,16 +2,11 @@ import type { Meta, StoryObj } from '@storybook/react-native';
 import React from 'react';
 import { View } from 'react-native';
 import { Button, Card, Chip, Input, StatePanel } from '../design/primitives';
+import { withStorySurface } from './support';
 
 const meta = {
   title: 'Design/Primitives',
-  decorators: [
-    (Story) => (
-      <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16, backgroundColor: '#FDFBF8' }}>
-        <Story />
-      </View>
-    ),
-  ],
+  decorators: [withStorySurface({ centered: false })],
 } satisfies Meta<any>;
 
 export default meta;

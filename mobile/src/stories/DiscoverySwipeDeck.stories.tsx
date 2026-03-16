@@ -5,71 +5,37 @@ import SwipeDeck from '../components/SwipeDeck';
 import { HomeHero } from '../features/discovery/components/HomeHero';
 import { HomeQuickFilters } from '../features/discovery/components/HomeQuickFilters';
 import type { QuickFilterKey } from '../features/discovery/components/discoveryFilters';
+import { makeDiscoveryUser, withStoryScreenFrame } from './support';
 
 const mockProfiles = [
-  {
-    id: 'story-1',
+  makeDiscoveryUser({
     firstName: 'Nia',
-    age: 27,
-    distanceKm: 5,
-    recommendationScore: 88,
+    id: 'story-1',
     profile: {
-      city: 'Manoa',
       bio: 'Trail girl with a soft spot for matcha runs and last-minute waterfall detours.',
+      city: 'Manoa',
       intentDating: true,
       intentWorkout: true,
     },
-    photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80',
-    fitnessProfile: {
-      favoriteActivities: 'Hiking, Running, Yoga',
-      primaryGoal: 'adventure',
-      weeklyFrequencyBand: '3-4',
-      intensityLevel: 'INTERMEDIATE',
-      prefersMorning: true,
-    },
-  },
-  {
-    id: 'story-2',
-    firstName: 'Mason',
+  }),
+  makeDiscoveryUser({
     age: 30,
     distanceKm: 8,
+    firstName: 'Mason',
+    id: 'story-2',
     profile: {
-      city: 'Kakaako',
       bio: 'Beach workouts, compact weekday blocks, and low-pressure coffee after.',
+      city: 'Kakaako',
       intentDating: false,
       intentWorkout: true,
     },
-    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80',
-    fitnessProfile: {
-      favoriteActivities: 'Running, Boxing',
-      primaryGoal: 'strength',
-      weeklyFrequencyBand: '4-5',
-      intensityLevel: 'ADVANCED',
-      prefersEvening: true,
-    },
-  },
+  }),
 ];
 
 const meta = {
   title: 'Discovery/SwipeDeck',
   component: SwipeDeck,
-  decorators: [
-    (Story) => (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: '#FDFBF8',
-          padding: 24,
-        }}
-      >
-        <View style={{ width: 375, height: 640 }}>
-          <Story />
-        </View>
-      </View>
-    ),
-  ],
+  decorators: [withStoryScreenFrame({ height: 720, width: 390 })],
 } satisfies Meta<typeof SwipeDeck>;
 
 export default meta;
@@ -99,8 +65,7 @@ export const DiscoveryScreenPreview: Story = {
     return (
       <View
         style={{
-          width: 375,
-          height: 780,
+          flex: 1,
           backgroundColor: '#FDFBF8',
           paddingTop: 16,
         }}

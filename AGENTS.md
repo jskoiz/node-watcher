@@ -16,6 +16,7 @@ npm run check
 npm run check:backend
 npm run check:mobile
 npm run smoke
+npm run storybook
 npm run test:backend
 npm run test:mobile
 npm run dev:backend
@@ -30,6 +31,7 @@ npm run release:ios:check
 - `npm run check` passes for any cross-stack change.
 - Backend-only work passes `npm run check:backend`.
 - Mobile-only work passes `npm run check:mobile`.
+- Visual-only mobile changes add or update the relevant Storybook story, or clearly state why Storybook is not the right surface.
 - Docs are updated when behavior, commands, or workflows change.
 
 ## Working Rules
@@ -38,6 +40,9 @@ npm run release:ios:check
 - Prefer [`scripts/codex-worktree.sh`](/Users/jerry/Desktop/brdg/scripts/codex-worktree.sh) for new Codex worktrees.
 - Treat [`CODEBASE_REVIEW.md`](/Users/jerry/Desktop/brdg/CODEBASE_REVIEW.md) and [`APP_ROADMAP.md`](/Users/jerry/Desktop/brdg/APP_ROADMAP.md) as historical snapshots, not current source of truth.
 - For review requests, follow [`code_review.md`](/Users/jerry/Desktop/brdg/code_review.md).
+- For mobile visual iteration, follow `docs/STORYBOOK_WORKFLOW.md`.
+- Prefer Storybook over ad hoc preview routes or full app boot when backend, auth, and navigation state are not required.
+- Use the seeded `ui-preview` app runtime only for integrated flow validation, not as the default visual workshop.
 
 ## Release Provenance
 
@@ -59,6 +64,7 @@ npm run release:ios:check
 ## References
 
 - Dev loop: [`docs/DEV_LOOP.md`](/Users/jerry/Desktop/brdg/docs/DEV_LOOP.md)
+- Storybook workflow: `docs/STORYBOOK_WORKFLOW.md`
 - Architecture map: [`docs/ARCHITECTURE.md`](/Users/jerry/Desktop/brdg/docs/ARCHITECTURE.md)
 - Functional expectations: [`docs/FUNCTIONAL_MATRIX.md`](/Users/jerry/Desktop/brdg/docs/FUNCTIONAL_MATRIX.md)
 - iOS release: [`docs/APP_STORE_RELEASE.md`](/Users/jerry/Desktop/brdg/docs/APP_STORE_RELEASE.md)

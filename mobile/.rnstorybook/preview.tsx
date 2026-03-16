@@ -1,13 +1,13 @@
 import type { Preview } from '@storybook/react-native';
 import React from 'react';
-import { AppProviders } from '../src/core/providers/AppProviders';
+import { StorybookProviders } from '../src/stories/support';
 
 const preview: Preview = {
   decorators: [
     (Story) => (
-      <AppProviders>
+      <StorybookProviders>
         <Story />
-      </AppProviders>
+      </StorybookProviders>
     ),
   ],
   parameters: {

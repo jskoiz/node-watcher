@@ -32,12 +32,15 @@ npm run check
 npm run storybook:start
 ```
 
+For the canonical visual-iteration flow, see [`../docs/STORYBOOK_WORKFLOW.md`](../docs/STORYBOOK_WORKFLOW.md).
+
 ## Notes
 
 - Tests use `jest-expo` and `@testing-library/react-native`
 - Shared native test seams are mocked in `jest.setup.js` for Expo image picker, haptics, and bottom sheets
 - Network/store boundaries are mocked where needed so the suite stays deterministic
 - Storybook is available for component and interaction review; use the repo-root `npm run storybook` convenience command when working from the monorepo root
+- Visual-only mobile changes should add or update a Storybook story before spending time in the seeded app runtime
 
 ## Recommended next targets
 

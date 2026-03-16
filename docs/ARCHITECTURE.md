@@ -8,6 +8,8 @@
 
 ## Mobile Architecture (`mobile/src`)
 
+- `.rnstorybook/`
+  - `main.ts` / `preview.tsx` — Storybook registration and decorators for isolated mobile UI review
 - `core/`
   - `providers/` — app shell providers for Tamagui, React Query, Safe Area, Bottom Sheet, and Sentry
   - `navigation/types.ts` — typed root stack and tab params
@@ -32,6 +34,8 @@
   - `interaction/` — haptic/feedback helpers for high-value mobile actions
 - `store/`
   - `authStore.ts` — auth/session bootstrap only
+- `stories/`
+  - Storybook stories for primitives, shared modules, and screen-shell visual review
 - `screens/`, `navigation/`, `components/` — presentation and routing
 
 ### Mobile conventions
@@ -42,6 +46,9 @@
 4. Do not hardcode storage key strings; use `STORAGE_KEYS`.
 5. Keep environment access centralized via `config/env.ts`.
 6. Normalize API errors before surfacing them in UI state.
+7. Use Storybook as the default workshop for visual-only mobile work; use the seeded app runtime for integrated flow validation.
+8. Avoid ad hoc preview routes for design iteration; expand `mobile/src/stories` instead.
+9. Treat `docs/STORYBOOK_WORKFLOW.md` as the canonical Storybook process and coverage guide.
 
 ## Backend Architecture (`backend/src`)
 

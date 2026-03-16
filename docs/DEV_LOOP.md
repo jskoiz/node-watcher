@@ -58,6 +58,12 @@ npm run storybook
 
 This is the supported root-level component preview command for BRDG UI primitives, bottom-sheet interactions, and composed cards/modules.
 
+Follow [`docs/STORYBOOK_WORKFLOW.md`](./STORYBOOK_WORKFLOW.md) for the canonical Storybook-first loop.
+
+- Start in Storybook for visual-only mobile changes.
+- Add or update the relevant story in the same task.
+- Move to the seeded app runtime only when real navigation, auth, server data, persistence, or another app contract needs validation.
+
 ## Backend reset path for QA
 
 When preview or QA flows need known live data, run this against a running backend:
@@ -99,6 +105,8 @@ Recommended local QA loop for the current Phase 3 surface:
    - create activity/timing substeps
    - chat quick-action suggestions
 7. Pull to refresh or revisit downstream screens and confirm the updated primary photo and profile fields are reflected outside the Profile tab.
+
+Use this seeded app loop after Storybook review, not instead of Storybook review, when a task is primarily visual.
 
 If you are planning post-Phase-3 work, the current recommended next track is event conversion and re-engagement:
 - improve event invite/share flows

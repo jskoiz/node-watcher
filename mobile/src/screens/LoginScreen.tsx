@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Controller, useForm } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  type Control,
+  type FieldErrors,
+} from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/authStore';
 import { normalizeApiError } from '../api/errors';
@@ -12,35 +17,26 @@ import { radii, spacing, typography } from '../theme/tokens';
 import { loginSchema, type LoginFormValues } from '../features/auth/schema';
 import type { RootStackScreenProps } from '../core/navigation/types';
 
-export default function LoginScreen({
-  navigation,
-}: RootStackScreenProps<'Login'>) {
-  const theme = useTheme();
-  const [submitError, setSubmitError] = useState('');
-  const login = useAuthStore((state) => state.login);
-  const {
-    control,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginFormValues>({
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-    resolver: zodResolver(loginSchema),
-  });
+export type LoginScreenViewProps = {
+  control: Control<LoginFormValues>;
+  errors: FieldErrors<LoginFormValues>;
+  isSubmitting: boolean;
+  onClearSubmitError: () => void;
+  onNavigateSignup: () => void;
+  onSubmit: () => void;
+  submitError: string;
+};
 
-  const handleLogin = handleSubmit(async (values) => {
-    setSubmitError('');
-    try {
-      await login({
-        email: values.email.trim().toLowerCase(),
-        password: values.password,
-      });
-    } catch (error) {
-      setSubmitError(normalizeApiError(error).message);
-    }
-  });
+export function LoginScreenView({
+  control,
+  errors,
+  isSubmitting,
+  onClearSubmitError,
+  onNavigateSignup,
+  onSubmit,
+  submitError,
+}: LoginScreenViewProps) {
+  const theme = useTheme();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -88,7 +84,7 @@ export default function LoginScreen({
                   value={value}
                   onBlur={onBlur}
                   onChangeText={(nextValue) => {
-                    setSubmitError('');
+                    onClearSubmitError();
                     onChange(nextValue);
                   }}
                   autoCapitalize="none"
@@ -112,7 +108,7 @@ export default function LoginScreen({
                   value={value}
                   onBlur={onBlur}
                   onChangeText={(nextValue) => {
-                    setSubmitError('');
+                    onClearSubmitError();
                     onChange(nextValue);
                   }}
                   secureTextEntry
@@ -123,7 +119,7 @@ export default function LoginScreen({
                   error={errors.password?.message}
                   returnKeyType="done"
                   submitBehavior="submit"
-                  onSubmitEditing={handleLogin}
+                  onSubmitEditing={onSubmit}
                 />
               )}
             />
@@ -136,7 +132,7 @@ export default function LoginScreen({
 
             <Button
               label="Sign in"
-              onPress={handleLogin}
+              onPress={onSubmit}
               loading={isSubmitting}
               style={styles.ctaButton}
             />
@@ -144,13 +140,55 @@ export default function LoginScreen({
 
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: theme.textMuted }]}>Don't have an account? </Text>
-            <Pressable onPress={() => navigation.navigate('Signup')} disabled={isSubmitting}>
+            <Pressable onPress={onNavigateSignup} disabled={isSubmitting}>
               <Text style={[styles.footerLink, { color: theme.accent }]}>Join BRDG</Text>
             </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+export default function LoginScreen({
+  navigation,
+}: RootStackScreenProps<'Login'>) {
+  const [submitError, setSubmitError] = useState('');
+  const login = useAuthStore((state) => state.login);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    resolver: zodResolver(loginSchema),
+  });
+
+  const handleLogin = handleSubmit(async (values) => {
+    setSubmitError('');
+    try {
+      await login({
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+      });
+    } catch (error) {
+      setSubmitError(normalizeApiError(error).message);
+    }
+  });
+
+  return (
+    <LoginScreenView
+      control={control}
+      errors={errors}
+      isSubmitting={isSubmitting}
+      onClearSubmitError={() => setSubmitError('')}
+      onNavigateSignup={() => navigation.navigate('Signup')}
+      onSubmit={handleLogin}
+      submitError={submitError}
+    />
   );
 }
 

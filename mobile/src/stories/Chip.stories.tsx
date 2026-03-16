@@ -1,18 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
-import React from 'react';
-import { View } from 'react-native';
 import { Chip } from '../design/primitives';
+import { withStorySurface } from './support';
 
 const meta = {
   title: 'Design/Chip',
   component: Chip,
-  decorators: [
-    (Story) => (
-      <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#FDFBF8' }}>
-        <Story />
-      </View>
-    ),
-  ],
+  decorators: [withStorySurface()],
 } satisfies Meta<typeof Chip>;
 
 export default meta;
