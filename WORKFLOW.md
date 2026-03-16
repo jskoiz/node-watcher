@@ -96,6 +96,19 @@ Maintain one persistent issue comment headed `## Codex Workpad`.
 - Do not create separate summary comments when the workpad can be updated instead.
 - Record `Symphony runtime revision: {{ workflow.runtime_revision }}` in the `Notes` section so the run can be traced back to the exact orchestration build.
 
+## Linked issue synchronization
+
+Some issues exist only to address unresolved PR review comments for an earlier implementation issue.
+
+- If the current issue description names an `Original implementation issue`, treat that issue as the canonical lifecycle tracker.
+- Reuse the current issue for the actual review-follow-up work, but also keep the original implementation issue informed through Linear updates.
+- When review follow-up work reaches a clear merge-ready state:
+  - update the original implementation issue workpad with a short summary of what review feedback was addressed
+  - include the PR URL and validation actually rerun
+  - move the original implementation issue to `Merging` if the PR is ready to land
+- Do not guess the original issue identifier. Only sync when it is explicitly provided in the issue description.
+- The review-follow-up issue itself can be moved to `Done` after the original implementation issue has been updated and routed correctly.
+
 ## State routing
 
 - `Backlog`: do not modify the issue; stop and wait.
@@ -118,6 +131,7 @@ Maintain one persistent issue comment headed `## Codex Workpad`.
 8. Commit with the `commit` skill and publish with the `push` skill when the branch is ready.
 9. Attach the PR to the Linear issue and move the ticket to `Human Review` only after validation is green and outstanding PR feedback is addressed.
 10. In `Merging`, use the `land` skill flow and only mark the issue `Done` after the PR is merged.
+11. For review-follow-up issues linked to an original implementation issue, update the original issue and move it to `Merging` when the PR is truly merge-ready.
 
 ## Related skills
 

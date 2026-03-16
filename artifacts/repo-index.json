@@ -25,6 +25,7 @@
     "scaffold:mobile-feature",
     "smoke",
     "storybook",
+    "symphony",
     "test:backend",
     "test:mobile",
     "test:root"
@@ -185,6 +186,7 @@
           "backend/src/common/auth-request.interface.ts",
           "backend/src/common/enums.ts",
           "backend/src/common/filters/all-exceptions.filter.ts",
+          "backend/src/common/middleware/request-logger.middleware.ts",
           "backend/src/config/app.config.ts"
         ]
       },
@@ -328,9 +330,11 @@
       "mobile/src/screens/__tests__/ExploreScreen.test.tsx",
       "mobile/src/screens/__tests__/HomeScreen.test.tsx",
       "mobile/src/screens/__tests__/LoginScreen.test.tsx",
+      "mobile/src/screens/__tests__/MatchesScreen.test.tsx",
       "mobile/src/screens/__tests__/MyEventsScreen.test.tsx",
       "mobile/src/screens/__tests__/NotificationsScreen.test.tsx",
       "mobile/src/screens/__tests__/OnboardingScreen.test.tsx",
+      "mobile/src/screens/__tests__/ProfileDetailScreen.test.tsx",
       "mobile/src/screens/__tests__/ProfileScreen.test.tsx",
       "mobile/src/screens/__tests__/SignupScreen.test.tsx"
     ],
@@ -431,6 +435,7 @@
           "mobile/src/components/form/StepperField.tsx",
           "mobile/src/components/form/__tests__/DateField.test.tsx",
           "mobile/src/components/form/__tests__/LocationField.test.tsx",
+          "mobile/src/components/form/__tests__/SheetSelectField.test.tsx",
           "mobile/src/components/form/__tests__/StepperField.test.tsx",
           "mobile/src/components/form/fieldStyles.ts",
           "mobile/src/components/ui/AppBackButton.tsx",
@@ -439,6 +444,7 @@
           "mobile/src/components/ui/AppNotificationButton.tsx",
           "mobile/src/components/ui/AppSelect.tsx",
           "mobile/src/components/ui/__tests__/AppBackButton.test.tsx",
+          "mobile/src/components/ui/__tests__/AppSelect.test.tsx",
           "mobile/src/core/observability/sentry.ts",
           "mobile/src/design/__tests__/primitives.test.tsx",
           "mobile/src/design/primitives/index.tsx",
@@ -546,9 +552,11 @@
           "mobile/src/screens/__tests__/ExploreScreen.test.tsx",
           "mobile/src/screens/__tests__/HomeScreen.test.tsx",
           "mobile/src/screens/__tests__/LoginScreen.test.tsx",
+          "mobile/src/screens/__tests__/MatchesScreen.test.tsx",
           "mobile/src/screens/__tests__/MyEventsScreen.test.tsx",
           "mobile/src/screens/__tests__/NotificationsScreen.test.tsx",
           "mobile/src/screens/__tests__/OnboardingScreen.test.tsx",
+          "mobile/src/screens/__tests__/ProfileDetailScreen.test.tsx",
           "mobile/src/screens/__tests__/ProfileScreen.test.tsx",
           "mobile/src/screens/__tests__/SignupScreen.test.tsx"
         ]

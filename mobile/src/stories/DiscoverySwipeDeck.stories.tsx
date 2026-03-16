@@ -51,6 +51,29 @@ export const SmallPhonePreview: Story = {
   },
 };
 
+export const ZeroDistancePreview: Story = {
+  args: {
+    cardHeight: 620,
+    data: [
+      makeDiscoveryUser({
+        age: 27,
+        distanceKm: 0,
+        firstName: 'Mika',
+        id: 'story-0km',
+        profile: {
+          bio: 'Coffee walks, gym check-ins, and meeting up without the extra commute.',
+          city: 'Kakaako',
+          intentDating: true,
+          intentWorkout: false,
+        },
+      }),
+    ],
+    onPress: () => undefined,
+    onSwipeLeft: () => undefined,
+    onSwipeRight: () => undefined,
+  },
+};
+
 export const DiscoveryScreenPreview: Story = {
   args: {
     cardHeight: 620,

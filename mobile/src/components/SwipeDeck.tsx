@@ -79,6 +79,11 @@ const getAlignmentLabel = (score?: number) => {
   return `${percentage}% aligned`;
 };
 
+const formatDistanceLabel = (distanceKm?: number) => {
+  if (typeof distanceKm !== 'number' || Number.isNaN(distanceKm)) return '';
+  return ` · ${Math.round(distanceKm)} km away`;
+};
+
 const getTempoLabel = (user: SwipeDeckUser) => {
   const frequency = user?.fitnessProfile?.weeklyFrequencyBand;
   const intensity = user?.fitnessProfile?.intensityLevel;
@@ -177,7 +182,7 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
           </Text>
           <Text style={styles.metaLine}>
             {user.profile?.city || 'Nearby'}
-            {user.distanceKm ? ` · ${Math.round(user.distanceKm)} km away` : ''}
+            {formatDistanceLabel(user.distanceKm)}
           </Text>
           <Text style={[styles.bio, compact && styles.bioCompact]} numberOfLines={ultraCompact ? 1 : 2}>
             {user.profile?.bio || 'Aligned on rhythm, intent, and the kind of plans that actually happen.'}
