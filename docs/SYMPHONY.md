@@ -74,6 +74,18 @@ That setup allows spawned issue sessions to inherit your shell environment, use 
 - The workpad should include `Plan`, `Acceptance Criteria`, `Validation`, and `Notes`.
 - `Notes` should include the `Symphony runtime revision` so you can tell which orchestration build produced that run.
 
+## PR Review Follow-up Issues
+
+If you create a separate issue to address review comments on an already-open PR, include the original implementation issue identifier in the description.
+
+The intended behavior is:
+
+1. the follow-up issue handles the review-comment work
+2. the original implementation issue remains the canonical lifecycle issue
+3. when the PR is ready to merge, the agent updates the original issue and moves that original issue toward `Merging`
+
+This keeps review-cleanup work separate without losing the original implementation issue as the main tracker.
+
 ## Current Scope
 
 This build covers the core Symphony runner/orchestrator contract and injects a client-side `linear_graphql` tool into Codex sessions for raw Linear GraphQL operations.
