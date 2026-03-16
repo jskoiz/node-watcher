@@ -1,10 +1,2 @@
-import type { EventCategory } from '@prisma/client';
-
-export interface CreateEventInput {
-  title: string;
-  description?: string;
-  location: string;
-  category?: EventCategory;
-  startsAt: string;
-  endsAt?: string;
-}
+// Re-export from DTO for backward compatibility
+export { CreateEventDto as CreateEventInput } from './create-event.dto';

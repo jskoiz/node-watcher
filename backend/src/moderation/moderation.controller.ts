@@ -1,8 +1,8 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import type { ReportCategory } from '@prisma/client';
 import { ModerationService } from './moderation.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
+import { ReportUserDto, BlockUserDto } from './moderation.dto';
 
 @Controller('moderation')
 @UseGuards(AuthGuard('jwt'))
@@ -12,13 +12,7 @@ export class ModerationController {
   @Post('report')
   report(
     @Req() req: AuthenticatedRequest,
-    @Body()
-    body: {
-      reportedUserId: string;
-      category: ReportCategory;
-      description?: string;
-      matchId?: string;
-    },
+    @Body() body: ReportUserDto,
   ) {
     return this.moderationService.reportUser(req.user.id, body);
   }
@@ -26,7 +20,7 @@ export class ModerationController {
   @Post('block')
   block(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { targetUserId: string },
+    @Body() body: BlockUserDto,
   ) {
     return this.moderationService.blockUser(req.user.id, body.targetUserId);
   }
