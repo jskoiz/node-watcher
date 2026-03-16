@@ -5,7 +5,7 @@ import ExploreScreen from '../screens/ExploreScreen';
 import CreateScreen from '../screens/CreateScreen';
 import MatchesScreen from '../screens/MatchesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import { Text, View, Platform } from 'react-native';
+import { StyleSheet, Text, View, Platform } from 'react-native';
 import { useTheme } from '../theme/useTheme';
 import AppIcon from '../components/ui/AppIcon';
 import type { MainTabParamList } from '../core/navigation/types';
@@ -40,13 +40,13 @@ function TabIcon({
         borderRadius: 15,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: focused ? 'rgba(138,120,255,0.18)' : 'transparent',
+        backgroundColor: focused ? 'rgba(26,26,26,0.08)' : 'transparent',
       }}
     >
       <AppIcon
         name={icon}
-        size={17}
-        color={focused ? theme.primary : theme.textMuted}
+        size={19}
+        color={focused ? '#1A1A1A' : theme.textMuted}
       />
       {routeName === 'Inbox' && unreadCount > 0 ? (
         <View
@@ -67,7 +67,7 @@ function TabIcon({
             style={{
               fontSize: 9,
               fontWeight: '800',
-              color: theme.textInverse,
+              color: '#FFFFFF',
             }}
           >
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -83,7 +83,7 @@ function TabLabel({ color, children, focused }: { color: string; children: strin
     <Text
       style={{
         fontSize: 11,
-        fontWeight: focused ? '700' : '600',
+        fontWeight: focused ? '800' : '600',
         letterSpacing: 0.2,
         marginTop: 1,
         color,
@@ -103,18 +103,19 @@ export default function MainTabNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: 'rgba(25,32,51,0.92)',
-          borderTopWidth: 0,
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: 'rgba(0,0,0,0.06)',
           height: Platform.OS === 'ios' ? 90 : 68,
           paddingTop: 6,
           paddingBottom: Platform.OS === 'ios' ? 28 : 10,
-          shadowColor: '#000000',
-          shadowOpacity: 0.10,
-          shadowRadius: 10,
+          shadowColor: '#000',
+          shadowOpacity: 0.04,
+          shadowRadius: 8,
           shadowOffset: { width: 0, height: -2 },
-          elevation: 10,
+          elevation: 8,
         },
-        tabBarActiveTintColor: theme.primary,
+        tabBarActiveTintColor: '#1A1A1A',
         tabBarInactiveTintColor: theme.textMuted,
         tabBarIcon: ({ focused }) => (
           <TabIcon routeName={route.name} focused={focused} unreadCount={unreadCount} />

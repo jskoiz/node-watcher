@@ -3,7 +3,8 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Swiper from 'react-native-deck-swiper';
-import { radii, shadows, spacing, typography } from '../theme/tokens';
+import { radii, spacing, typography } from '../theme/tokens';
+import { fontFamily } from '../lib/fonts';
 import AppIcon from './ui/AppIcon';
 import { getAvatarInitial, getPrimaryPhotoUri } from '../lib/profilePhotos';
 
@@ -11,15 +12,20 @@ const DEFAULT_CARD_HEIGHT = 520;
 const MIN_CARD_HEIGHT = 360;
 const MAX_CARD_HEIGHT = 680;
 
-const DARK = {
-  background: '#0D1117',
-  surface: '#161B22',
-  border: 'rgba(255,255,255,0.08)',
-  accent: '#34D399',
-  danger: '#F87171',
-  textPrimary: '#F0F6FF',
-  textSecondary: 'rgba(240,246,255,0.76)',
-  textMuted: 'rgba(240,246,255,0.54)',
+// Editorial warm palette
+const EDITORIAL = {
+  background: '#FDFBF8',
+  surface: '#FFFFFF',
+  border: '#E8E2DA',
+  textPrimary: '#2C2420',
+  textSecondary: '#5C544C',
+  textMuted: '#8C8279',
+  textOnImage: '#3D352E',
+  success: '#8BAA7A',
+  danger: '#C97070',
+  badgeBg: 'rgba(255,255,255,0.78)',
+  matchBadgeBg: '#F0E8D8',
+  matchBadgeText: '#6B5A40',
 };
 
 interface SwipeDeckCardProps {
@@ -77,7 +83,7 @@ const getTempoLabel = (user: any) => {
   const frequencyLabel = frequency ? `${frequency}x/week` : null;
   const intensityLabel = intensity ? formatLabel(String(intensity).toLowerCase()) : null;
 
-  if (frequencyLabel && intensityLabel) return `${frequencyLabel} • ${intensityLabel}`;
+  if (frequencyLabel && intensityLabel) return `${frequencyLabel} · ${intensityLabel}`;
   if (frequencyLabel) return frequencyLabel;
   if (intensityLabel) return intensityLabel;
   return 'Intent-aware match';
@@ -104,7 +110,7 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
     <TouchableOpacity
       activeOpacity={0.96}
       onPress={onPress}
-      style={[styles.card, shadows.card, { height: cardHeight }]}
+      style={[styles.card, { height: cardHeight }]}
     >
       <View style={styles.imageContainer}>
         {primaryPhoto ? (
@@ -117,7 +123,7 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
           />
         ) : (
           <LinearGradient
-            colors={['#1E293B', '#111827']}
+            colors={['#F0EBE4', '#E8E2DA']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.placeholderImage}
@@ -126,9 +132,10 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
           </LinearGradient>
         )}
 
+        {/* White gradient fade — editorial style */}
         <LinearGradient
-          colors={['rgba(9,12,20,0.02)', 'rgba(9,12,20,0.14)', 'rgba(9,12,20,0.76)']}
-          locations={[0, 0.48, 1]}
+          colors={['transparent', 'rgba(255,255,255,0.0)', 'rgba(255,255,255,0.96)']}
+          locations={[0, 0.42, 0.72]}
           style={styles.imageGradient}
           pointerEvents="none"
         />
@@ -141,7 +148,7 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
 
             {alignmentLabel ? (
               <View style={[styles.matchBadge, compact && styles.matchBadgeCompact]}>
-                <AppIcon name="star" size={12} color={DARK.background} />
+                <AppIcon name="star" size={12} color={EDITORIAL.matchBadgeText} />
                 <Text style={styles.matchBadgeText}>{alignmentLabel}</Text>
               </View>
             ) : (
@@ -288,14 +295,17 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     borderRadius: 28,
-    backgroundColor: DARK.surface,
+    backgroundColor: EDITORIAL.surface,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: DARK.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.14,
+    shadowRadius: 24,
+    elevation: 3,
   },
   imageContainer: {
     flex: 1,
-    backgroundColor: DARK.surface,
+    backgroundColor: EDITORIAL.surface,
   },
   image: {
     width: '100%',
@@ -309,8 +319,9 @@ const styles = StyleSheet.create({
   },
   initials: {
     fontSize: 84,
-    color: DARK.textPrimary,
-    fontWeight: '800',
+    color: EDITORIAL.textMuted,
+    fontWeight: '300',
+    fontFamily: fontFamily.serifBold,
   },
   imageGradient: {
     position: 'absolute',
@@ -338,59 +349,53 @@ const styles = StyleSheet.create({
   },
   intentBadge: {
     maxWidth: '58%',
-    backgroundColor: 'rgba(13,17,23,0.58)',
+    backgroundColor: EDITORIAL.badgeBg,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
   },
   intentBadgeCompact: {
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 6,
   },
   intentBadgeText: {
-    color: DARK.textPrimary,
+    color: EDITORIAL.textPrimary,
     fontSize: typography.caption,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   presenceBadge: {
-    backgroundColor: 'rgba(13,17,23,0.44)',
+    backgroundColor: EDITORIAL.badgeBg,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
   },
   presenceBadgeCompact: {
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 6,
   },
   presenceBadgeText: {
-    color: DARK.textSecondary,
+    color: EDITORIAL.textSecondary,
     fontSize: typography.caption,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   matchBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F2E58E',
+    backgroundColor: EDITORIAL.matchBadgeBg,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
   },
   matchBadgeCompact: {
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 6,
   },
   matchBadgeText: {
-    color: DARK.background,
+    color: EDITORIAL.matchBadgeText,
     fontSize: typography.caption,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   bottomShell: {
@@ -413,32 +418,33 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 10,
-    color: DARK.textMuted,
-    fontWeight: '800',
-    letterSpacing: 2.8,
+    color: '#8C8279',
+    fontWeight: '700',
+    letterSpacing: 2.0,
     marginBottom: spacing.sm,
   },
   name: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: DARK.textPrimary,
-    letterSpacing: -1.1,
+    fontSize: 30,
+    fontWeight: '700',
+    fontFamily: fontFamily.serifBold,
+    color: EDITORIAL.textPrimary,
+    letterSpacing: -0.5,
     lineHeight: 34,
   },
   nameCompact: {
-    fontSize: 28,
+    fontSize: 26,
     lineHeight: 30,
   },
   metaLine: {
     fontSize: typography.bodySmall,
-    color: DARK.textSecondary,
-    fontWeight: '600',
+    color: EDITORIAL.textSecondary,
+    fontWeight: '500',
     marginTop: spacing.xs,
   },
   bio: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.88)',
-    lineHeight: 19,
+    color: EDITORIAL.textOnImage,
+    lineHeight: 21,
     marginTop: spacing.sm,
     maxWidth: '92%',
   },
@@ -448,8 +454,8 @@ const styles = StyleSheet.create({
   },
   tempoLine: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.72)',
-    fontWeight: '700',
+    color: EDITORIAL.textMuted,
+    fontWeight: '600',
     letterSpacing: 0.3,
     marginTop: spacing.sm,
   },
@@ -467,16 +473,14 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(44,36,32,0.08)',
     paddingHorizontal: spacing.md,
     paddingVertical: 5,
   },
   chipText: {
-    color: DARK.textPrimary,
+    color: EDITORIAL.textOnImage,
     fontSize: typography.caption,
-    fontWeight: '700',
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
   emptyContainer: {
@@ -487,40 +491,43 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   emptyTitle: {
-    color: DARK.textPrimary,
+    color: EDITORIAL.textPrimary,
     fontSize: typography.h2,
-    fontWeight: '800',
+    fontWeight: '700',
+    fontFamily: fontFamily.serifBold,
     textAlign: 'center',
     letterSpacing: -0.3,
   },
   emptyText: {
-    color: DARK.textSecondary,
+    color: EDITORIAL.textSecondary,
     textAlign: 'center',
     marginTop: spacing.sm,
     lineHeight: 22,
     fontSize: typography.body,
   },
   overlayReject: {
-    borderColor: DARK.danger,
-    color: DARK.danger,
+    borderColor: EDITORIAL.danger,
+    color: EDITORIAL.danger,
     borderWidth: 2,
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: '700',
+    fontFamily: fontFamily.serifBold,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radii.md,
-    backgroundColor: 'rgba(13,17,23,0.70)',
+    backgroundColor: 'rgba(255,255,255,0.90)',
   },
   overlayLike: {
-    borderColor: DARK.accent,
-    color: DARK.accent,
+    borderColor: EDITORIAL.success,
+    color: EDITORIAL.success,
     borderWidth: 2,
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: '700',
+    fontFamily: fontFamily.serifBold,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radii.md,
-    backgroundColor: 'rgba(13,17,23,0.70)',
+    backgroundColor: 'rgba(255,255,255,0.90)',
   },
   overlayWrapperLeft: {
     flexDirection: 'column',

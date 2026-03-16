@@ -1,43 +1,93 @@
 export const darkTheme = {
   // Backgrounds
-  background: '#0D1117',
-  backgroundSoft: '#161B22',
+  background: '#FDFBF8',
+  backgroundSoft: '#F7F4F0',
 
   // Surfaces
-  surface: '#1C2330',
-  surfaceElevated: '#242D3D',
-  surfaceGlass: 'rgba(28,35,48,0.92)',
+  surface: '#FFFFFF',
+  surfaceElevated: '#FFFFFF',
+  surfaceGlass: 'rgba(255,255,255,0.82)',
 
   // Borders
-  border: '#2D3748',
-  borderSoft: '#374151',
-  borderFocus: '#7C6AF7',
+  border: '#E8E2DA',
+  borderSoft: '#F0EBE4',
+  borderFocus: '#C4A882',
 
   // Text
-  textPrimary: '#F0F6FF',
-  textSecondary: '#94A3B8',
-  textMuted: '#64748B',
-  textInverse: '#0D1117',
+  textPrimary: '#2C2420',
+  textSecondary: '#5C544C',
+  textMuted: '#8C8279',
+  textInverse: '#FDFBF8',
 
-  // Primary — electric violet
-  primary: '#7C6AF7',
-  primaryPressed: '#6B5CE7',
-  primarySubtle: 'rgba(124,106,247,0.15)',
+  // Primary — warm gold / champagne
+  primary: '#C4A882',
+  primaryPressed: '#B09672',
+  primarySubtle: 'rgba(196,168,130,0.12)',
 
-  // Accent — electric mint/green
-  accent: '#34D399',
-  accentSoft: '#6EE7B7',
-  accentSubtle: 'rgba(52,211,153,0.15)',
+  // Accent — muted lavender
+  accent: '#B8A9C4',
+  accentSoft: '#D4C9DB',
+  accentSubtle: 'rgba(184,169,196,0.12)',
 
-  // Energy — amber warmth
-  energy: '#F59E0B',
-  energySubtle: 'rgba(245,158,11,0.15)',
+  // Energy — soft blush / rose
+  energy: '#D4A59A',
+  energySubtle: 'rgba(212,165,154,0.10)',
 
   // Semantic
-  danger: '#F87171',
-  dangerSubtle: 'rgba(248,113,113,0.12)',
-  success: '#34D399',
-  warning: '#F59E0B',
+  danger: '#C97070',
+  dangerSubtle: 'rgba(201,112,112,0.08)',
+  success: '#8BAA7A',
+  warning: '#C4A882',
+
+  // Fixed
+  white: '#FFFFFF',
+  black: '#000000',
+
+  // Shadows
+  shadowColor: '#000000',
+  shadowColorDark: '#000000',
+};
+
+export const lightTheme: Theme = {
+  // Backgrounds
+  background: '#FDFBF8',
+  backgroundSoft: '#F7F4F0',
+
+  // Surfaces
+  surface: '#FFFFFF',
+  surfaceElevated: '#FFFFFF',
+  surfaceGlass: 'rgba(255,255,255,0.82)',
+
+  // Borders
+  border: '#E8E2DA',
+  borderSoft: '#F0EBE4',
+  borderFocus: '#C4A882',
+
+  // Text
+  textPrimary: '#2C2420',
+  textSecondary: '#5C544C',
+  textMuted: '#8C8279',
+  textInverse: '#FDFBF8',
+
+  // Primary — warm gold
+  primary: '#C4A882',
+  primaryPressed: '#B09672',
+  primarySubtle: 'rgba(196,168,130,0.12)',
+
+  // Accent — muted lavender
+  accent: '#B8A9C4',
+  accentSoft: '#D4C9DB',
+  accentSubtle: 'rgba(184,169,196,0.12)',
+
+  // Energy — soft blush
+  energy: '#D4A59A',
+  energySubtle: 'rgba(212,165,154,0.10)',
+
+  // Semantic
+  danger: '#C97070',
+  dangerSubtle: 'rgba(201,112,112,0.08)',
+  success: '#8BAA7A',
+  warning: '#C4A882',
 
   // Fixed
   white: '#FFFFFF',
@@ -54,12 +104,12 @@ export type Theme = typeof darkTheme;
 export const colors = darkTheme;
 
 export const gradients = {
-  appBg: ['#0D1117', '#161B22'],
-  appBgDark: ['#0D1117', '#1C2330'],
-  cardChrome: ['rgba(28,35,48,0.9)', 'rgba(36,45,61,0.6)'],
-  spotlight: ['rgba(124,106,247,0.18)', 'rgba(52,211,153,0.08)'],
-  photoOverlay: ['transparent', 'rgba(0,0,0,0.82)'],
-  cardOverlay: ['transparent', 'rgba(0,0,0,0.0)', 'rgba(0,0,0,0.80)'],
+  appBg: ['#FDFBF8', '#F7F4F0'],
+  appBgDark: ['#FDFBF8', '#F0EBE4'],
+  cardChrome: ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.80)'],
+  spotlight: ['rgba(196,168,130,0.06)', 'rgba(184,169,196,0.04)'],
+  photoOverlay: ['transparent', 'rgba(255,255,255,0.92)'],
+  cardOverlay: ['transparent', 'rgba(255,255,255,0.0)', 'rgba(255,255,255,0.94)'],
 };
 
 export const spacing = {
@@ -94,31 +144,31 @@ export const typography = {
 
 export const shadows = {
   soft: {
-    shadowColor: '#000000',
-    shadowOpacity: 0.20,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
     shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   medium: {
-    shadowColor: '#000000',
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   glow: {
-    shadowColor: '#7C6AF7',
-    shadowOpacity: 0.40,
+    shadowColor: '#C4A882',
+    shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    elevation: 4,
   },
   card: {
-    shadowColor: '#000000',
-    shadowOpacity: 0.50,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 3,
   },
 };

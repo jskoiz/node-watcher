@@ -43,7 +43,7 @@ export default function LoginScreen({
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#0D1117' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.content}
@@ -53,7 +53,7 @@ export default function LoginScreen({
           <AppBackdrop />
 
           <View style={styles.hero}>
-            <View style={[styles.wordmarkPill, { borderColor: theme.border, backgroundColor: theme.surfaceGlass }]}>
+            <View style={[styles.wordmarkPill, { backgroundColor: theme.surfaceGlass }]}>
               <Text style={[styles.eyebrow, { color: theme.accent }]}>PRIVATE SOCIAL / MOVEMENT</Text>
             </View>
             <Text style={styles.wordmark}>BRDG</Text>
@@ -64,11 +64,11 @@ export default function LoginScreen({
               Dating energy, training energy, and social momentum stay in one refined flow.
             </Text>
             <View style={styles.heroMetaRow}>
-              <View style={[styles.heroMetaCard, { backgroundColor: theme.surfaceGlass, borderColor: theme.border }]}>
+              <View style={[styles.heroMetaCard, { backgroundColor: theme.surfaceGlass }]}>
                 <Text style={styles.heroMetaLabel}>Curation</Text>
                 <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Intent-aware discovery</Text>
               </View>
-              <View style={[styles.heroMetaCard, { backgroundColor: theme.surfaceGlass, borderColor: theme.border }]}>
+              <View style={[styles.heroMetaCard, { backgroundColor: theme.surfaceGlass }]}>
                 <Text style={styles.heroMetaLabel}>Pace</Text>
                 <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Quieter, more selective</Text>
               </View>
@@ -171,7 +171,6 @@ const styles = StyleSheet.create({
   wordmarkPill: {
     alignSelf: 'flex-start',
     borderRadius: radii.pill,
-    borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     marginBottom: spacing.lg,
@@ -187,7 +186,7 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
     lineHeight: 44,
     marginBottom: spacing.sm,
-    color: '#7C6AF7',
+    color: '#1A1A1A',
   },
   headline: {
     fontSize: 34,
@@ -210,12 +209,11 @@ const styles = StyleSheet.create({
   heroMetaCard: {
     flex: 1,
     borderRadius: 18,
-    borderWidth: 1,
     padding: spacing.lg,
     minHeight: 86,
   },
   heroMetaLabel: {
-    color: '#64748B',
+    color: '#8C8279',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.6,
@@ -229,13 +227,13 @@ const styles = StyleSheet.create({
   },
   formCard: {
     borderRadius: 28,
-    borderWidth: 1,
+    borderWidth: 0,
     padding: spacing.xxl,
     shadowColor: '#000',
-    shadowOpacity: 0.30,
+    shadowOpacity: 0.08,
     shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   formEyebrow: {
     fontSize: 10,

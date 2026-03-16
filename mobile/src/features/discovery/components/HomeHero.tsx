@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AppNotificationButton from '../../../components/ui/AppNotificationButton';
+import { fontFamily } from '../../../lib/fonts';
 import { homeStyles as styles } from './home.styles';
 
 type IntentOption = {
@@ -33,7 +34,7 @@ export function HomeHero({
       <View style={styles.heroHeaderRow}>
         <View style={styles.headerCopy}>
           <Text style={styles.greetingEyebrow}>{timeLabel} / INTENT-AWARE</Text>
-          <Text style={styles.greeting}>Tonight&apos;s people</Text>
+          <Text style={[styles.greeting, { fontFamily: fontFamily.serifBold }]}>Tonight&apos;s people</Text>
         </View>
 
         <AppNotificationButton
@@ -46,7 +47,7 @@ export function HomeHero({
       <View style={styles.heroSummaryRow}>
         <View style={styles.intentBadgeWrap}>
           <LinearGradient
-            colors={[intentOption.color + '40', intentOption.color + '16']}
+            colors={[intentOption.color + '14', intentOption.color + '08']}
             style={styles.intentBadge}
           >
             <Text style={[styles.intentBadgeText, { color: intentOption.color }]}>

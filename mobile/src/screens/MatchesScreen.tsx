@@ -15,14 +15,16 @@ import type { MainTabScreenProps } from '../core/navigation/types';
 import { getAvatarInitial, getPrimaryPhotoUri } from '../lib/profilePhotos';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
-const BASE = '#0D1117';
-const SURFACE = '#161B22';
-const BORDER = 'rgba(255,255,255,0.07)';
-const PRIMARY = '#7C6AF7';
-const ACCENT = '#34D399';
-const TEXT_PRIMARY = '#F0F6FC';
-const TEXT_SECONDARY = 'rgba(240,246,252,0.6)';
-const TEXT_MUTED = 'rgba(240,246,252,0.38)';
+import { lightTheme } from '../theme/tokens';
+
+const BASE = lightTheme.background;
+const SURFACE = lightTheme.surface;
+const BORDER = lightTheme.border;
+const PRIMARY = lightTheme.primary;
+const ACCENT = lightTheme.accent;
+const TEXT_PRIMARY = lightTheme.textPrimary;
+const TEXT_SECONDARY = lightTheme.textSecondary;
+const TEXT_MUTED = lightTheme.textMuted;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function timeAgo(timestamp?: string) {
@@ -52,7 +54,7 @@ function getActivityTag(user: any): string {
 
 // Assign a consistent accent color per user based on name
 function getUserAccent(name?: string): string {
-  const ACCENTS = [PRIMARY, ACCENT, '#F59E0B', '#F87171', '#60A5FA', '#FB923C'];
+  const ACCENTS = ['#C4A882', '#D4A59A', '#B8A9C4', '#8BAA7A', '#D4C9DB', '#C4A882'];
   const idx = (name?.charCodeAt(0) ?? 65) % ACCENTS.length;
   return ACCENTS[idx];
 }
@@ -204,7 +206,7 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 110,
     backgroundColor: PRIMARY,
-    opacity: 0.07,
+    opacity: 0.04,
   },
   header: {
     paddingHorizontal: spacing.xxl,
@@ -228,12 +230,12 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(124,106,247,0.15)',
+    backgroundColor: 'rgba(196,168,130,0.15)',
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(124,106,247,0.35)',
+    borderColor: 'rgba(196,168,130,0.35)',
   },
   countBadgeText: {
     fontSize: 12,
@@ -251,9 +253,13 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: 10,
     borderRadius: 22,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: 0,
     gap: spacing.md,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   avatarWrapper: {
     position: 'relative',

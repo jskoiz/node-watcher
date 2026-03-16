@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { radii, spacing, typography } from '../../../theme/tokens';
+import { lightTheme, radii, spacing, typography } from '../../../theme/tokens';
 
 export const chatStyles = StyleSheet.create({
   container: { flex: 1 },
@@ -13,15 +13,14 @@ export const chatStyles = StyleSheet.create({
     gap: spacing.sm,
   },
   backBtn: { marginBottom: 0 },
-  headerAvatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 2 },
+  headerAvatar: { width: 44, height: 44, borderRadius: 22 },
   headerInfo: { flex: 1, gap: 2 },
-  quickActionTrigger: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  quickActionTrigger: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   headerEyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
   headerName: { fontSize: typography.h3, fontWeight: '800', letterSpacing: -0.3 },
   headerTag: {
     alignSelf: 'flex-start',
     borderRadius: radii.pill,
-    borderWidth: 1,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     marginTop: spacing.xs,
@@ -36,7 +35,7 @@ export const chatStyles = StyleSheet.create({
     maxWidth: '82%',
   },
   bubbleMe: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },
-  bubbleThem: { alignSelf: 'flex-start', borderBottomLeftRadius: 4, borderWidth: 1 },
+  bubbleThem: { alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
   bubbleText: { fontSize: typography.body, lineHeight: 22 },
   statusNote: { textAlign: 'center', fontSize: typography.caption, paddingVertical: spacing.xs },
   errorNote: {
@@ -57,7 +56,7 @@ export const chatStyles = StyleSheet.create({
   input: {
     flex: 1,
     borderRadius: 24,
-    borderWidth: 1.5,
+    borderWidth: 0,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     fontSize: typography.body,
@@ -78,7 +77,7 @@ export const chatStyles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 2,
     textTransform: 'uppercase',
-    color: 'rgba(240,246,252,0.38)',
+    color: lightTheme.textMuted,
   },
   quickActionBody: {
     gap: spacing.sm,
@@ -86,11 +85,11 @@ export const chatStyles = StyleSheet.create({
   quickActionTitle: {
     fontSize: typography.body,
     fontWeight: '800',
-    color: '#F0F6FC',
+    color: lightTheme.textPrimary,
   },
   quickActionCopy: {
     fontSize: typography.bodySmall,
-    color: 'rgba(240,246,252,0.68)',
+    color: lightTheme.textSecondary,
     lineHeight: 20,
   },
 });

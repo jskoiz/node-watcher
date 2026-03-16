@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { DarkTheme, NavigationContainer } from "@react-navigation/native";
+import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuthStore } from "../store/authStore";
 import type { RootStackParamList } from "../core/navigation/types";
@@ -27,14 +27,14 @@ export default function AppNavigator() {
   const theme = useTheme();
 
   const navigationTheme = {
-    ...DarkTheme,
+    ...DefaultTheme,
     colors: {
-      ...DarkTheme.colors,
-      background: theme.background,
-      card: theme.background,
-      border: theme.border,
-      primary: theme.primary,
-      text: theme.textPrimary,
+      ...DefaultTheme.colors,
+      background: '#FDFBF8',
+      card: '#FFFFFF',
+      text: '#2C2420',
+      border: '#E8E2DA',
+      primary: '#C4A882',
       notification: theme.accent,
     },
   };

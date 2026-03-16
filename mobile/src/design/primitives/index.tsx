@@ -1,4 +1,4 @@
-import React, { PropsWithChildren, useRef, useState } from 'react';
+import React, { PropsWithChildren, useRef } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -12,7 +12,6 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import AppIcon from '../../components/ui/AppIcon';
 import { useTheme } from '../../theme/useTheme';
 import { radii, shadows, spacing, typography } from '../../theme/tokens';
@@ -40,6 +39,7 @@ export function Button({
   label,
   loading,
   onPress,
+  size = 'default',
   style,
   testID,
   variant = 'primary',
@@ -48,6 +48,7 @@ export function Button({
   label: string;
   loading?: boolean;
   onPress: () => void;
+  size?: 'default' | 'sm';
   style?: StyleProp<ViewStyle>;
   testID?: string;
   variant?: PrimitiveButtonVariant;
@@ -67,42 +68,30 @@ export function Button({
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: theme.primary,
-          borderColor: theme.primary,
-          ...shadows.medium,
+          backgroundColor: '#1A1A1A',
+          ...shadows.soft,
         };
       case 'secondary':
         return {
           backgroundColor: theme.surfaceElevated,
-          borderColor: theme.borderSoft,
           ...shadows.soft,
         };
       case 'accent':
         return {
           backgroundColor: theme.accent,
-          borderColor: theme.accent,
           ...shadows.soft,
         };
       case 'energy':
         return {
           backgroundColor: theme.energy,
-          borderColor: theme.energy,
-          ...shadows.soft,
         };
       case 'ghost':
         return {
-          backgroundColor: 'rgba(255,255,255,0.03)',
-          borderColor: theme.border,
+          backgroundColor: 'rgba(0,0,0,0.03)',
         };
       case 'danger':
         return {
           backgroundColor: theme.danger,
-          borderColor: theme.danger,
-          shadowColor: theme.danger,
-          shadowOpacity: 0.3,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 5,
         };
     }
   };
@@ -110,31 +99,19 @@ export function Button({
   const getLabelColor = () => {
     switch (variant) {
       case 'primary':
+      case 'accent':
+      case 'energy':
       case 'danger':
         return theme.white;
-      case 'accent':
-        return theme.textInverse;
-      case 'energy':
-        return theme.textInverse;
       case 'secondary':
-        return theme.primary;
       case 'ghost':
         return theme.textPrimary;
     }
   };
 
-  const gradientColors = (() => {
-    switch (variant) {
-      case 'primary':
-        return ['#9B8BFF', '#8A79FA', theme.primaryPressed] as const;
-      case 'accent':
-        return ['#61E8BF', '#47DBAA', '#23B887'] as const;
-      case 'energy':
-        return ['#F6BC4A', '#F0AA22', '#D68B02'] as const;
-      default:
-        return null;
-    }
-  })();
+  const sizeStyle: ViewStyle = size === 'sm'
+    ? { minHeight: 38, paddingHorizontal: 16 }
+    : {};
 
   return (
     <Pressable
@@ -145,20 +122,11 @@ export function Button({
       disabled={isDisabled}
       style={({ pressed }) => [{ opacity: isDisabled ? 0.48 : pressed ? 0.88 : 1 }]}
     >
-      <Animated.View style={[primitiveStyles.buttonBase, getContainerStyle(), { transform: [{ scale }] }, style]}>
-        {gradientColors ? (
-          <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={primitiveStyles.gradientFill}>
-            <View style={primitiveStyles.innerHighlight} />
-            {loading ? <ActivityIndicator color={theme.white} size="small" /> : <Text style={[primitiveStyles.buttonLabel, { color: getLabelColor() }]}>{label}</Text>}
-          </LinearGradient>
+      <Animated.View style={[primitiveStyles.buttonBase, getContainerStyle(), sizeStyle, { transform: [{ scale }] }, style]}>
+        {loading ? (
+          <ActivityIndicator color={variant === 'secondary' || variant === 'ghost' ? theme.primary : theme.white} size="small" />
         ) : (
-          <>
-            {loading ? (
-              <ActivityIndicator color={variant === 'danger' ? theme.white : theme.primary} size="small" />
-            ) : (
-              <Text style={[primitiveStyles.buttonLabel, { color: getLabelColor() }]}>{label}</Text>
-            )}
-          </>
+          <Text style={[primitiveStyles.buttonLabel, { color: getLabelColor() }]}>{label}</Text>
         )}
       </Animated.View>
     </Pressable>
@@ -184,14 +152,12 @@ export function Card({
   const theme = useTheme();
   const baseStyle: ViewStyle = {
     backgroundColor: variant === 'flat' ? 'transparent' : variant === 'glass' ? theme.surfaceGlass : theme.surface,
-    borderColor: variant === 'flat' ? 'transparent' : theme.border,
-    borderWidth: variant === 'flat' ? 0 : 1,
-    ...(variant === 'elevated' ? shadows.medium : variant === 'glass' ? shadows.soft : shadows.soft),
+    ...(variant === 'elevated' ? shadows.medium : variant === 'flat' ? {} : shadows.soft),
   };
 
   if (variant === 'imageCard' && imageUri) {
     return (
-      <ImageBackground testID={testID} source={{ uri: imageUri }} style={[primitiveStyles.card, primitiveStyles.imageCard, style]} imageStyle={{ borderRadius: 20 }}>
+      <ImageBackground testID={testID} source={{ uri: imageUri }} style={[primitiveStyles.card, primitiveStyles.imageCard, style]} imageStyle={{ borderRadius: 16 }}>
         <View style={primitiveStyles.imageOverlay}>{children}</View>
       </ImageBackground>
     );
@@ -215,17 +181,14 @@ export function Input({
   ...props
 }: TextInputProps & { error?: string; label?: string }) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
   const focusAnim = useRef(new Animated.Value(0)).current;
 
   const handleFocus = (event: any) => {
-    setFocused(true);
     Animated.timing(focusAnim, { toValue: 1, duration: 180, useNativeDriver: false }).start();
     onFocus?.(event);
   };
 
   const handleBlur = (event: any) => {
-    setFocused(false);
     Animated.timing(focusAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start();
     onBlur?.(event);
   };
@@ -244,11 +207,6 @@ export function Input({
           {
             backgroundColor: theme.surfaceElevated,
             borderColor,
-            shadowColor: focused ? theme.primary : '#000000',
-            shadowOpacity: focused ? 0.14 : 0.05,
-            shadowRadius: focused ? 18 : 8,
-            shadowOffset: { width: 0, height: focused ? 6 : 2 },
-            elevation: focused ? 4 : 2,
           },
         ]}
       >
@@ -299,8 +257,8 @@ export function Chip({
       style={[
         primitiveStyles.chip,
         active
-          ? { backgroundColor: color + '22', borderColor: color + '70' }
-          : { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: theme.border },
+          ? { backgroundColor: color + '14' }
+          : { backgroundColor: 'rgba(0,0,0,0.04)' },
         style,
       ]}
     >
@@ -354,37 +312,20 @@ export function StatePanel({
 
 const primitiveStyles = StyleSheet.create({
   buttonBase: {
-    minHeight: 56,
-    borderRadius: 20,
+    minHeight: 46,
+    borderRadius: 999,
     paddingHorizontal: spacing.xxl,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
     overflow: 'hidden',
   },
-  gradientFill: {
-    width: '100%',
-    minHeight: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xxl,
-  },
-  innerHighlight: {
-    position: 'absolute',
-    top: 1,
-    left: 1,
-    right: 1,
-    height: '52%',
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
   buttonLabel: {
-    fontSize: typography.bodySmall,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
     letterSpacing: 0.25,
   },
   card: {
-    borderRadius: 22,
+    borderRadius: 16,
     padding: spacing.lg,
     overflow: 'hidden',
     flexDirection: 'row',
@@ -404,7 +345,7 @@ const primitiveStyles = StyleSheet.create({
   },
   imageOverlay: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
     padding: spacing.lg,
     justifyContent: 'flex-end',
@@ -422,14 +363,14 @@ const primitiveStyles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   inputWrapper: {
-    borderRadius: 20,
+    borderRadius: 14,
     borderWidth: 1,
   },
   input: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md + 5,
+    paddingVertical: spacing.md + 2,
     fontSize: typography.body,
-    minHeight: 58,
+    minHeight: 50,
   },
   multiline: {
     minHeight: 110,
@@ -442,10 +383,9 @@ const primitiveStyles = StyleSheet.create({
     fontWeight: '600',
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: radii.pill,
-    borderWidth: 1,
   },
   chipText: {
     fontSize: typography.bodySmall,
