@@ -136,7 +136,11 @@ export class ProfileController {
     @Param('id') id: string,
     @Body() data: UpdatePhotoDto,
   ) {
-    return this.profileService.updatePhoto(req.user.id, id, data);
+    const result = await this.profileService.updatePhoto(req.user.id, id, data);
+    if (!result) {
+      throw new NotFoundException('Photo not found');
+    }
+    return result;
   }
 
   @Delete('photos/:id')
@@ -146,6 +150,10 @@ export class ProfileController {
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.profileService.deletePhoto(req.user.id, id);
+    const result = await this.profileService.deletePhoto(req.user.id, id);
+    if (!result) {
+      throw new NotFoundException('Photo not found');
+    }
+    return result;
   }
 }

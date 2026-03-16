@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { IntensityLevel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -67,6 +72,10 @@ export class DiscoveryService {
       where: { id: userId },
       include: { profile: true, fitnessProfile: true },
     });
+
+    if (!me) {
+      throw new NotFoundException('User not found');
+    }
 
     const birthdateFilter = this.buildBirthdateFilter(filters);
     const fitnessProfileFilter = this.buildFitnessProfileFilter(filters);
@@ -366,6 +375,18 @@ export class DiscoveryService {
   }
 
   async likeUser(userId: string, targetUserId: string) {
+    if (userId === targetUserId) {
+      throw new BadRequestException('Cannot like yourself');
+    }
+
+    const targetUser = await this.prisma.user.findFirst({
+      where: { id: targetUserId, isDeleted: false, isBanned: false },
+      select: { id: true },
+    });
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
     const existingLike = await this.prisma.like.findUnique({
       where: {
         fromUserId_toUserId: {
@@ -446,6 +467,18 @@ export class DiscoveryService {
   }
 
   async passUser(userId: string, targetUserId: string) {
+    if (userId === targetUserId) {
+      throw new BadRequestException('Cannot pass on yourself');
+    }
+
+    const targetUser = await this.prisma.user.findFirst({
+      where: { id: targetUserId, isDeleted: false, isBanned: false },
+      select: { id: true },
+    });
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
     const existingPass = await this.prisma.pass.findUnique({
       where: {
         fromUserId_toUserId: {

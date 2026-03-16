@@ -6,6 +6,7 @@ export function useExploreEvents() {
   const query = useQuery({
     queryKey: queryKeys.events.list,
     queryFn: async () => (await eventsApi.list()).data || [],
+    staleTime: 60_000,
   });
 
   return {

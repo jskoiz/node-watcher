@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface PendingVerification {
@@ -52,16 +57,28 @@ export class VerificationService {
     // code from also passing the guard and double-verifying.
     this.pending.delete(key);
 
-    if (channel === 'email') {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { hasVerifiedEmail: true },
-      });
-    } else {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { hasVerifiedPhone: true },
-      });
+    try {
+      if (channel === 'email') {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { hasVerifiedEmail: true },
+        });
+      } else {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { hasVerifiedPhone: true },
+        });
+      }
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2025'
+      ) {
+        throw new NotFoundException('User not found');
+      }
+      throw error;
     }
 
     return { verified: true };
@@ -77,6 +94,10 @@ export class VerificationService {
         phoneNumber: true,
       },
     });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     return user;
   }

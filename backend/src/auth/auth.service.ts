@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   UnauthorizedException,
   BadRequestException,
@@ -144,18 +145,30 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        passwordHash: hashedPassword,
-        firstName,
-        birthdate: parsedBirthdate,
-        gender: normalizedGender,
-        authProvider: AuthProvider.EMAIL,
-      },
-    });
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          passwordHash: hashedPassword,
+          firstName,
+          birthdate: parsedBirthdate,
+          gender: normalizedGender,
+          authProvider: AuthProvider.EMAIL,
+        },
+      });
 
-    return this.issueAuthToken(user);
+      return this.issueAuthToken(user);
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2002'
+      ) {
+        throw new ConflictException('Unable to create account');
+      }
+      throw error;
+    }
   }
 
   async login(user: LoginDto): Promise<AuthResult> {
@@ -234,18 +247,30 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        isDeleted: true,
-        email: `deleted-${userId}@deleted.invalid`,
-        passwordHash: null,
-        phoneNumber: null,
-        providerId: null,
-        firstName: 'Deleted',
-        pronouns: null,
-      },
-    });
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          isDeleted: true,
+          email: `deleted-${userId}@deleted.invalid`,
+          passwordHash: null,
+          phoneNumber: null,
+          providerId: null,
+          firstName: 'Deleted',
+          pronouns: null,
+        },
+      });
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2025'
+      ) {
+        throw new UnauthorizedException('User not found');
+      }
+      throw error;
+    }
 
     this.logger.log(
       `Soft-deleted account for userId=${user.id}${user.email ? ` email=${user.email}` : ''}`,
