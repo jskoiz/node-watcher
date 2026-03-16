@@ -112,6 +112,21 @@ export const gradients = {
   cardOverlay: ['transparent', 'rgba(255,255,255,0.0)', 'rgba(255,255,255,0.94)'],
 };
 
+export const editorialColors = {
+  background: lightTheme.background,
+  surface: lightTheme.surface,
+  border: lightTheme.border,
+  textPrimary: lightTheme.textPrimary,
+  textSecondary: lightTheme.textSecondary,
+  textMuted: lightTheme.textMuted,
+  textOnImage: '#3D352E',
+  success: lightTheme.success,
+  danger: lightTheme.danger,
+  badgeBg: 'rgba(255,255,255,0.78)',
+  matchBadgeBg: '#F0E8D8',
+  matchBadgeText: '#6B5A40',
+};
+
 export const spacing = {
   xs: 4,
   sm: 8,

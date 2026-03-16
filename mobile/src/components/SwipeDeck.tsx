@@ -4,8 +4,14 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Swiper from 'react-native-deck-swiper';
 import type { DiscoveryUser, User } from '../api/types';
-import { radii, spacing, typography } from '../theme/tokens';
+import { editorialColors, radii, spacing, typography } from '../theme/tokens';
 import { fontFamily } from '../lib/fonts';
+import {
+  getIntentLabel,
+  getPresenceLabel,
+  getProfileChips,
+  getTempoLabel,
+} from '../lib/profile-helpers';
 import AppIcon from './ui/AppIcon';
 import { getAvatarInitial, getPrimaryPhotoUri } from '../lib/profilePhotos';
 
@@ -14,63 +20,11 @@ const MIN_CARD_HEIGHT = 360;
 const MAX_CARD_HEIGHT = 680;
 type SwipeDeckUser = User & Pick<Partial<DiscoveryUser>, 'distanceKm' | 'recommendationScore'>;
 
-// Editorial warm palette
-const EDITORIAL = {
-  background: '#FDFBF8',
-  surface: '#FFFFFF',
-  border: '#E8E2DA',
-  textPrimary: '#2C2420',
-  textSecondary: '#5C544C',
-  textMuted: '#8C8279',
-  textOnImage: '#3D352E',
-  success: '#8BAA7A',
-  danger: '#C97070',
-  badgeBg: 'rgba(255,255,255,0.78)',
-  matchBadgeBg: '#F0E8D8',
-  matchBadgeText: '#6B5A40',
-};
-
 interface SwipeDeckCardProps {
   cardHeight: number;
   onPress?: () => void;
   user: SwipeDeckUser;
 }
-
-const formatLabel = (value: string) =>
-  value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-
-const profileChips = (user: SwipeDeckUser) => {
-  const chips: string[] = [];
-
-  const favoriteActivity = user.fitnessProfile?.favoriteActivities
-    ?.split(',')
-    .map((value: string) => value.trim())
-    .find(Boolean);
-
-  if (favoriteActivity) chips.push(formatLabel(favoriteActivity));
-  if (user.fitnessProfile?.primaryGoal) chips.push(formatLabel(user.fitnessProfile.primaryGoal));
-  if (user.fitnessProfile?.prefersMorning) chips.push('Mornings');
-  else if (user.fitnessProfile?.prefersEvening) chips.push('Evenings');
-  else if (user.fitnessProfile?.weeklyFrequencyBand) {
-    chips.push(`${user.fitnessProfile.weeklyFrequencyBand}x/week`);
-  }
-
-  return chips.slice(0, 2);
-};
-
-const getIntentLabel = (user: SwipeDeckUser) => {
-  if (user?.profile?.intentDating && user?.profile?.intentWorkout) return 'Open to both';
-  if (user?.profile?.intentDating) return 'Dating';
-  if (user?.profile?.intentWorkout) return 'Training';
-  return 'Open to both';
-};
-
-const getPresenceLabel = (user: SwipeDeckUser) => {
-  if (user?.profile?.city) return 'Available tonight';
-  return 'Nearby now';
-};
 
 const getAlignmentLabel = (score?: number) => {
   if (typeof score !== 'number' || Number.isNaN(score)) return null;
@@ -84,17 +38,6 @@ const formatDistanceLabel = (distanceKm?: number) => {
   return ` · ${Math.round(distanceKm)} km away`;
 };
 
-const getTempoLabel = (user: SwipeDeckUser) => {
-  const frequency = user?.fitnessProfile?.weeklyFrequencyBand;
-  const intensity = user?.fitnessProfile?.intensityLevel;
-  const frequencyLabel = frequency ? `${frequency}x/week` : null;
-  const intensityLabel = intensity ? formatLabel(String(intensity).toLowerCase()) : null;
-
-  if (frequencyLabel && intensityLabel) return `${frequencyLabel} · ${intensityLabel}`;
-  if (frequencyLabel) return frequencyLabel;
-  if (intensityLabel) return intensityLabel;
-  return 'Intent-aware match';
-};
 
 const clampCardHeight = (value?: number) => {
   if (typeof value !== 'number' || Number.isNaN(value)) return DEFAULT_CARD_HEIGHT;
@@ -103,7 +46,7 @@ const clampCardHeight = (value?: number) => {
 
 const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
   const primaryPhoto = getPrimaryPhotoUri(user);
-  const chips = profileChips(user);
+  const chips = getProfileChips(user);
   const compact = cardHeight < 390;
   const ultraCompact = cardHeight < 350;
   const visibleChips = ultraCompact ? [] : compact ? chips.slice(0, 1) : chips;
@@ -155,7 +98,7 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
 
             {alignmentLabel ? (
               <View style={[styles.matchBadge, compact && styles.matchBadgeCompact]}>
-                <AppIcon name="star" size={12} color={EDITORIAL.matchBadgeText} />
+                <AppIcon name="star" size={12} color={editorialColors.matchBadgeText} />
                 <Text style={styles.matchBadgeText}>{alignmentLabel}</Text>
               </View>
             ) : (
@@ -302,7 +245,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     borderRadius: 28,
-    backgroundColor: EDITORIAL.surface,
+    backgroundColor: editorialColors.surface,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 14 },
@@ -312,7 +255,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     flex: 1,
-    backgroundColor: EDITORIAL.surface,
+    backgroundColor: editorialColors.surface,
   },
   image: {
     width: '100%',
@@ -326,7 +269,7 @@ const styles = StyleSheet.create({
   },
   initials: {
     fontSize: 84,
-    color: EDITORIAL.textMuted,
+    color: editorialColors.textMuted,
     fontWeight: '300',
     fontFamily: fontFamily.serifBold,
   },
@@ -356,7 +299,7 @@ const styles = StyleSheet.create({
   },
   intentBadge: {
     maxWidth: '58%',
-    backgroundColor: EDITORIAL.badgeBg,
+    backgroundColor: editorialColors.badgeBg,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
@@ -366,13 +309,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   intentBadgeText: {
-    color: EDITORIAL.textPrimary,
+    color: editorialColors.textPrimary,
     fontSize: typography.caption,
     fontWeight: '600',
     letterSpacing: 0.2,
   },
   presenceBadge: {
-    backgroundColor: EDITORIAL.badgeBg,
+    backgroundColor: editorialColors.badgeBg,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
@@ -382,7 +325,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   presenceBadgeText: {
-    color: EDITORIAL.textSecondary,
+    color: editorialColors.textSecondary,
     fontSize: typography.caption,
     fontWeight: '600',
   },
@@ -390,7 +333,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: EDITORIAL.matchBadgeBg,
+    backgroundColor: editorialColors.matchBadgeBg,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
@@ -400,7 +343,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   matchBadgeText: {
-    color: EDITORIAL.matchBadgeText,
+    color: editorialColors.matchBadgeText,
     fontSize: typography.caption,
     fontWeight: '600',
     letterSpacing: 0.2,
@@ -434,7 +377,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '700',
     fontFamily: fontFamily.serifBold,
-    color: EDITORIAL.textPrimary,
+    color: editorialColors.textPrimary,
     letterSpacing: -0.5,
     lineHeight: 34,
   },
@@ -444,13 +387,13 @@ const styles = StyleSheet.create({
   },
   metaLine: {
     fontSize: typography.bodySmall,
-    color: EDITORIAL.textSecondary,
+    color: editorialColors.textSecondary,
     fontWeight: '500',
     marginTop: spacing.xs,
   },
   bio: {
     fontSize: 14,
-    color: EDITORIAL.textOnImage,
+    color: editorialColors.textOnImage,
     lineHeight: 21,
     marginTop: spacing.sm,
     maxWidth: '92%',
@@ -461,7 +404,7 @@ const styles = StyleSheet.create({
   },
   tempoLine: {
     fontSize: 11,
-    color: EDITORIAL.textMuted,
+    color: editorialColors.textMuted,
     fontWeight: '600',
     letterSpacing: 0.3,
     marginTop: spacing.sm,
@@ -485,7 +428,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   chipText: {
-    color: EDITORIAL.textOnImage,
+    color: editorialColors.textOnImage,
     fontSize: typography.caption,
     fontWeight: '600',
     textTransform: 'capitalize',
@@ -498,7 +441,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   emptyTitle: {
-    color: EDITORIAL.textPrimary,
+    color: editorialColors.textPrimary,
     fontSize: typography.h2,
     fontWeight: '700',
     fontFamily: fontFamily.serifBold,
@@ -506,15 +449,15 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   emptyText: {
-    color: EDITORIAL.textSecondary,
+    color: editorialColors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.sm,
     lineHeight: 22,
     fontSize: typography.body,
   },
   overlayReject: {
-    borderColor: EDITORIAL.danger,
-    color: EDITORIAL.danger,
+    borderColor: editorialColors.danger,
+    color: editorialColors.danger,
     borderWidth: 2,
     fontSize: 24,
     fontWeight: '700',
@@ -525,8 +468,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.90)',
   },
   overlayLike: {
-    borderColor: EDITORIAL.success,
-    color: EDITORIAL.success,
+    borderColor: editorialColors.success,
+    color: editorialColors.success,
     borderWidth: 2,
     fontSize: 24,
     fontWeight: '700',
