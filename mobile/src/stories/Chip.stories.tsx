@@ -8,7 +8,7 @@ const meta = {
   component: Chip,
   decorators: [
     (Story) => (
-      <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
+      <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#F8F7F4' }}>
         <Story />
       </View>
     ),
@@ -41,6 +41,6 @@ export const ReadOnly: Story = {
     label: 'Outdoors',
     active: true,
     interactive: false,
-    accentColor: '#34D399',
+    accentColor: '#10B981',
   },
 };

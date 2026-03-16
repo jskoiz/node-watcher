@@ -7,7 +7,7 @@ const meta = {
   title: 'Design/Primitives',
   decorators: [
     (Story) => (
-      <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16 }}>
+      <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16, backgroundColor: '#F8F7F4' }}>
         <Story />
       </View>
     ),
@@ -21,7 +21,9 @@ export const ButtonVariants: Story = {
   render: () => (
     <View style={{ gap: 12 }}>
       <Button label="Join BRDG" onPress={() => undefined} />
+      <Button label="Maybe Later" onPress={() => undefined} variant="secondary" />
       <Button label="Create Activity" onPress={() => undefined} variant="accent" />
+      <Button label="Skip" onPress={() => undefined} variant="ghost" />
       <Button label="Need attention" onPress={() => undefined} variant="danger" />
       <Button label="Loading" onPress={() => undefined} loading />
     </View>
@@ -33,7 +35,7 @@ export const CardVariants: Story = {
     <View style={{ gap: 12 }}>
       <Card><View style={{ minHeight: 40 }} /></Card>
       <Card variant="glass"><View style={{ minHeight: 40 }} /></Card>
-      <Card accent="#34D399"><View style={{ minHeight: 40 }} /></Card>
+      <Card accent="#10B981"><View style={{ minHeight: 40 }} /></Card>
     </View>
   ),
 };
@@ -52,7 +54,7 @@ export const ChipStates: Story = {
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       <Chip label="Strength" active onPress={() => undefined} />
       <Chip label="Mobility" onPress={() => undefined} />
-      <Chip label="Read-only" active interactive={false} accentColor="#34D399" />
+      <Chip label="Read-only" active interactive={false} accentColor="#10B981" />
     </View>
   ),
 };
@@ -65,4 +67,3 @@ export const StatePanels: Story = {
     </View>
   ),
 };
-

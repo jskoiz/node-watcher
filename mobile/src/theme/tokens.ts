@@ -1,42 +1,42 @@
 export const darkTheme = {
   // Backgrounds
-  background: '#0D1117',
-  backgroundSoft: '#161B22',
+  background: '#F8F7F4',
+  backgroundSoft: '#F1EFE9',
 
   // Surfaces
-  surface: '#1C2330',
-  surfaceElevated: '#242D3D',
-  surfaceGlass: 'rgba(28,35,48,0.92)',
+  surface: '#FFFFFF',
+  surfaceElevated: '#F5F3EF',
+  surfaceGlass: 'rgba(255,255,255,0.75)',
 
   // Borders
-  border: '#2D3748',
-  borderSoft: '#374151',
+  border: 'rgba(0,0,0,0.06)',
+  borderSoft: 'rgba(0,0,0,0.04)',
   borderFocus: '#7C6AF7',
 
   // Text
-  textPrimary: '#F0F6FF',
-  textSecondary: '#94A3B8',
-  textMuted: '#64748B',
-  textInverse: '#0D1117',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#64748B',
+  textMuted: '#94A3B8',
+  textInverse: '#FFFFFF',
 
   // Primary — electric violet
   primary: '#7C6AF7',
   primaryPressed: '#6B5CE7',
-  primarySubtle: 'rgba(124,106,247,0.15)',
+  primarySubtle: 'rgba(124,106,247,0.08)',
 
-  // Accent — electric mint/green
-  accent: '#34D399',
-  accentSoft: '#6EE7B7',
-  accentSubtle: 'rgba(52,211,153,0.15)',
+  // Accent — emerald green
+  accent: '#10B981',
+  accentSoft: '#34D399',
+  accentSubtle: 'rgba(16,185,129,0.08)',
 
   // Energy — amber warmth
   energy: '#F59E0B',
-  energySubtle: 'rgba(245,158,11,0.15)',
+  energySubtle: 'rgba(245,158,11,0.08)',
 
   // Semantic
-  danger: '#F87171',
-  dangerSubtle: 'rgba(248,113,113,0.12)',
-  success: '#34D399',
+  danger: '#EF4444',
+  dangerSubtle: 'rgba(239,68,68,0.08)',
+  success: '#10B981',
   warning: '#F59E0B',
 
   // Fixed
@@ -54,12 +54,12 @@ export type Theme = typeof darkTheme;
 export const colors = darkTheme;
 
 export const gradients = {
-  appBg: ['#0D1117', '#161B22'],
-  appBgDark: ['#0D1117', '#1C2330'],
-  cardChrome: ['rgba(28,35,48,0.9)', 'rgba(36,45,61,0.6)'],
-  spotlight: ['rgba(124,106,247,0.18)', 'rgba(52,211,153,0.08)'],
-  photoOverlay: ['transparent', 'rgba(0,0,0,0.82)'],
-  cardOverlay: ['transparent', 'rgba(0,0,0,0.0)', 'rgba(0,0,0,0.80)'],
+  appBg: ['#F8F7F4', '#F1EFE9'],
+  appBgDark: ['#F8F7F4', '#EDE9E0'],
+  cardChrome: ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.7)'],
+  spotlight: ['rgba(124,106,247,0.06)', 'rgba(16,185,129,0.04)'],
+  photoOverlay: ['transparent', 'rgba(0,0,0,0.5)'],
+  cardOverlay: ['transparent', 'rgba(0,0,0,0.0)', 'rgba(0,0,0,0.5)'],
 };
 
 export const spacing = {
@@ -94,31 +94,31 @@ export const typography = {
 
 export const shadows = {
   soft: {
-    shadowColor: '#000000',
-    shadowOpacity: 0.20,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    elevation: 2,
   },
   medium: {
-    shadowColor: '#000000',
-    shadowOpacity: 0.35,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
     shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
   glow: {
     shadowColor: '#7C6AF7',
-    shadowOpacity: 0.40,
+    shadowOpacity: 0.15,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    elevation: 4,
   },
   card: {
-    shadowColor: '#000000',
-    shadowOpacity: 0.50,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
     shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
 };

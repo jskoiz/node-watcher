@@ -8,7 +8,7 @@ const meta = {
   component: Button,
   decorators: [
     (Story) => (
-      <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
+      <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#F8F7F4' }}>
         <Story />
       </View>
     ),
@@ -26,11 +26,27 @@ export const Primary: Story = {
   },
 };
 
+export const Secondary: Story = {
+  args: {
+    label: 'Maybe Later',
+    onPress: () => undefined,
+    variant: 'secondary',
+  },
+};
+
 export const Accent: Story = {
   args: {
     label: 'Create Activity',
     onPress: () => undefined,
     variant: 'accent',
+  },
+};
+
+export const Ghost: Story = {
+  args: {
+    label: 'Skip',
+    onPress: () => undefined,
+    variant: 'ghost',
   },
 };
 
