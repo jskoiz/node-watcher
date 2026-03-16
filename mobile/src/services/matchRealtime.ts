@@ -46,6 +46,13 @@ export async function connectMatchMessageStream(
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
   let source: EventSource | null = null;
+
+  function clearRetryTimer() {
+    if (!retryTimer) return;
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+
   const handleMessage = (event: Event) => {
     try {
       const payload = JSON.parse((event as MessageEvent).data as string) as MessageEventPayload;
@@ -68,6 +75,7 @@ export async function connectMatchMessageStream(
 
   function connect() {
     if (closed) return;
+    clearRetryTimer();
 
     handlers.onStatus('connecting');
 
@@ -98,6 +106,7 @@ export async function connectMatchMessageStream(
         return;
       }
 
+      clearRetryTimer();
       const delay = getBackoffMs(retryCount - 1);
       retryTimer = setTimeout(connect, delay);
     };
@@ -107,7 +116,7 @@ export async function connectMatchMessageStream(
 
   return () => {
     closed = true;
-    if (retryTimer) clearTimeout(retryTimer);
+    clearRetryTimer();
     closeSource(source);
   };
 }
