@@ -15,6 +15,10 @@ jest.mock('../../features/events/hooks/useCreateEvent', () => ({
   }),
 }));
 
+jest.mock('../../features/locations/useKnownLocationSuggestions', () => ({
+  useKnownLocationSuggestions: () => [],
+}));
+
 jest.mock('../../components/ui/AppIcon', () => {
   const React = require('react');
   const { Text } = require('react-native');
@@ -86,6 +90,7 @@ describe('CreateScreen', () => {
     fireEvent.press(screen.getByText('Tomorrow'));
     fireEvent.press(screen.getByText('Evening'));
     fireEvent.changeText(screen.getByPlaceholderText('Runyon Canyon, Venice Beach...'), 'Magic Island');
+    fireEvent.press(screen.getByText('Use "Magic Island"'));
     fireEvent.press(screen.getByText('Post Run'));
 
     await waitFor(() => {

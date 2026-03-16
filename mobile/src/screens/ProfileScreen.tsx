@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore';
 import { useProfile } from '../features/profile/hooks/useProfile';
 import { useProfileEditor } from '../features/profile/hooks/useProfileEditor';
 import { ProfileScreenContent } from '../features/profile/components/ProfileScreenContent';
+import { useKnownLocationSuggestions } from '../features/locations/useKnownLocationSuggestions';
 import type { MainTabScreenProps } from '../core/navigation/types';
 import { triggerErrorHaptic } from '../lib/interaction/feedback';
 
@@ -32,6 +33,7 @@ export default function ProfileScreen() {
     isDeletingPhoto,
   } = useProfile();
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const knownLocationSuggestions = useKnownLocationSuggestions();
   const editor = useProfileEditor({
     profile,
     refetch,
@@ -67,6 +69,7 @@ export default function ProfileScreen() {
       isRefetching={isRefetching && !isLoading}
       isSavingProfile={isSavingProfile}
       isSavingFitness={isSavingFitness}
+      knownLocationSuggestions={knownLocationSuggestions}
       navigation={navigation}
       onCancelEdit={editor.cancelEdit}
       onConfirmDeleteAccount={() => {
@@ -105,7 +108,8 @@ export default function ProfileScreen() {
       }}
       onSave={() => { void editor.save(); }}
       onSetBio={editor.setBio}
-      onSetCity={editor.setCity}
+      onSetCity={editor.updateCity}
+      onSelectCitySuggestion={editor.selectCitySuggestion}
       onSetIntensityLevel={editor.setIntensityLevel}
       onSetIntentDating={editor.setIntentDating}
       onSetIntentFriends={editor.setIntentFriends}

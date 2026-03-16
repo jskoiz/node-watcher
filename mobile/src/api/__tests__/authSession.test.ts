@@ -1,12 +1,12 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { handleUnauthorized, setUnauthorizedHandler } from '../authSession';
 import { useAuthStore } from '../../store/authStore';
 import { STORAGE_KEYS } from '../../constants/storage';
 
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  removeItem: jest.fn(),
-  getItem: jest.fn(),
-  setItem: jest.fn(),
+jest.mock('expo-secure-store', () => ({
+  deleteItemAsync: jest.fn(),
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
 }));
 
 describe('authSession', () => {
@@ -34,7 +34,7 @@ describe('authSession', () => {
 
     await handleUnauthorized();
 
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith(
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(
       STORAGE_KEYS.accessToken,
     );
     expect(clearSession).toHaveBeenCalledTimes(1);

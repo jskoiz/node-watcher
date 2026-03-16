@@ -1,6 +1,7 @@
 import React from 'react';
 import { Controller, type Control, type FieldErrors } from 'react-hook-form';
 import { Text, TouchableOpacity, View } from 'react-native';
+import { LocationField } from '../../../components/form/LocationField';
 import { Input } from '../../../design/primitives';
 import type { CreateEventFormValues } from '../schema';
 import { createStyles as styles } from './create.styles';
@@ -18,10 +19,12 @@ export function CreateDetailsSection({
   onClearError,
   spots,
   hideSpots = false,
+  knownLocationSuggestions = [],
 }: {
   control: Control<CreateEventFormValues>;
   errors: FieldErrors<CreateEventFormValues>;
   isSubmitting: boolean;
+  knownLocationSuggestions?: import('../../locations/locationSuggestions').LocationSuggestion[];
   noteInputFocus: () => void;
   onChangeSpots: (value: number) => void;
   onClearError: () => void;
@@ -35,21 +38,23 @@ export function CreateDetailsSection({
         <Controller
           control={control}
           name="where"
-          render={({ field: { onBlur, onChange, value } }) => (
-            <Input
-              style={styles.textInput}
+          render={({ field: { onChange, value } }) => (
+            <LocationField
+              kind="place"
+              label="Where"
+              knownSuggestions={knownLocationSuggestions}
               placeholder="Runyon Canyon, Venice Beach..."
               value={value}
-              onBlur={onBlur}
               onChangeText={(nextValue) => {
                 onClearError();
                 onChange(nextValue);
               }}
-              returnKeyType="done"
+              error={errors.where?.message}
+              sheetTitle="Choose a location"
+              sheetSubtitle="Search recent, known, or curated BRDG-friendly places, or keep the text you type."
             />
           )}
         />
-        {errors.where?.message ? <Text style={styles.inlineError}>{errors.where.message}</Text> : null}
       </View>
 
       {!hideSpots ? (
@@ -99,6 +104,9 @@ export function CreateDetailsSection({
               numberOfLines={3}
               onFocus={noteInputFocus}
               blurOnSubmit
+              autoCapitalize="sentences"
+              autoCorrect
+              maxLength={280}
             />
           )}
         />

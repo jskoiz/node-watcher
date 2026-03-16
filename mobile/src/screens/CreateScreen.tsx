@@ -8,6 +8,7 @@ import { useCreateEvent } from '../features/events/hooks/useCreateEvent';
 import { createEventSchema, type CreateEventFormValues } from '../features/events/schema';
 import { CreateScreenContent } from '../features/events/create/CreateScreenContent';
 import { ACTIVITY_TYPES, buildDescription, buildStartDate, buildTitle } from '../features/events/create/create.helpers';
+import { useKnownLocationSuggestions } from '../features/locations/useKnownLocationSuggestions';
 import { triggerErrorHaptic, triggerSuccessHaptic } from '../lib/interaction/feedback';
 
 const DEFAULT_FORM_VALUES: CreateEventFormValues = {
@@ -25,6 +26,7 @@ export default function CreateScreen({ navigation }: MainTabScreenProps<'Create'
   const [createdEvent, setCreatedEvent] = useState<EventSummary | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { createEvent, createError, isCreating, reset } = useCreateEvent();
+  const knownLocationSuggestions = useKnownLocationSuggestions();
   const { control, handleSubmit, reset: resetForm, setValue, watch, formState: { errors } } =
     useForm<CreateEventFormValues>({ defaultValues: DEFAULT_FORM_VALUES, resolver: zodResolver(createEventSchema) });
 
@@ -86,6 +88,7 @@ export default function CreateScreen({ navigation }: MainTabScreenProps<'Create'
       errors={errors}
       isSubmitting={isCreating}
       keyboardScrollRef={scrollRef}
+      knownLocationSuggestions={knownLocationSuggestions}
       noteInputFocus={() => {
         requestAnimationFrame(() => {
           scrollRef.current?.scrollToEnd({ animated: true });

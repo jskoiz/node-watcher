@@ -39,7 +39,7 @@ describe('matchesApi', () => {
       mockClient.get.mockRejectedValueOnce(networkError);
 
       await expect(matchesApi.list()).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith('matches', 'list', networkError);
+      expect(mockLogApiFailure).toHaveBeenCalledWith('matches', 'list', networkError, undefined);
     });
   });
 
@@ -115,7 +115,7 @@ describe('notificationsApi', () => {
       mockClient.get.mockRejectedValueOnce(networkError);
 
       await expect(notificationsApi.list()).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith('notifications', 'list', networkError);
+      expect(mockLogApiFailure).toHaveBeenCalledWith('notifications', 'list', networkError, undefined);
     });
   });
 
@@ -159,7 +159,7 @@ describe('notificationsApi', () => {
       mockClient.post.mockRejectedValueOnce(networkError);
 
       await expect(notificationsApi.markAllRead()).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith('notifications', 'markAllRead', networkError);
+      expect(mockLogApiFailure).toHaveBeenCalledWith('notifications', 'markAllRead', networkError, undefined);
     });
   });
 });
