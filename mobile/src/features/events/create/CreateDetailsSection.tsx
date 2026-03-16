@@ -1,5 +1,5 @@
 import React from 'react';
-import { Controller, type Control } from 'react-hook-form';
+import { Controller, type Control, type FieldErrors } from 'react-hook-form';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { LocationField } from '../../../components/form/LocationField';
 import { Input } from '../../../design/primitives';
@@ -22,7 +22,7 @@ export function CreateDetailsSection({
   knownLocationSuggestions = [],
 }: {
   control: Control<CreateEventFormValues>;
-  errors: Partial<Record<keyof CreateEventFormValues, { message?: string }>>;
+  errors: FieldErrors<CreateEventFormValues>;
   isSubmitting: boolean;
   knownLocationSuggestions?: import('../../locations/locationSuggestions').LocationSuggestion[];
   noteInputFocus: () => void;

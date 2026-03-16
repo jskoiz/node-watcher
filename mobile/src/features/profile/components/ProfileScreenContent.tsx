@@ -112,7 +112,7 @@ export function ProfileScreenContent({
   isSavingProfile: boolean;
   isSavingFitness: boolean;
   knownLocationSuggestions: LocationSuggestion[];
-  navigation: { navigate: (screen: string) => void };
+  navigation: { navigate: (screen: string, params?: Record<string, unknown>) => void };
   onCancelEdit: () => void;
   onConfirmDeleteAccount: () => void;
   onDeletePhoto: (photoId: string) => void;

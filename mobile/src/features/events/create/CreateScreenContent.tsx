@@ -134,7 +134,7 @@ export function CreateScreenContent({
 
           <CreateDetailsSection
             control={control}
-            errors={errors as any}
+            errors={errors}
             hideSpots
             isSubmitting={isSubmitting}
             knownLocationSuggestions={knownLocationSuggestions}

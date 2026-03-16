@@ -70,7 +70,7 @@ export default function ProfileScreen() {
       isSavingProfile={isSavingProfile}
       isSavingFitness={isSavingFitness}
       knownLocationSuggestions={knownLocationSuggestions}
-      navigation={navigation as any}
+      navigation={navigation}
       onCancelEdit={editor.cancelEdit}
       onConfirmDeleteAccount={() => {
         if (deletingAccount) return;
