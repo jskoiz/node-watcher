@@ -100,6 +100,13 @@ Write issue descriptions that tell the agent:
 
 Good Symphony issues are narrow, testable, and explicit about acceptance criteria.
 
+For review-follow-up work on an already-open PR, the best pattern is:
+
+- keep the original implementation issue as the canonical tracker
+- create a separate issue only for the unresolved PR feedback
+- include the original issue identifier in that follow-up issue
+- let the follow-up run update the original issue when the PR becomes merge-ready
+
 ## Operator Guidance
 
 The normal operator loop is:
