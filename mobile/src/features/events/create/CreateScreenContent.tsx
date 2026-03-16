@@ -3,6 +3,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Control, FieldErrors } from 'react-hook-form';
 import type { EventSummary } from '../../../api/types';
+import type { LocationSuggestion } from '../../locations/locationSuggestions';
 import { Button, Card } from '../../../design/primitives';
 import {
   AppBottomSheet,
@@ -29,6 +30,7 @@ export function CreateScreenContent({
   errors,
   isSubmitting,
   keyboardScrollRef,
+  knownLocationSuggestions,
   noteInputFocus,
   onChangeSpots,
   onClearSubmitError,
@@ -56,6 +58,7 @@ export function CreateScreenContent({
   errors: FieldErrors<CreateEventFormValues>;
   isSubmitting: boolean;
   keyboardScrollRef: React.RefObject<ScrollView | null>;
+  knownLocationSuggestions: LocationSuggestion[];
   noteInputFocus: () => void;
   onChangeSpots: (value: number) => void;
   onClearSubmitError: () => void;
@@ -134,6 +137,7 @@ export function CreateScreenContent({
             errors={errors as any}
             hideSpots
             isSubmitting={isSubmitting}
+            knownLocationSuggestions={knownLocationSuggestions}
             noteInputFocus={noteInputFocus}
             onChangeSpots={onChangeSpots}
             onClearError={onClearSubmitError}

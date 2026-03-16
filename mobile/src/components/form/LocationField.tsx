@@ -1,19 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useQueryClient } from '@tanstack/react-query';
-import type { EventSummary } from '../../api/types';
 import { Button, Input } from '../../design/primitives';
 import {
   AppBottomSheet,
   APP_BOTTOM_SHEET_SNAP_POINTS,
 } from '../../design/sheets/AppBottomSheet';
 import { useSheetController } from '../../design/sheets/useSheetController';
-import { queryKeys } from '../../lib/query/queryKeys';
 import { useTheme } from '../../theme/useTheme';
 import { fieldStyles } from './fieldStyles';
 import {
   type LocationSuggestion,
-  extractKnownLocationSuggestions,
   getCuratedLocationSuggestions,
   loadRecentLocationSuggestions,
   normalizeLocationValue,
@@ -37,6 +33,7 @@ export function LocationField({
   helperText,
   kind = 'place',
   label,
+  knownSuggestions = [],
   onChangeText,
   onSelectSuggestion,
   placeholder,
@@ -50,6 +47,7 @@ export function LocationField({
   helperText?: string;
   kind?: 'place' | 'city';
   label?: string;
+  knownSuggestions?: LocationSuggestion[];
   onChangeText: (value: string) => void;
   onSelectSuggestion?: (suggestion: LocationSuggestion) => void;
   placeholder: string;
@@ -59,12 +57,6 @@ export function LocationField({
   value: string;
 }) {
   const theme = useTheme();
-  let queryClient: ReturnType<typeof useQueryClient> | null = null;
-  try {
-    queryClient = useQueryClient();
-  } catch {
-    queryClient = null;
-  }
   const sheet = useSheetController();
   const [query, setQuery] = useState(value);
   const [recentSuggestions, setRecentSuggestions] = useState<LocationSuggestion[]>([]);
@@ -73,19 +65,13 @@ export function LocationField({
     void loadRecentLocationSuggestions().then(setRecentSuggestions);
   }, []);
 
-  const cachedEventLocations = useMemo(() => {
-    const eventsList = queryClient?.getQueryData<EventSummary[]>(queryKeys.events.list) ?? [];
-    const mine = queryClient?.getQueryData<EventSummary[]>(queryKeys.events.mine) ?? [];
-    return extractKnownLocationSuggestions([...eventsList, ...mine]);
-  }, [queryClient]);
-
   const suggestions = useMemo(() => {
     return rankLocationSuggestions(query, [
       ...recentSuggestions,
-      ...cachedEventLocations,
+      ...knownSuggestions,
       ...getCuratedLocationSuggestions(kind),
     ]);
-  }, [cachedEventLocations, kind, query, recentSuggestions]);
+  }, [kind, knownSuggestions, query, recentSuggestions]);
 
   const normalizedQuery = normalizeLocationValue(query);
   const hasExactMatch = suggestions.some(
@@ -151,7 +137,7 @@ export function LocationField({
         snapPoints={APP_BOTTOM_SHEET_SNAP_POINTS.form}
       >
         <Input
-          autoCapitalize={kind === 'city' ? 'words' : 'words'}
+          autoCapitalize="words"
           autoCorrect={false}
           label={kind === 'city' ? 'City' : 'Location'}
           onChangeText={setQuery}

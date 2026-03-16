@@ -27,8 +27,8 @@ export const WEEKLY_FREQUENCY_OPTIONS = [
   { label: '2-3x / week', value: '2-3' },
   { label: '3-4x / week', value: '3-4' },
   { label: '4-5x / week', value: '4-5' },
-  { label: '5+ / week', value: '5+' },
   { label: '6-7x / week', value: '6-7' },
+  { label: '5+ / week', value: '5+' },
 ];
 export const PRIMARY_GOAL_OPTIONS = [
   { label: 'Health', value: 'health' },

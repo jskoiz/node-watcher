@@ -25,6 +25,7 @@ export const Expanded: Story = {
     isRefetching: false,
     isSavingProfile: false,
     isSavingFitness: false,
+    knownLocationSuggestions: [],
     navigation: { navigate: () => undefined },
     onCancelEdit: () => undefined,
     onConfirmDeleteAccount: () => undefined,

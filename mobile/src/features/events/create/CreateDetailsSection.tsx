@@ -19,10 +19,12 @@ export function CreateDetailsSection({
   onClearError,
   spots,
   hideSpots = false,
+  knownLocationSuggestions = [],
 }: {
   control: Control<CreateEventFormValues>;
   errors: Partial<Record<keyof CreateEventFormValues, { message?: string }>>;
   isSubmitting: boolean;
+  knownLocationSuggestions?: import('../../locations/locationSuggestions').LocationSuggestion[];
   noteInputFocus: () => void;
   onChangeSpots: (value: number) => void;
   onClearError: () => void;
@@ -40,6 +42,7 @@ export function CreateDetailsSection({
             <LocationField
               kind="place"
               label="Where"
+              knownSuggestions={knownLocationSuggestions}
               placeholder="Runyon Canyon, Venice Beach..."
               value={value}
               onChangeText={(nextValue) => {

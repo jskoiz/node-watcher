@@ -66,6 +66,7 @@ export function ProfileScreenContent({
   isRefetching,
   isSavingProfile,
   isSavingFitness,
+  knownLocationSuggestions,
   navigation,
   onCancelEdit,
   onConfirmDeleteAccount,
@@ -110,6 +111,7 @@ export function ProfileScreenContent({
   isRefetching: boolean;
   isSavingProfile: boolean;
   isSavingFitness: boolean;
+  knownLocationSuggestions: LocationSuggestion[];
   navigation: { navigate: (screen: string) => void };
   onCancelEdit: () => void;
   onConfirmDeleteAccount: () => void;
@@ -231,6 +233,7 @@ export function ProfileScreenContent({
               <LocationField
                 kind="city"
                 label="City"
+                knownSuggestions={knownLocationSuggestions}
                 value={city}
                 onChangeText={onSetCity}
                 onSelectSuggestion={onSelectCitySuggestion}

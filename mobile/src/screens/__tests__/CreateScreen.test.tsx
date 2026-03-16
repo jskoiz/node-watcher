@@ -15,6 +15,10 @@ jest.mock('../../features/events/hooks/useCreateEvent', () => ({
   }),
 }));
 
+jest.mock('../../features/locations/useKnownLocationSuggestions', () => ({
+  useKnownLocationSuggestions: () => [],
+}));
+
 jest.mock('../../components/ui/AppIcon', () => {
   const React = require('react');
   const { Text } = require('react-native');

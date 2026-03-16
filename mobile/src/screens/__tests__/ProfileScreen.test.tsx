@@ -64,6 +64,10 @@ jest.mock("../../features/profile/hooks/useProfile", () => ({
   }),
 }));
 
+jest.mock("../../features/locations/useKnownLocationSuggestions", () => ({
+  useKnownLocationSuggestions: () => [],
+}));
+
 describe("ProfileScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
