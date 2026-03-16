@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import AppBackButton from '../../../components/ui/AppBackButton';
 import AppIcon from '../../../components/ui/AppIcon';
+import { GlassView } from '../../../design/primitives/GlassView';
 import { chatStyles as styles } from './chat.styles';
 
 export function ChatHeader({
@@ -21,7 +22,7 @@ export function ChatHeader({
   user: any;
 }) {
   return (
-    <View style={[styles.header, { backgroundColor: theme.surfaceGlass, borderBottomColor: theme.border }]}>
+    <GlassView tier="medium" borderRadius={0} style={styles.header}>
       <AppBackButton onPress={onBack} style={styles.backBtn} />
       {photoUrl ? (
         <Image source={{ uri: photoUrl }} style={[styles.headerAvatar, { borderColor: theme.primary }]} contentFit="cover" />
@@ -51,12 +52,11 @@ export function ChatHeader({
           </View>
         ) : null}
       </View>
-      <Pressable
-        onPress={onOpenQuickActions}
-        style={[styles.quickActionTrigger, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
-      >
-        <AppIcon name="more-horizontal" size={16} color={theme.textPrimary} />
+      <Pressable onPress={onOpenQuickActions}>
+        <GlassView tier="thin" borderRadius={19} style={styles.quickActionTriggerGlass}>
+          <AppIcon name="more-horizontal" size={16} color={theme.textPrimary} />
+        </GlassView>
       </Pressable>
-    </View>
+    </GlassView>
   );
 }

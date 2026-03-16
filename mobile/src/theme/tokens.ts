@@ -116,6 +116,7 @@ export const spacing = {
   xs: 4,
   sm: 8,
   md: 12,
+  rowPadding: 14,
   lg: 16,
   xl: 20,
   xxl: 24,
@@ -124,11 +125,12 @@ export const spacing = {
 };
 
 export const radii = {
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 24,
-  xxl: 30,
+  sm: 12,
+  md: 16,
+  lg: 22,
+  xl: 28,
+  xxl: 34,
+  sheet: 38,
   pill: 999,
 };
 
