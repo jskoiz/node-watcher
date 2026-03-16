@@ -31,6 +31,10 @@ run_git() {
   git -C "$ROOT_DIR" "$@"
 }
 
+run_eas() {
+  npx -y eas-cli "$@"
+}
+
 load_env_file() {
   local env_file="$1"
 
@@ -136,7 +140,7 @@ case "$MODE" in
   eas)
     (
       cd "$MOBILE_DIR"
-      npx eas build --platform ios --profile "$PROFILE"
+      run_eas build --platform ios --profile "$PROFILE"
     )
     ;;
   xcode)
