@@ -1,6 +1,14 @@
 # BRDG Daily Dev Loop + Troubleshooting
 
+Use [`HARNESS.md`](./HARNESS.md) for the canonical validation lanes and [`REPO_MAP.md`](./REPO_MAP.md) when you need to orient quickly.
+
 ## Fast start (day-to-day)
+
+If the local environment looks suspect, start with:
+
+```bash
+npm run harness:doctor
+```
 
 From repo root:
 
@@ -35,15 +43,19 @@ This verifies:
 3. The seeded `ui-preview` runtime resets cleanly against the running backend
 4. Mobile launch prerequisites (`expo-doctor` + `typecheck`)
 
+`npm run smoke` expects to own the local backend port for the duration of the run. Stop any existing backend listener on `3010` before invoking it.
+
 ## Validation commands used before ship
 
 ```bash
 # repo root
+npm run check:changed
 npm run check
 
 # or package-local when narrowing failures
 npm run check:backend
 npm run check:mobile
+npm run docs:check
 ```
 
 Phase 3 is complete on `main`. New work should generally branch from clean `main` and target the next product phase rather than continuing to accumulate broad "Phase 3 cleanup" work in one branch.

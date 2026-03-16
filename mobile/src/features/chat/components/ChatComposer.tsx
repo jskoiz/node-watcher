@@ -17,6 +17,8 @@ export function ChatComposer({
   sending: boolean;
   theme: any;
 }) {
+  const canSend = message.trim().length > 0;
+
   return (
     <GlassView tier="thick" borderRadius={0} style={styles.inputBar}>
       <Input
@@ -39,15 +41,15 @@ export function ChatComposer({
       />
       <Pressable
         onPress={onSend}
-        disabled={sending || !message.trim()}
+        disabled={sending || !canSend}
       >
         <GlassView
-          tier={message.trim() ? 'medium' : 'thin'}
-          tint={message.trim() ? theme.primarySubtle : undefined}
+          tier={canSend ? 'medium' : 'thin'}
+          tint={canSend ? theme.primarySubtle : undefined}
           borderRadius={23}
           style={styles.sendBtn}
         >
-          <AppIcon name="arrow-up" size={16} color={message.trim() ? theme.primary : theme.textMuted} />
+          <AppIcon name="arrow-up" size={16} color={canSend ? theme.primary : theme.textMuted} />
         </GlassView>
       </Pressable>
     </GlassView>

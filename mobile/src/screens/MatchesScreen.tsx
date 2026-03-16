@@ -13,6 +13,7 @@ import { radii, spacing, typography } from '../theme/tokens';
 import { useMatches } from '../features/matches/hooks/useMatches';
 import type { MainTabScreenProps } from '../core/navigation/types';
 import { getAvatarInitial, getPrimaryPhotoUri } from '../lib/profilePhotos';
+import { getActivityTag } from '../lib/profile-helpers';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 import { lightTheme } from '../theme/tokens';
@@ -35,21 +36,6 @@ function timeAgo(timestamp?: string) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
   return `${Math.floor(hrs / 24)}d`;
-}
-
-function getActivityTag(user: any): string {
-  const goal = user?.fitnessProfile?.primaryGoal;
-  if (!goal) return '';
-  const map: Record<string, string> = {
-    strength: 'Strength',
-    weight_loss: 'Conditioning',
-    endurance: 'Endurance',
-    mobility: 'Mobility',
-    connection: 'Connection',
-    performance: 'Performance',
-    both: 'Open',
-  };
-  return map[goal] || goal;
 }
 
 // Assign a consistent accent color per user based on name

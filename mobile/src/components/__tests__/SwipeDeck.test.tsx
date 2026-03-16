@@ -54,7 +54,7 @@ describe('SwipeDeck', () => {
       fitnessProfile: {
         favoriteActivities: 'cardio',
         primaryGoal: 'cardio',
-        weeklyFrequencyBand: 3,
+        weeklyFrequencyBand: '3',
       },
     };
 
@@ -72,7 +72,7 @@ describe('SwipeDeck', () => {
       fitnessProfile: {
         favoriteActivities: 'trail_run',
         primaryGoal: 'trail_run',
-        weeklyFrequencyBand: 3,
+        weeklyFrequencyBand: '3',
       },
     };
 
@@ -155,5 +155,22 @@ describe('SwipeDeck', () => {
     );
 
     expect(getByText('Training')).toBeTruthy();
+  });
+
+  it('shows zero distance instead of hiding it', () => {
+    const user = {
+      id: 'u7',
+      firstName: 'Mika',
+      distanceKm: 0,
+      profile: {
+        city: 'Kakaako',
+      },
+    };
+
+    const { getByText } = render(
+      <SwipeDeck data={[user]} onSwipeLeft={noop} onSwipeRight={noop} />,
+    );
+
+    expect(getByText('Kakaako · 0 km away')).toBeTruthy();
   });
 });

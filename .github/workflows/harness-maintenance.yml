@@ -1,0 +1,53 @@
+name: Harness Maintenance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 16 * * 1'
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            mobile/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - run: npm ci
+        working-directory: mobile
+      - name: Build maintenance report
+        id: report
+        continue-on-error: true
+        run: node ./scripts/run-harness-maintenance.mjs --artifacts-dir artifacts/harness/maintenance --report-json artifacts/harness/maintenance/harness-maintenance-report.json --report-markdown artifacts/harness/maintenance/harness-maintenance-report.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: harness-maintenance-report
+          path: artifacts/harness/maintenance
+      - name: Create maintenance auto-fix PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node ./scripts/create-harness-maintenance-pr.mjs --report-json artifacts/harness/maintenance/harness-maintenance-report.json
+      - name: Finalize maintenance status
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('artifacts/harness/maintenance/harness-maintenance-report.json', 'utf8'));
+          const failed = report.results.some((result) => result.required && result.status === 'failed');
+          process.exit(failed ? 1 : 0);
+          NODE

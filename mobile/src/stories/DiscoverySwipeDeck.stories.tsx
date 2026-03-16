@@ -51,6 +51,77 @@ export const SmallPhonePreview: Story = {
   },
 };
 
+export const ZeroDistancePreview: Story = {
+  args: {
+    cardHeight: 620,
+    data: [
+      makeDiscoveryUser({
+        age: 27,
+        distanceKm: 0,
+        firstName: 'Mika',
+        id: 'story-0km',
+        profile: {
+          bio: 'Coffee walks, gym check-ins, and meeting up without the extra commute.',
+          city: 'Kakaako',
+          intentDating: true,
+          intentWorkout: false,
+        },
+      }),
+    ],
+    onPress: () => undefined,
+    onSwipeLeft: () => undefined,
+    onSwipeRight: () => undefined,
+  },
+};
+
+export const HelperLabelVariants: Story = {
+  args: {
+    cardHeight: 620,
+    data: [
+      makeDiscoveryUser({
+        firstName: 'Tori',
+        id: 'story-helper-1',
+        profile: {
+          bio: 'Post-lift coffee, a clean schedule, and plans with actual follow-through.',
+          city: 'Kapahulu',
+          intentDating: false,
+          intentWorkout: true,
+        },
+        fitnessProfile: {
+          favoriteActivities: 'trail_run',
+          intensityLevel: 'high_energy',
+          prefersMorning: false,
+          prefersEvening: true,
+          primaryGoal: 'weight_loss',
+          weeklyFrequencyBand: '4',
+        },
+      }),
+      makeDiscoveryUser({
+        firstName: 'Mia',
+        id: 'story-helper-2',
+        profile: {
+          bio: 'Mobility days, slow weekends, and last-minute beach walks.',
+          city: '',
+          intentDating: true,
+          intentWorkout: true,
+        },
+        recommendationScore: undefined,
+        fitnessProfile: {
+          favoriteActivities: '',
+          intensityLevel: '',
+          prefersMorning: false,
+          prefersEvening: false,
+          primaryGoal: 'mobility',
+          weeklyFrequencyBand: '2',
+        },
+      }),
+    ],
+    onPress: () => undefined,
+    onSwipeLeft: () => undefined,
+    onSwipeRight: () => undefined,
+  },
+};
+
 export const DiscoveryScreenPreview: Story = {
   args: {
     cardHeight: 620,

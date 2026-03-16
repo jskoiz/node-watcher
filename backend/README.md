@@ -4,7 +4,7 @@ NestJS API for authentication, discovery, matches, chat, events, profile data, n
 
 ## Local Setup
 
-From [`backend`](/Users/jerry/Desktop/brdg/backend):
+From [`backend`](.):
 
 ```bash
 npm ci
@@ -52,6 +52,12 @@ DELETE /profile/photos/:id
 - `BASE_URL`: public asset base used for uploaded photo URLs and seed assets
 - `API_BASE_URL`: base URL used by helper scripts
 
+## OpenAPI docs
+
+- Swagger UI is mounted at `/docs` in local and non-production environments.
+- Production keeps Swagger disabled by default through `appConfig` so the API surface is not exposed accidentally.
+- The Swagger UI dependency chain includes transitive `@scarf/scarf`; BRDG container builds set `SCARF_ANALYTICS=false` during `npm ci` to suppress Scarf analytics in automated environments.
+
 ## Local photo uploads
 
 - In local/dev flows, uploaded profile photos are stored under `public/uploads/profile`.
@@ -81,6 +87,7 @@ Use this path for current release/readiness QA when validating:
 
 ## References
 
-- Dev loop: [`docs/DEV_LOOP.md`](/Users/jerry/Desktop/brdg/docs/DEV_LOOP.md)
-- Architecture: [`docs/ARCHITECTURE.md`](/Users/jerry/Desktop/brdg/docs/ARCHITECTURE.md)
-- Functional matrix: [`docs/FUNCTIONAL_MATRIX.md`](/Users/jerry/Desktop/brdg/docs/FUNCTIONAL_MATRIX.md)
+- Harness: [`../docs/HARNESS.md`](../docs/HARNESS.md)
+- Dev loop: [`../docs/DEV_LOOP.md`](../docs/DEV_LOOP.md)
+- Architecture: [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
+- Functional matrix: [`../docs/FUNCTIONAL_MATRIX.md`](../docs/FUNCTIONAL_MATRIX.md)

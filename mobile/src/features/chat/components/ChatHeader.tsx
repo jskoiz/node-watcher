@@ -1,9 +1,11 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import type { User } from '../../../api/types';
 import AppBackButton from '../../../components/ui/AppBackButton';
 import AppIcon from '../../../components/ui/AppIcon';
 import { GlassView } from '../../../design/primitives/GlassView';
+import type { Theme } from '../../../theme/tokens';
 import { chatStyles as styles } from './chat.styles';
 
 export function ChatHeader({
@@ -18,8 +20,8 @@ export function ChatHeader({
   onBack: () => void;
   onOpenQuickActions: () => void;
   photoUrl?: string;
-  theme: any;
-  user: any;
+  theme: Theme;
+  user: User;
 }) {
   return (
     <GlassView tier="medium" borderRadius={0} style={styles.header}>
