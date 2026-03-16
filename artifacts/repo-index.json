@@ -25,6 +25,7 @@
     "scaffold:mobile-feature",
     "smoke",
     "storybook",
+    "symphony",
     "test:backend",
     "test:mobile",
     "test:root"
@@ -185,6 +186,7 @@
           "backend/src/common/auth-request.interface.ts",
           "backend/src/common/enums.ts",
           "backend/src/common/filters/all-exceptions.filter.ts",
+          "backend/src/common/middleware/request-logger.middleware.ts",
           "backend/src/config/app.config.ts"
         ]
       },
