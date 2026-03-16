@@ -27,18 +27,20 @@ async function bootstrap() {
   // Serve demo profile pictures (seeded as http(s)://<host>/pfps/...).
   app.useStaticAssets(join(process.cwd(), 'public'));
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('BRDG Backend API')
-    .setDescription('OpenAPI documentation for the BRDG backend controllers.')
-    .setVersion('1.0.0')
-    .addBearerAuth()
-    .build();
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, swaggerDocument, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-  });
+  if (appConfig.docs.swaggerEnabled) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('BRDG Backend API')
+      .setDescription('OpenAPI documentation for the BRDG backend controllers.')
+      .setVersion('1.0.0')
+      .addBearerAuth()
+      .build();
+    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, swaggerDocument, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    });
+  }
 
   await app.listen(appConfig.apiPort);
 }

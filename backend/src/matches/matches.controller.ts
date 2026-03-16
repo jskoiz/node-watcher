@@ -16,6 +16,7 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProduces,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -61,6 +62,7 @@ export class MatchesController {
   @ApiOperation({
     summary: 'Stream server-sent events for a match conversation',
   })
+  @ApiProduces('text/event-stream')
   @ApiOkResponse({ description: 'Message event stream opened successfully.' })
   async streamMessages(
     @Request() req: AuthenticatedRequest,

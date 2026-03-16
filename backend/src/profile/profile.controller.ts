@@ -17,6 +17,7 @@ import {
 import { ProfileService } from './profile.service';
 import { AuthGuard } from '@nestjs/passport';
 import {
+  ApiBody,
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConsumes,
@@ -98,6 +99,18 @@ export class ProfileController {
     }),
   )
   @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @ApiOperation({ summary: 'Upload a new profile photo' })
   @ApiCreatedResponse({ description: 'Photo uploaded successfully.' })
   @ApiBadRequestResponse({ description: 'Photo file is missing or invalid.' })

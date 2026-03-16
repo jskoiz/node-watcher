@@ -33,6 +33,9 @@ export const appConfig = {
   cors: {
     allowedOrigins,
   },
+  docs: {
+    swaggerEnabled: process.env.NODE_ENV !== 'production',
+  },
   jwt: {
     secret: jwtSecret,
     expiresIn: '60m' as const,
