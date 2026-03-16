@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import {
   BadRequestException,
-  ConflictException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthProvider, Gender } from '@prisma/client';
@@ -165,7 +164,7 @@ describe('AuthService', () => {
         birthdate: '1995-02-03',
         gender: 'non-binary',
       }),
-    ).rejects.toBeInstanceOf(ConflictException);
+    ).rejects.toBeInstanceOf(BadRequestException);
 
     expect(prismaMock.user.create).not.toHaveBeenCalled();
   });

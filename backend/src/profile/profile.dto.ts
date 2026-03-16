@@ -54,7 +54,7 @@ export class UpdateFitnessProfileDto {
   @IsEnum(IntensityLevel, {
     message: `intensityLevel must be one of: ${Object.values(IntensityLevel).join(', ')}`,
   })
-  intensityLevel?: string;
+  intensityLevel?: IntensityLevel;
 
   @IsOptional()
   @IsString()

@@ -1,4 +1,5 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { EventCategory } from '@prisma/client';
 
 export class CreateEventDto {
   @IsString()
@@ -12,8 +13,10 @@ export class CreateEventDto {
   location: string;
 
   @IsOptional()
-  @IsString()
-  category?: string;
+  @IsEnum(EventCategory, {
+    message: `category must be one of: ${Object.values(EventCategory).join(', ')}`,
+  })
+  category?: EventCategory;
 
   @IsString()
   startsAt: string;

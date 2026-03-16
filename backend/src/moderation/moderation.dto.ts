@@ -1,11 +1,14 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { ReportCategory } from '@prisma/client';
 
 export class ReportUserDto {
   @IsString()
   reportedUserId: string;
 
-  @IsString()
-  category: string;
+  @IsEnum(ReportCategory, {
+    message: `category must be one of: ${Object.values(ReportCategory).join(', ')}`,
+  })
+  category: ReportCategory;
 
   @IsOptional()
   @IsString()
