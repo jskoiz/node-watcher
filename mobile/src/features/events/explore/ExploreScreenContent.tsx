@@ -135,8 +135,8 @@ export function ExploreScreenContent({
             <Text style={styles.sectionTitle}>{spotsSectionTitle}</Text>
             {spots.length === 0 ? (
               <View style={styles.spotsEmptyState}>
-                <Text style={styles.spotsEmptyTitle}>No spots in this lane yet</Text>
-                <Text style={styles.spotsEmptyCopy}>Try another filter or come back after the next refresh.</Text>
+                <Text style={styles.spotsEmptyTitle}>No spots yet</Text>
+                <Text style={styles.spotsEmptyCopy}>Check back soon or try a different category.</Text>
               </View>
             ) : (
               <SpotsRow spots={spots} />

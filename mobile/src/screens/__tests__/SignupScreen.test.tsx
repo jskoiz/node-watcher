@@ -45,7 +45,7 @@ describe('SignupScreen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Alex'), 'Jordan');
     fireEvent.press(screen.getByText('Continue'));
 
-    expect(await screen.findByText('Secure your account.')).toBeTruthy();
+    expect(await screen.findByText('Create your login')).toBeTruthy();
 
     fireEvent.changeText(screen.getByPlaceholderText('you@example.com'), 'not-an-email');
     fireEvent.changeText(screen.getByPlaceholderText('At least 8 characters'), 'short');
@@ -58,7 +58,7 @@ describe('SignupScreen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('At least 8 characters'), 'password123');
     fireEvent.press(screen.getByText('Continue'));
 
-    expect(await screen.findByText('One last thing.')).toBeTruthy();
+    expect(await screen.findByText('Almost done')).toBeTruthy();
     expect(screen.getAllByText('Choose your birthdate')[0]).toBeTruthy();
     expect(screen.getAllByText('Choose a gender')[0]).toBeTruthy();
     expect(mockSignup).not.toHaveBeenCalled();
@@ -71,12 +71,12 @@ describe('SignupScreen', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Alex'), ' Jordan ');
     fireEvent.press(screen.getByText('Continue'));
-    expect(await screen.findByText('Secure your account.')).toBeTruthy();
+    expect(await screen.findByText('Create your login')).toBeTruthy();
 
     fireEvent.changeText(screen.getByPlaceholderText('you@example.com'), 'Jordan@Example.com ');
     fireEvent.changeText(screen.getByPlaceholderText('At least 8 characters'), 'password123');
     fireEvent.press(screen.getByText('Continue'));
-    expect(await screen.findByText('One last thing.')).toBeTruthy();
+    expect(await screen.findByText('Almost done')).toBeTruthy();
 
     fireEvent.press(screen.getAllByText('Choose your birthdate')[0]);
     fireEvent.press(screen.getByText('Non-binary'));
@@ -104,11 +104,11 @@ describe('SignupScreen', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Alex'), 'Jordan');
     fireEvent.press(screen.getByText('Continue'));
-    expect(await screen.findByText('Secure your account.')).toBeTruthy();
+    expect(await screen.findByText('Create your login')).toBeTruthy();
     fireEvent.changeText(screen.getByPlaceholderText('you@example.com'), 'jordan@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('At least 8 characters'), 'password123');
     fireEvent.press(screen.getByText('Continue'));
-    expect(await screen.findByText('One last thing.')).toBeTruthy();
+    expect(await screen.findByText('Almost done')).toBeTruthy();
     fireEvent.press(screen.getAllByText('Choose your birthdate')[0]);
     fireEvent.press(screen.getByText('Non-binary'));
     await waitFor(() => {

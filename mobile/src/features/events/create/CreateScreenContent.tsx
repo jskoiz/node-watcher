@@ -110,7 +110,7 @@ export function CreateScreenContent({
           />
           <Card style={styles.selectionCard}>
             <Text style={styles.selectionEyebrow}>Activity</Text>
-            <Text style={styles.selectionValue}>{selectedActivity || 'Choose the anchor activity'}</Text>
+            <Text style={styles.selectionValue}>{selectedActivity || 'Choose an activity'}</Text>
             <Button
               label={selectedActivity ? 'Change activity' : 'Choose activity'}
               onPress={activitySheet.open}
@@ -172,7 +172,7 @@ export function CreateScreenContent({
       <AppBottomSheet
         {...activitySheet.sheetProps}
         title="Choose activity"
-        subtitle="Set the movement anchor before you post."
+        subtitle="What will you be doing?"
         snapPoints={APP_BOTTOM_SHEET_SNAP_POINTS.standard}
       >
         <CreateActivityPicker
@@ -187,7 +187,7 @@ export function CreateScreenContent({
       <AppBottomSheet
         {...timingSheet.sheetProps}
         title="Plan details"
-        subtitle="Shape the timing, pace, and capacity."
+        subtitle="When, how hard, and how many people?"
         snapPoints={APP_BOTTOM_SHEET_SNAP_POINTS.form}
       >
         <CreateTimingSection

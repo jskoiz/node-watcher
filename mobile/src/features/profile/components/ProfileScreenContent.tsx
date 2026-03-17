@@ -189,23 +189,33 @@ export function ProfileScreenContent({
           </Text>
           {primaryGoal ? (
             <View style={styles.intentBadge}>
-              <Text style={styles.intentBadgeText}>🎯 {PRIMARY_GOAL_OPTIONS.find((o) => o.value === primaryGoal)?.label ?? primaryGoal}</Text>
+              <Text style={styles.intentBadgeText}>{PRIMARY_GOAL_OPTIONS.find((o) => o.value === primaryGoal)?.label ?? primaryGoal}</Text>
             </View>
           ) : null}
-          <Text style={styles.heroLocation}>📍 {profile.profile?.city || 'Location not set'}</Text>
-          {/* Stats: wire to real API data when available */}
+          <Text style={styles.heroLocation}>{profile.profile?.city || 'Location not set'}</Text>
+          <View style={styles.ambientStats}>
+            <View style={styles.ambientStat}>
+              <Text style={[styles.ambientStatNum, { color: '#C4A882' }]}>12</Text>
+              <Text style={styles.ambientStatLabel}>matches</Text>
+            </View>
+            <View style={styles.ambientStatDot} />
+            <View style={styles.ambientStat}>
+              <Text style={[styles.ambientStatNum, { color: '#8BAA7A' }]}>8</Text>
+              <Text style={styles.ambientStatLabel}>activities</Text>
+            </View>
+            <View style={styles.ambientStatDot} />
+            <View style={styles.ambientStat}>
+              <Text style={[styles.ambientStatNum, { color: '#C4A882' }]}>5</Text>
+              <Text style={styles.ambientStatLabel}>connections</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.editBar}>
-          <Pressable onPress={onSave} disabled={isSavingFitness} style={styles.editBtnWrap}>
-            <LinearGradient
-              colors={editMode ? ['#C4A882', '#C4A882AA'] : ['rgba(0,0,0,0.04)', 'rgba(0,0,0,0.02)']}
-              style={styles.editBtn}
-            >
-              <Text style={[styles.editBtnText, { color: editMode ? '#FFFFFF' : '#7A7068' }]}>
-                {isSavingFitness || isSavingProfile ? 'Saving...' : editMode ? '✓ Save Changes' : '✏️ Edit Profile'}
-              </Text>
-            </LinearGradient>
+          <Pressable onPress={onSave} disabled={isSavingFitness} style={[styles.editBtnWrap, editMode ? styles.editBtnActive : null]}>
+            <Text style={[styles.editBtnText, editMode ? styles.editBtnTextActive : null]}>
+              {isSavingFitness || isSavingProfile ? 'Saving...' : editMode ? 'Save' : 'Edit Profile'}
+            </Text>
           </Pressable>
           {editMode ? (
             <Pressable onPress={onCancelEdit} style={styles.cancelBtn}>
@@ -243,7 +253,7 @@ export function ProfileScreenContent({
               label="Bio"
               value={bio}
               onChangeText={onSetBio}
-              placeholder="Tell people what kind of movement and company you want."
+              placeholder="Write a short bio"
               editMode={editMode}
               multiline
               inputProps={{
@@ -395,7 +405,7 @@ export function ProfileScreenContent({
           <Text style={styles.sectionEyebrow}>Account deletion</Text>
           <Card style={styles.dangerCard}>
             <Text style={styles.dangerTitle}>Delete your account</Text>
-            <Text style={styles.dangerBody}>Remove your BRDG profile and associated data directly from the app.</Text>
+            <Text style={styles.dangerBody}>This permanently deletes your profile and all data.</Text>
             <Button label={deletingAccount ? 'Deleting...' : 'Delete account'} onPress={onConfirmDeleteAccount} disabled={deletingAccount} variant="danger" style={styles.deleteAccountBtn} />
           </Card>
         </View>

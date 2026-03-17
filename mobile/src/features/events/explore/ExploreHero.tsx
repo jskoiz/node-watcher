@@ -17,9 +17,9 @@ export function ExploreHero({
     <View style={styles.hero}>
       <View style={styles.heroHeaderRow}>
         <View style={styles.heroCopy}>
-          <Text style={styles.heroEyebrow}>CITY GUIDE / CURATED MOVEMENT</Text>
-          <Text style={styles.heroTitle}>What&apos;s{'\n'}happening.</Text>
-          <Text style={styles.heroSubtitle}>A cleaner browse with stronger editorial framing.</Text>
+          <Text style={styles.heroEyebrow}>EXPLORE</Text>
+          <Text style={styles.heroTitle}>What&apos;s{'\n'}nearby.</Text>
+          <Text style={styles.heroSubtitle}>Events, spots, and people near you.</Text>
         </View>
         <AppNotificationButton
           unreadCount={unreadCount}

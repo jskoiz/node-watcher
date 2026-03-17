@@ -15,7 +15,7 @@ export function HomeQuickFilters({
   onPressFilter: (filterId: QuickFilterKey) => void;
   onPressRefine: () => void;
 }) {
-  const refineLabel = activeFilterCount > 0 ? `Filters ${activeFilterCount}` : 'Filters';
+  const refineLabel = activeFilterCount > 0 ? String(activeFilterCount) : 'Refine';
 
   return (
     <View style={styles.filterBar}>

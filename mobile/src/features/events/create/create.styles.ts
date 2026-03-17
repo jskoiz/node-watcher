@@ -41,16 +41,16 @@ export const createStyles = StyleSheet.create({
   eyebrow: {
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 2.8,
+    letterSpacing: 2,
     color: PRIMARY,
     marginBottom: spacing.xs,
   },
   title: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '800',
     letterSpacing: -1,
     color: TEXT_PRIMARY,
-    lineHeight: 36,
+    lineHeight: 34,
     marginBottom: spacing.xs,
   },
   subtitle: {

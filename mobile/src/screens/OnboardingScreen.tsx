@@ -87,15 +87,15 @@ const SOCIAL_OPTIONS = [
 ];
 
 const STEP_CHAPTERS = [
-  'Arrival',
+  'Welcome',
   'Intent',
-  'Identity',
-  'Rhythm',
+  'Activities',
+  'Frequency',
   'Environment',
   'Schedule',
-  'Comfort',
+  'Social',
   'Summary',
-  'Activation',
+  'Ready',
 ] as const;
 
 const TOTAL_STEPS = 9;
@@ -214,14 +214,14 @@ export default function OnboardingScreen({
                 <AppIcon name="activity" size={30} color={theme.primary} />
               </View>
               <Text style={[styles.welcomeHeadline, { color: theme.textPrimary }]}>
-                Move together.{'\n'}Meet naturally.
+                Welcome to BRDG
               </Text>
               <Text style={[styles.welcomeBody, { color: theme.textSecondary }]}>
-                BRDG connects people through shared activities — not profiles. Find your people by living your lifestyle.
+                Connect with people through the activities you love.
               </Text>
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <Button label="Let's go →" onPress={goNext} />
+              <Button label="Get started" onPress={goNext} />
             </View>
           </View>
         );
@@ -234,7 +234,7 @@ export default function OnboardingScreen({
               What brings you to BRDG?
             </Text>
             <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-              Be honest — no judgment here.
+              This helps us personalize your feed.
             </Text>
             <View style={styles.intentCards}>
               {[
@@ -285,7 +285,7 @@ export default function OnboardingScreen({
               How do you like to move?
             </Text>
             <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-              Select all that define you.
+              Pick all that apply.
             </Text>
             <View style={styles.activityGrid}>
               {ACTIVITIES.map((act) => {
@@ -332,7 +332,7 @@ export default function OnboardingScreen({
               How often do you train?
             </Text>
             <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-              Helps us find compatible schedules.
+              We'll match you with similar energy.
             </Text>
             <View style={styles.largeCards}>
               {FREQUENCY_OPTIONS.map((opt) => {
@@ -379,10 +379,10 @@ export default function OnboardingScreen({
         return (
           <ScrollView contentContainerStyle={[styles.stepContent, { paddingBottom: 120 + insets.bottom }]} showsVerticalScrollIndicator={false}>
             <Text style={[styles.stepHeadline, { color: theme.textPrimary }]}>
-              Where do you feel most alive?
+              Where do you like to train?
             </Text>
             <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-              Pick all that resonate.
+              Pick all that apply.
             </Text>
             <View style={styles.activityGrid}>
               {ENVIRONMENTS.map((env) => {
@@ -477,7 +477,7 @@ export default function OnboardingScreen({
               How do you prefer to meet?
             </Text>
             <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-              No wrong answer here.
+              How you prefer to connect.
             </Text>
             <View style={styles.socialCards}>
               {SOCIAL_OPTIONS.map((opt) => {
@@ -530,10 +530,10 @@ export default function OnboardingScreen({
         return (
           <ScrollView contentContainerStyle={[styles.stepContent, { paddingBottom: 120 + insets.bottom }]} showsVerticalScrollIndicator={false}>
             <Text style={[styles.stepHeadline, { color: theme.textPrimary }]}>
-              This is you{'\n'}on BRDG.
+              Your profile
             </Text>
             <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-              Your movement identity — authentic and yours.
+              Here's a summary of what you told us.
             </Text>
 
             <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -578,13 +578,13 @@ export default function OnboardingScreen({
               />
             </View>
             <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-              <Button label="That's me →" onPress={goNext} />
+              <Button label="Looks good" onPress={goNext} />
             </View>
           </ScrollView>
         );
       }
 
-      // ── Step 8: Holy Sh*t Moment ─────────────────────────────────────────
+      // ── Step 8: Final Step ───────────────────────────────────────────────
       case 8:
         return (
           <View style={styles.fullScreenStep}>
@@ -595,7 +595,7 @@ export default function OnboardingScreen({
               </Animated.View>
 
               <Text style={[styles.holyShitHeadline, { color: theme.textPrimary }]}>
-                People who share{'\n'}your lifestyle.
+                People near you
               </Text>
               <Text style={[styles.holyShitBody, { color: theme.textSecondary }]}>
                 People near you are waiting with matching activities, schedule, and vibe.
@@ -970,7 +970,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.md,
-    shadowColor: '#7C6AF7',
+    shadowColor: '#C4A882',
     shadowOpacity: 0.24,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 10 },

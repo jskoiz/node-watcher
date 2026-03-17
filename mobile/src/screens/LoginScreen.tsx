@@ -51,30 +51,30 @@ export function LoginScreenView({
 
           <View style={styles.hero}>
             <GlassView tier="light" tint={theme.accentSubtle} borderRadius={999} style={styles.wordmarkPill}>
-              <Text style={[styles.eyebrow, { color: theme.accent }]}>PRIVATE SOCIAL / MOVEMENT</Text>
+              <Text style={[styles.eyebrow, { color: theme.accent }]}>BRDG</Text>
             </GlassView>
             <Text style={styles.wordmark}>BRDG</Text>
             <Text style={[styles.headline, { color: theme.textPrimary }]}>
-              Meet people through the way they actually move.
+              Connect through movement.
             </Text>
             <Text style={[styles.tagline, { color: theme.textMuted }]}>
-              Dating energy, training energy, and social momentum stay in one refined flow.
+              Find your people through shared activities.
             </Text>
             <View style={styles.heroMetaRow}>
               <GlassView tier="light" borderRadius={radii.lg} style={styles.heroMetaCard}>
-                <Text style={styles.heroMetaLabel}>Curation</Text>
-                <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Intent-aware discovery</Text>
+                <Text style={styles.heroMetaLabel}>DISCOVERY</Text>
+                <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Based on what you do</Text>
               </GlassView>
               <GlassView tier="light" borderRadius={radii.lg} style={styles.heroMetaCard}>
-                <Text style={styles.heroMetaLabel}>Pace</Text>
-                <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Quieter, more selective</Text>
+                <Text style={styles.heroMetaLabel}>PACE</Text>
+                <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Quality over quantity</Text>
               </GlassView>
             </View>
           </View>
 
           <GlassView tier="frosted" borderRadius={radii.xxl} specularHighlight style={styles.formCard}>
             <Text style={[styles.formEyebrow, { color: theme.textMuted }]}>SIGN IN</Text>
-            <Text style={[styles.formTitle, { color: theme.textPrimary }]}>Welcome back.</Text>
+            <Text style={[styles.formTitle, { color: theme.textPrimary }]}>Welcome back</Text>
             <Controller
               control={control}
               name="email"
@@ -227,18 +227,18 @@ const styles = StyleSheet.create({
     letterSpacing: 2.2,
   },
   wordmark: {
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: '900',
-    letterSpacing: -2,
+    letterSpacing: -1.5,
     lineHeight: 44,
     marginBottom: spacing.sm,
     color: '#1A1A1A',
   },
   headline: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '800',
     letterSpacing: -1,
-    lineHeight: 40,
+    lineHeight: 34,
     marginBottom: spacing.md,
   },
   tagline: {
@@ -256,11 +256,11 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 18,
     padding: spacing.lg,
-    minHeight: 86,
+    minHeight: 72,
   },
   heroMetaLabel: {
     color: '#8C8279',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.6,
     marginBottom: spacing.xs,

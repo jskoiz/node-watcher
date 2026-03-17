@@ -53,7 +53,7 @@ describe('OnboardingScreen', () => {
   it('submits canonical discovery intensity values for high-frequency onboarding choices', async () => {
     render(<OnboardingScreen navigation={navigation} route={route} />);
 
-    fireEvent.press(screen.getByText("Let's go →"));
+    fireEvent.press(screen.getByText('Get started'));
     fireEvent.press(screen.getByText('Continue'));
     fireEvent.press(screen.getByText('Lifting'));
     fireEvent.press(screen.getByText('Continue'));
@@ -65,7 +65,7 @@ describe('OnboardingScreen', () => {
     fireEvent.press(screen.getByText('Continue'));
     fireEvent.press(screen.getByText('1-on-1'));
     fireEvent.press(screen.getByText('Continue'));
-    fireEvent.press(screen.getByText("That's me →"));
+    fireEvent.press(screen.getByText('Looks good'));
     fireEvent.press(screen.getByText('Meet them now'));
 
     await waitFor(() => {

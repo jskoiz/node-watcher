@@ -186,7 +186,7 @@ export default function NotificationsScreen() {
       <View style={styles.header}>
         <AppBackButton onPress={() => navigation.goBack()} />
         <View style={styles.headerCopy}>
-          <Text style={[styles.eyebrow, { color: theme.accent }]}>INBOX</Text>
+          <Text style={[styles.eyebrow, { color: theme.accent }]}>NOTIFICATIONS</Text>
           <Text style={[styles.title, { color: theme.textPrimary }]}>Notifications</Text>
         </View>
         {unreadCount > 0 && (
@@ -220,9 +220,9 @@ export default function NotificationsScreen() {
           <View style={[styles.emptyIconWrap, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
             <AppIcon name="bell" size={24} color={theme.primary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>All caught up!</Text>
+          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No notifications</Text>
           <Text style={[styles.emptyBody, { color: theme.textSecondary }]}>
-            Notifications will appear here when you get matches, messages, and activity invites.
+            You'll see matches, messages, and event updates here.
           </Text>
         </View>
       ) : (

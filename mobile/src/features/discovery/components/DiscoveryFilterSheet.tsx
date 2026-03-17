@@ -118,7 +118,7 @@ export function DiscoveryFilterSheet({
     <AppBottomSheet
       {...controller}
       title="Filters"
-      subtitle="Tighten the feed without leaving discovery."
+      subtitle="Adjust who you see."
       snapPoints={APP_BOTTOM_SHEET_SNAP_POINTS.tall}
     >
       <View style={styles.modalContent}>

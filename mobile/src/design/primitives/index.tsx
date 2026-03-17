@@ -82,7 +82,8 @@ export function Button({
       case 'secondary':
         return {
           backgroundColor: theme.surfaceElevated,
-          ...shadows.soft,
+          borderWidth: 1,
+          borderColor: theme.border,
         };
       case 'accent':
         return {
@@ -95,7 +96,9 @@ export function Button({
         };
       case 'ghost':
         return {
-          backgroundColor: 'rgba(0,0,0,0.03)',
+          backgroundColor: theme.surfaceElevated,
+          borderWidth: 1,
+          borderColor: theme.border,
         };
       case 'danger':
         return {
@@ -397,15 +400,15 @@ const primitiveStyles = StyleSheet.create({
   buttonBase: {
     minHeight: 48,
     borderRadius: 999,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   buttonLabel: {
     fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.25,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   card: {
     borderRadius: radii.lg,
@@ -418,7 +421,7 @@ const primitiveStyles = StyleSheet.create({
     flexDirection: 'row',
   },
   accentStrip: {
-    width: 4,
+    width: 3,
     borderRadius: 2,
     marginRight: spacing.md,
     alignSelf: 'stretch',
@@ -445,8 +448,8 @@ const primitiveStyles = StyleSheet.create({
     marginBottom: spacing.sm,
     marginLeft: 2,
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.7,
+    fontWeight: '700',
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   inputWrapper: {
@@ -462,7 +465,7 @@ const primitiveStyles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md + 2,
     fontSize: typography.body,
-    minHeight: 50,
+    minHeight: 48,
   },
   multiline: {
     minHeight: 110,
@@ -511,7 +514,7 @@ const primitiveStyles = StyleSheet.create({
   },
   stateTitle: {
     fontSize: typography.h3,
-    fontWeight: '800',
+    fontWeight: '700',
     textAlign: 'center',
     letterSpacing: -0.3,
     lineHeight: 28,
@@ -520,7 +523,7 @@ const primitiveStyles = StyleSheet.create({
     fontSize: typography.body,
     textAlign: 'center',
     marginTop: spacing.sm,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   stateButton: {
     marginTop: spacing.xl,

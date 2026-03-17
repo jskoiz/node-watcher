@@ -29,14 +29,14 @@ export function HomeHero({
   const timeLabel = rawTimeWord.toUpperCase();
   const headingLabel = rawTimeWord.charAt(0).toUpperCase() + rawTimeWord.slice(1).toLowerCase();
   const summaryLabel =
-    filterCount > 0 ? `${feedCount} profiles · ${filterCount} active` : `${feedCount} profiles · Minimal`;
+    filterCount > 0 ? `${feedCount} people · ${filterCount} filters` : `${feedCount} people nearby`;
 
   return (
     <View style={styles.topBar}>
       <View style={styles.heroHeaderRow}>
         <View style={styles.headerCopy}>
-          <Text style={styles.greetingEyebrow}>{timeLabel} / INTENT-AWARE</Text>
-          <Text style={[styles.greeting, { fontFamily: fontFamily.serifBold }]}>{headingLabel}&apos;s people</Text>
+          <Text style={styles.greetingEyebrow}>{timeLabel}</Text>
+          <Text style={[styles.greeting, { fontFamily: fontFamily.serifBold }]}>{greeting}</Text>
         </View>
 
         <AppNotificationButton

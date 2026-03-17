@@ -124,7 +124,7 @@ describe("ProfileScreen", () => {
     expect(await screen.findByText(/Edit Profile/)).toBeTruthy();
 
     fireEvent.press(screen.getByText(/Edit Profile/));
-    fireEvent.press(screen.getByText(/Save Changes/));
+    fireEvent.press(screen.getByText(/Save/));
 
     await waitFor(() => {
       expect(mockUpdateFitness).toHaveBeenCalledWith({
@@ -156,7 +156,7 @@ describe("ProfileScreen", () => {
     fireEvent.press(screen.getByText(/Edit Profile/));
     fireEvent.changeText(screen.getByPlaceholderText("Honolulu"), "Kailua");
     fireEvent.press(screen.getByText("Windward Oahu"));
-    fireEvent.press(screen.getByText(/Save Changes/));
+    fireEvent.press(screen.getByText(/Save/));
 
     await waitFor(() => {
       expect(mockUpdateProfile).toHaveBeenCalledWith(

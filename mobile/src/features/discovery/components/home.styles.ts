@@ -28,17 +28,17 @@ export const homeStyles = StyleSheet.create({
   greetingEyebrow: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     color: TEXT_MUTED,
     textTransform: 'uppercase',
     marginBottom: 6,
   },
   greeting: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     color: TEXT_PRIMARY,
     letterSpacing: -0.6,
-    lineHeight: 24,
+    lineHeight: 28,
   },
   heroSummaryRow: {
     flexDirection: 'row',
@@ -48,7 +48,7 @@ export const homeStyles = StyleSheet.create({
   },
   heroSummaryText: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: TEXT_MUTED,
   },
@@ -67,7 +67,7 @@ export const homeStyles = StyleSheet.create({
     borderRadius: radii.pill,
   },
   intentBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.3,
   },
@@ -91,7 +91,7 @@ export const homeStyles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
   },
   refineTriggerText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   filterPillsRow: {
@@ -118,9 +118,9 @@ export const homeStyles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
   },
   filterPillText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 0.4,
+    letterSpacing: 0.2,
     color: TEXT_MUTED,
   },
   filterPillTextActive: {

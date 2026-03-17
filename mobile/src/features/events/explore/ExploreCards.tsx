@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { EventSummary } from '../../../api/types';
 import AppIcon from '../../../components/ui/AppIcon';
@@ -26,13 +27,27 @@ export function EventCard({
   return (
     <Card style={styles.eventCard}>
       <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Event: ${event.title}. ${formatEventDate(event.startsAt)}. ${event.attendeesCount} attending`}>
-      <LinearGradient
-        colors={[...meta.gradientColors, 'rgba(253,251,248,0.85)']}
-        locations={[0, 0.45, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.eventBanner}
-      >
+      <View style={styles.eventBanner}>
+        {event.imageUrl ? (
+          <Image
+            source={{ uri: event.imageUrl }}
+            style={styles.eventBannerImage}
+            contentFit="cover"
+            transition={180}
+          />
+        ) : (
+          <LinearGradient
+            colors={[...meta.gradientColors, 'rgba(253,251,248,0.85)']}
+            locations={[0, 0.45, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.eventBannerImage}
+          />
+        )}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.4)']}
+          style={styles.eventBannerOverlay}
+        />
         <View style={styles.eventBannerContent}>
           <View style={styles.eventIconWrap}>
             <AppIcon name={meta.icon} size={22} color="#FFFFFF" />
@@ -48,7 +63,7 @@ export function EventCard({
             </View>
           )}
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={styles.eventBody}>
         <Text style={styles.eventTitle}>{event.title}</Text>

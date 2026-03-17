@@ -128,8 +128,8 @@ export default function MatchesScreen() {
       <View style={styles.ambientGlow} pointerEvents="none" />
 
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>MATCHES / INNER CIRCLE</Text>
-        <Text style={styles.title}>Your{'\n'}circle.</Text>
+        <Text style={styles.eyebrow}>MATCHES</Text>
+        <Text style={styles.title}>Matches</Text>
         {matches.length > 0 && (
           <View style={styles.countBadge}>
             <Text style={styles.countBadgeText}>{matches.length} active</Text>
@@ -152,7 +152,7 @@ export default function MatchesScreen() {
       ) : matches.length === 0 ? (
         <StatePanel
           title="Nothing here yet"
-          description="Keep discovering — your next connection is just a swipe away."
+          description="Start discovering people to find your first match."
           actionLabel="Go explore"
           onAction={() => navigation.navigate('Discover')}
         />
@@ -212,11 +212,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 44,
+    fontSize: 32,
     fontWeight: '900',
     letterSpacing: -1.5,
     color: TEXT_PRIMARY,
-    lineHeight: 48,
+    lineHeight: 36,
     marginBottom: spacing.md,
   },
   countBadge: {
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: typography.body,
-    fontWeight: '900',
+    fontWeight: '700',
     color: TEXT_PRIMARY,
     letterSpacing: -0.2,
   },

@@ -26,11 +26,11 @@ import type { RootStackScreenProps } from '../core/navigation/types';
 
 const STEPS = 3;
 const STEP_LABELS = ['Account', 'Profile', 'Done'];
-const STEP_TITLES = ["Let's start with you.", 'Secure your account.', 'One last thing.'];
+const STEP_TITLES = ["What's your name?", 'Create your login', 'Almost done'];
 const STEP_SUBTITLES = [
-  'Your name, so we can greet you right.',
-  'Your email and a strong password.',
-  'Your birthday and how you identify.',
+  "We'll use this on your profile.",
+  "You'll use these to sign in.",
+  'Helps us personalize your experience.',
 ];
 
 export type SignupScreenViewProps = {
@@ -73,7 +73,7 @@ export function SignupScreenView({
           />
 
           <GlassView tier="light" tint={theme.accentSubtle} borderRadius={999} style={styles.brandStrip}>
-            <Text style={[styles.brandStripText, { color: theme.accent }]}>JOIN BRDG / SELECTIVE ENTRY</Text>
+            <Text style={[styles.brandStripText, { color: theme.accent }]}>CREATE ACCOUNT</Text>
           </GlassView>
 
           <View style={styles.progressRow}>
@@ -208,7 +208,7 @@ export function SignupScreenView({
                       disabled={isSubmitting}
                       maximumDate={new Date()}
                       sheetTitle="Choose your birthdate"
-                      sheetSubtitle="Use the date picker instead of typing month, day, and year separately."
+                      sheetSubtitle="You must be 18 or older."
                     />
                   )}
                 />
@@ -225,7 +225,7 @@ export function SignupScreenView({
                       disabled={isSubmitting}
                       error={errors.gender?.message}
                       sheetTitle="Choose a gender"
-                      sheetSubtitle="Use the option that best fits how you identify."
+                      sheetSubtitle=""
                     />
                   )}
                 />
@@ -390,11 +390,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '800',
     letterSpacing: -1,
     marginBottom: spacing.sm,
-    lineHeight: 40,
+    lineHeight: 34,
   },
   subtitle: {
     fontSize: typography.body,
