@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "../store/authStore";
 import type { RootStackParamList } from "../core/navigation/types";
 import LoginScreen from "../screens/LoginScreen";
@@ -19,6 +20,25 @@ import { useTheme } from "../theme/useTheme";
 import { TabBarVisibilityProvider } from "./TabBarVisibilityContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const linking = {
+  prefixes: ['brdg://', 'com.avmillabs.brdg://'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Discover: 'home',
+          Explore: 'explore',
+          Inbox: 'matches',
+          You: 'profile',
+        },
+      },
+      Chat: 'chat/:matchId',
+      ProfileDetail: 'profile/:userId',
+      EventDetail: 'event/:eventId',
+    },
+  },
+};
 
 export default function AppNavigator() {
   const token = useAuthStore((state) => state.token);
@@ -64,7 +84,8 @@ export default function AppNavigator() {
 
   return (
     <TabBarVisibilityProvider>
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer theme={navigationTheme} linking={linking}>
+      <StatusBar style="dark" />
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -76,12 +97,13 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabNavigator} />
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="Chat" component={ChatScreen} options={{ presentation: 'modal' }} />
             <Stack.Screen
               name="ProfileDetail"
               component={ProfileDetailScreen}
+              options={{ presentation: 'modal' }}
             />
-            <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+            <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ presentation: 'modal' }} />
             <Stack.Screen name="MyEvents" component={MyEventsScreen} />
             <Stack.Screen
               name="Notifications"

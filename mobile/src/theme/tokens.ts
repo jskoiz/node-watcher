@@ -16,7 +16,7 @@ export const lightTheme = {
   // Text
   textPrimary: '#2C2420',
   textSecondary: '#5C544C',
-  textMuted: '#8C8279',
+  textMuted: '#6B6159',
   textInverse: '#FDFBF8',
 
   // Primary — warm gold
@@ -25,7 +25,7 @@ export const lightTheme = {
   primarySubtle: 'rgba(196,168,130,0.12)',
 
   // Accent — muted lavender
-  accent: '#B8A9C4',
+  accent: '#8B7A9C',
   accentSoft: '#D4C9DB',
   accentSubtle: 'rgba(184,169,196,0.12)',
 

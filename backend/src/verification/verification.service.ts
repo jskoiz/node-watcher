@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { appConfig } from '../config/app.config';
 
@@ -19,7 +20,7 @@ export class VerificationService {
   constructor(private readonly prisma: PrismaService) {}
 
   start(userId: string, channel: 'email' | 'phone', target: string) {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = randomInt(100000, 1000000).toString();
     const key = `${userId}:${channel}`;
     this.pending.set(key, {
       userId,

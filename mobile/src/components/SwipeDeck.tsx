@@ -44,7 +44,7 @@ const clampCardHeight = (value?: number) => {
   return Math.min(MAX_CARD_HEIGHT, Math.max(MIN_CARD_HEIGHT, Math.round(value)));
 };
 
-const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
+const SwipeDeckCard = React.memo(({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
   const primaryPhoto = getPrimaryPhotoUri(user);
   const chips = getProfileChips(user);
   const compact = cardHeight < 390;
@@ -143,7 +143,7 @@ const SwipeDeckCard = ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 interface SwipeDeckProps {
   cardHeight?: number;
