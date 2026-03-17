@@ -5,7 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { TamaguiProvider } from 'tamagui';
 import { ThemeProvider } from '../../theme/useTheme';
-import { colors } from '../../theme/tokens';
+import { lightTheme } from '../../theme/tokens';
 import { queryClient } from '../../lib/query/queryClient';
 import tamaguiConfig from '../../design/tamagui.config';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
@@ -19,7 +19,7 @@ export function AppProviders({ children }: PropsWithChildren) {
       <TamaguiProvider config={tamaguiConfig} defaultTheme="dark">
         <SafeAreaProvider>
           <GestureHandlerRootView
-            style={{ flex: 1, backgroundColor: colors.background }}
+            style={{ flex: 1, backgroundColor: lightTheme.background }}
           >
             <QueryClientProvider client={queryClient}>
               <BottomSheetModalProvider>

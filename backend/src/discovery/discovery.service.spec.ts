@@ -7,7 +7,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 describe('DiscoveryService', () => {
   let service: DiscoveryService;
 
-  const prismaMock = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const prismaMock: any = {
     like: {
       findMany: jest.fn(),
       findUnique: jest.fn(),

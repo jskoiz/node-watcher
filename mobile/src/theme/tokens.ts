@@ -50,12 +50,6 @@ export const lightTheme = {
 
 export type Theme = typeof lightTheme;
 
-// TODO: darkTheme is currently identical to lightTheme — implement actual dark mode or remove
-export const darkTheme: Theme = { ...lightTheme };
-
-// Legacy flat colors export (dark values for backward compat)
-export const colors = darkTheme;
-
 export const gradients = {
   appBg: ['#FDFBF8', '#F7F4F0'],
   appBgDark: ['#FDFBF8', '#F0EBE4'],
