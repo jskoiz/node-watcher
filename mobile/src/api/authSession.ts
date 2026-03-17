@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { STORAGE_KEYS } from '../constants/storage';
+import { queryClient } from '../lib/query/queryClient';
 
 type UnauthorizedHandler = () => void | Promise<void>;
 
@@ -22,6 +23,7 @@ export async function handleUnauthorized() {
   isHandlingUnauthorized = true;
   try {
     await SecureStore.deleteItemAsync(STORAGE_KEYS.accessToken);
+    queryClient.clear();
     await unauthorizedHandler?.();
   } finally {
     isHandlingUnauthorized = false;

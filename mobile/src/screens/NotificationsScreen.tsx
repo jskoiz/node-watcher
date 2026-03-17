@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   RefreshControl,
-  ScrollView,
+  SectionList,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -187,7 +187,7 @@ export default function NotificationsScreen() {
         <AppBackButton onPress={() => navigation.goBack()} />
         <View style={styles.headerCopy}>
           <Text style={[styles.eyebrow, { color: theme.accent }]}>NOTIFICATIONS</Text>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>Notifications</Text>
+          <Text style={[styles.title, { color: theme.textPrimary }]} accessibilityRole="header">Notifications</Text>
         </View>
         {unreadCount > 0 && (
           <TouchableOpacity
@@ -226,9 +226,26 @@ export default function NotificationsScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView
+        <SectionList
+          sections={[
+            ...(todayNotifs.length > 0 ? [{ title: 'Today', data: todayNotifs }] : []),
+            ...(earlierNotifs.length > 0 ? [{ title: 'Earlier', data: earlierNotifs }] : []),
+          ]}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <NotifRow
+              notif={item}
+              theme={theme}
+              onMarkRead={handleMarkRead}
+              onNavigate={handleNavigate}
+            />
+          )}
+          renderSectionHeader={({ section: { title } }) => (
+            <Text style={[styles.groupLabel, { color: theme.textMuted }]}>{title}</Text>
+          )}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching && !loading}
@@ -238,36 +255,7 @@ export default function NotificationsScreen() {
               tintColor={theme.primary}
             />
           }
-        >
-          {todayNotifs.length > 0 && (
-            <View style={styles.group}>
-              <Text style={[styles.groupLabel, { color: theme.textMuted }]}>Today</Text>
-              {todayNotifs.map((n) => (
-                <NotifRow
-                  key={n.id}
-                  notif={n}
-                  theme={theme}
-                  onMarkRead={handleMarkRead}
-                  onNavigate={handleNavigate}
-                />
-              ))}
-            </View>
-          )}
-          {earlierNotifs.length > 0 && (
-            <View style={styles.group}>
-              <Text style={[styles.groupLabel, { color: theme.textMuted }]}>Earlier</Text>
-              {earlierNotifs.map((n) => (
-                <NotifRow
-                  key={n.id}
-                  notif={n}
-                  theme={theme}
-                  onMarkRead={handleMarkRead}
-                  onNavigate={handleNavigate}
-                />
-              ))}
-            </View>
-          )}
-        </ScrollView>
+        />
       )}
     </SafeAreaView>
   );
@@ -310,9 +298,6 @@ const styles = StyleSheet.create({
     paddingBottom: 64,
   },
 
-  group: {
-    marginBottom: spacing.lg,
-  },
   groupLabel: {
     fontSize: typography.caption,
     fontWeight: '800',

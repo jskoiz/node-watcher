@@ -52,7 +52,7 @@ const GRID_PADDING = spacing.xxl;
 const CARD_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP) / 2;
 
 // ─── Match Card (photo-forward grid) ─────────────────────────────────────────
-function MatchCard({ item, onPress }: { item: Match; onPress: () => void }) {
+const MatchCard = React.memo(function MatchCard({ item, onPress }: { item: Match; onPress: () => void }) {
   const accent = getUserAccent(item.user.firstName);
   const photoUrl = getPrimaryPhotoUri(item.user);
 
@@ -87,7 +87,7 @@ function MatchCard({ item, onPress }: { item: Match; onPress: () => void }) {
       </View>
     </Pressable>
   );
-}
+});
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function MatchesScreen() {
@@ -109,7 +109,7 @@ export default function MatchesScreen() {
 
       <View style={styles.header}>
         <Text style={styles.eyebrow}>MATCHES</Text>
-        <Text style={styles.title}>Matches</Text>
+        <Text style={styles.title} accessibilityRole="header">Matches</Text>
         {matches.length > 0 && (
           <View style={styles.countBadge}>
             <Text style={styles.countBadgeText}>{matches.length} active</Text>
@@ -140,6 +140,7 @@ export default function MatchesScreen() {
         <FlashList
           data={matches}
           numColumns={2}
+          estimatedItemSize={80}
           renderItem={({ item, index }) =>
             <View style={{ marginRight: index % 2 === 0 ? GRID_GAP : 0, marginBottom: GRID_GAP }}>
               <MatchCard
