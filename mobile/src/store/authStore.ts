@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { authApi } from "../services/api";
 import { STORAGE_KEYS } from "../constants/storage";
 import { normalizeApiError } from "../api/errors";
+import { queryClient } from "../lib/query/queryClient";
 import type { User } from "../api/types";
 
 // expo-secure-store has no web implementation; fall back to localStorage
@@ -35,6 +36,13 @@ interface SignupPayload {
   gender: string;
 }
 
+// NOTE: `user` is duplicated here and in the React Query profile cache
+// (via useProfile). Several screens (HomeScreen, OnboardingScreen, ExploreScreen,
+// MyEventsScreen) read `authStore.user` for lightweight data like `id` and
+// `firstName`. Ideally screens would read exclusively from useProfile and this
+// store would only hold `token` + auth status, but that migration touches many
+// screens. Until then, profile mutation hooks sync back into this store via
+// `setUser` in their onSuccess callbacks to keep the two sources consistent.
 interface AuthState {
   token: string | null;
   user: User | null;
@@ -80,6 +88,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    queryClient.clear();
     await storage.deleteItemAsync(STORAGE_KEYS.accessToken);
     get().clearSession();
   },
@@ -92,6 +101,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
+      queryClient.clear();
       await storage.deleteItemAsync(STORAGE_KEYS.accessToken);
     } finally {
       get().clearSession();

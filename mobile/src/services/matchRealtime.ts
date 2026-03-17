@@ -81,8 +81,16 @@ export async function connectMatchMessageStream(
     handlers.onStatus('connecting');
 
     const streamUrl = `${env.apiUrl}/matches/${matchId}/messages/stream`;
-    const urlWithToken = `${streamUrl}${streamUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
-    const nextSource = new EventSourceCtor!(urlWithToken, {} as EventSourceInit);
+    // NOTE: The native EventSource API does not support custom headers, so we
+    // cannot send the JWT via an Authorization header. Rather than leaking the
+    // token in the URL (query strings are logged by proxies, CDNs, and browser
+    // history), we open the stream without auth. The connection will fail on
+    // the server side and fall back to the polling transport, which uses the
+    // authenticated axios client.
+    // TODO: Switch to a polyfill that supports headers (e.g.
+    // react-native-sse or eventsource-parser + fetch) to enable true
+    // authenticated SSE without exposing the JWT in the URL.
+    const nextSource = new EventSourceCtor!(streamUrl, {} as EventSourceInit);
     source = nextSource;
 
     nextSource.onopen = () => {
