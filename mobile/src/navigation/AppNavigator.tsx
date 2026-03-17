@@ -21,6 +21,44 @@ import { TabBarVisibilityProvider } from "./TabBarVisibilityContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+/** Dev-only: auto-login with preview credentials when no token is stored. */
+let devAutoLoginDone = false;
+
+function useDevAutoLogin() {
+  const token = useAuthStore((s) => s.token);
+  const isLoading = useAuthStore((s) => s.isLoading);
+
+  useEffect(() => {
+    if (!__DEV__ || isLoading || token || devAutoLoginDone) return;
+    devAutoLoginDone = true;
+
+    (async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:3010/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "preview.lana@brdg.local",
+            password: "PreviewPass123!",
+          }),
+        });
+        if (!res.ok) {
+          devAutoLoginDone = false;
+          return;
+        }
+        const data = await res.json();
+        const { STORAGE_KEYS } = require("../constants/storage");
+        const SecureStore = require("expo-secure-store");
+        await SecureStore.setItemAsync(STORAGE_KEYS.accessToken, data.access_token);
+        useAuthStore.setState({ token: data.access_token, user: data.user, isLoading: false });
+      } catch (e: any) {
+        devAutoLoginDone = false;
+        console.warn("[dev-auto-login]", e?.message || e);
+      }
+    })();
+  }, [token, isLoading]);
+}
+
 const linking: import('@react-navigation/native').LinkingOptions<RootStackParamList> = {
   prefixes: ['brdg://', 'com.avmillabs.brdg://', 'https://brdg.app'],
   config: {
@@ -47,6 +85,8 @@ export default function AppNavigator() {
   const loadToken = useAuthStore((state) => state.loadToken);
   const clearSession = useAuthStore((state) => state.clearSession);
   const theme = useTheme();
+
+  useDevAutoLogin();
 
   const navigationTheme = {
     ...DefaultTheme,
