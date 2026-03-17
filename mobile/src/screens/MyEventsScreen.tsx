@@ -228,7 +228,6 @@ export default function MyEventsScreen({
         <FlashList
           contentContainerStyle={styles.list}
           data={displayedEvents}
-          estimatedItemSize={200}
           keyExtractor={(item, index) => item.id || `event-${index}`}
           showsVerticalScrollIndicator={false}
           refreshControl={

@@ -83,7 +83,7 @@ export async function connectMatchMessageStream(
     // connection token to limit exposure in URL/query-string logs. For now the
     // backend JWT strategy accepts `token` as a query parameter fallback since
     // EventSource does not support custom headers.
-    const urlWithToken = `${streamUrl}${streamUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+    const urlWithToken = `${streamUrl}${streamUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(token ?? '')}`;
     const nextSource = new EventSourceCtor!(urlWithToken, {} as EventSourceInit);
     source = nextSource;
 

@@ -118,7 +118,13 @@ describe('ProfileService', () => {
     prismaMock.userFitnessProfile.upsert.mockResolvedValue({
       userId: 'user-1',
     });
-    prismaMock.user.findFirst.mockResolvedValue(null);
+    prismaMock.user.findFirst.mockResolvedValue({
+      id: 'user-1',
+      birthdate: null,
+      fitnessProfile: null,
+      profile: null,
+      photos: [],
+    });
 
     await service.updateFitnessProfile('user-1', {
       intensityLevel: IntensityLevel.BEGINNER,
@@ -245,28 +251,29 @@ describe('ProfileService', () => {
     });
   });
 
-  it('returns null when profile is not found', async () => {
+  it('throws NotFoundException when profile is not found', async () => {
     prismaMock.user.findFirst.mockResolvedValue(null);
 
-    const result = await service.getProfile('missing-user');
-    expect(result).toBeNull();
+    await expect(service.getProfile('missing-user')).rejects.toThrow(
+      'Profile not found',
+    );
   });
 
-  it('returns null when trying to update a photo that does not belong to the user', async () => {
+  it('throws NotFoundException when trying to update a photo that does not belong to the user', async () => {
     prismaMock.userPhoto.findFirst.mockResolvedValue(null);
 
-    const result = await service.updatePhoto('user-1', 'photo-999', {
-      isPrimary: true,
-    });
-    expect(result).toBeNull();
+    await expect(
+      service.updatePhoto('user-1', 'photo-999', { isPrimary: true }),
+    ).rejects.toThrow('Photo not found');
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it('returns null when trying to delete a photo that does not belong to the user', async () => {
+  it('throws NotFoundException when trying to delete a photo that does not belong to the user', async () => {
     prismaMock.userPhoto.findFirst.mockResolvedValue(null);
 
-    const result = await service.deletePhoto('user-1', 'photo-999');
-    expect(result).toBeNull();
+    await expect(
+      service.deletePhoto('user-1', 'photo-999'),
+    ).rejects.toThrow('Photo not found');
   });
 
   it('sets first uploaded photo as primary when all existing photos are hidden', async () => {

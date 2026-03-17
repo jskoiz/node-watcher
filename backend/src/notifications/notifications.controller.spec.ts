@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { NotificationType } from '../common/enums';
+import { appConfig } from '../config/app.config';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
 
 describe('NotificationsController', () => {
@@ -48,8 +49,10 @@ describe('NotificationsController', () => {
     expect(result).toBe(notification);
   });
 
-  it('throws NotFoundException when markRead returns null (notification not found)', async () => {
-    notificationsServiceMock.markRead.mockResolvedValue(null);
+  it('throws NotFoundException when markRead rejects (notification not found)', async () => {
+    notificationsServiceMock.markRead.mockRejectedValue(
+      new NotFoundException('Notification non-existent-id not found'),
+    );
     await expect(controller.markRead(req, 'non-existent-id')).rejects.toThrow(
       NotFoundException,
     );
@@ -62,9 +65,9 @@ describe('NotificationsController', () => {
     expect(result).toEqual({ updated: 3 });
   });
 
-  it('throws ForbiddenException when NODE_ENV is production', async () => {
-    const original = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+  it('throws ForbiddenException when appConfig.isProduction is true', async () => {
+    const original = appConfig.isProduction;
+    Object.defineProperty(appConfig, 'isProduction', { value: true, writable: true, configurable: true });
 
     try {
       await expect(
@@ -77,7 +80,7 @@ describe('NotificationsController', () => {
 
       expect(notificationsServiceMock.create).not.toHaveBeenCalled();
     } finally {
-      process.env.NODE_ENV = original;
+      Object.defineProperty(appConfig, 'isProduction', { value: original, writable: true, configurable: true });
     }
   });
 

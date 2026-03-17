@@ -21,6 +21,7 @@ export default function AppBackButton({ label, onPress, disabled, style }: AppBa
         },
         style,
       ]}
+      testID="back-button"
       accessibilityRole="button"
       accessibilityLabel={label ?? 'Back'}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

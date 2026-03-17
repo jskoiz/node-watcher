@@ -5,10 +5,17 @@ import OnboardingScreen from '../OnboardingScreen';
 const mockUpdateFitness = jest.fn();
 const mockSetUser = jest.fn();
 
-jest.mock('../../services/api', () => ({
-  profileApi: {
-    updateFitness: (...args: unknown[]) => mockUpdateFitness(...args),
-  },
+jest.mock('../../features/profile/hooks/useProfile', () => ({
+  useProfile: () => ({
+    updateFitness: mockUpdateFitness,
+    updateProfile: jest.fn(),
+    uploadPhoto: jest.fn(),
+    updatePhoto: jest.fn(),
+    deletePhoto: jest.fn(),
+    profile: null,
+    isLoading: false,
+    error: null,
+  }),
 }));
 
 jest.mock('../../store/authStore', () => ({

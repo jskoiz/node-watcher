@@ -139,7 +139,6 @@ export default function MatchesScreen({ navigation }: MainTabScreenProps<'Inbox'
         <FlashList
           data={matches}
           numColumns={2}
-          estimatedItemSize={200}
           renderItem={({ item, index }) =>
             <View style={{ marginRight: index % 2 === 0 ? GRID_GAP : 0, marginBottom: GRID_GAP }}>
               <MatchCard
