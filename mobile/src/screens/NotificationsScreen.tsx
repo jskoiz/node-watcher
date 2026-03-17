@@ -48,6 +48,18 @@ function getNotificationGroup(dateValue: string | Date) {
   return isToday ? 'Today' : 'Earlier';
 }
 
+function getIdFromNotificationData(data: Record<string, unknown> | undefined, key: string) {
+  const value = data?.[key];
+  if (typeof value === 'string' && value.trim()) {
+    return value;
+  }
+  return undefined;
+}
+
+function buildNotificationUserFallback(id: string, label: string) {
+  return { id, firstName: label };
+}
+
 // ─── NotifRow ─────────────────────────────────────────────────────────────────
 
 function NotifRow({
@@ -162,16 +174,67 @@ export default function NotificationsScreen({
   };
 
   const handleNavigate = (notif: AppNotification) => {
+    setActionError(null);
     const data = notif.data as Record<string, string> | undefined;
-    if (notif.type === 'match_created' && data?.matchId) {
-      navigation.navigate('Main', { screen: 'Inbox' });
-    } else if (notif.type === 'like_received') {
-      navigation.navigate('Main', { screen: 'Discover' });
-    } else if (notif.type === 'message_received' && data?.matchId) {
-      navigation.navigate('Chat', { matchId: data.matchId, user: { id: data.userId ?? '', firstName: data.firstName ?? '' } as any });
-    } else if ((notif.type === 'event_rsvp' || notif.type === 'event_reminder') && data?.eventId) {
-      navigation.navigate('EventDetail', { eventId: data.eventId });
+    const matchId = getIdFromNotificationData(data, 'matchId');
+    const withUserId = getIdFromNotificationData(data, 'withUserId');
+    const senderId = getIdFromNotificationData(data, 'senderId');
+    const fromUserId = getIdFromNotificationData(data, 'fromUserId');
+    const eventId = getIdFromNotificationData(data, 'eventId');
+
+    if (notif.type === 'match_created') {
+      if (!matchId || !withUserId) {
+        setActionError('Match notification is missing navigation details.');
+        return;
+      }
+
+      navigation.navigate('Chat', {
+        matchId,
+        user: buildNotificationUserFallback(withUserId, 'Match'),
+      });
+      return;
     }
+
+    if (notif.type === 'message_received') {
+      if (!matchId) {
+        setActionError('Message notification is missing navigation details.');
+        return;
+      }
+
+      const fallbackUserId = senderId || withUserId || matchId;
+      navigation.navigate('Chat', {
+        matchId,
+        user: buildNotificationUserFallback(
+          fallbackUserId,
+          senderId ? 'Message' : 'Match',
+        ),
+      });
+      return;
+    }
+
+    if (notif.type === 'event_rsvp' || notif.type === 'event_reminder') {
+      if (!eventId) {
+        setActionError('Event notification is missing navigation details.');
+        return;
+      }
+
+      navigation.navigate('EventDetail', { eventId });
+      return;
+    }
+
+    if (notif.type === 'like_received') {
+      if (!fromUserId) {
+        setActionError('Like notification is missing navigation details.');
+        return;
+      }
+
+      navigation.navigate('ProfileDetail', {
+        user: buildNotificationUserFallback(fromUserId, 'Profile'),
+      });
+      return;
+    }
+
+    setActionError('This notification does not support direct navigation.');
   };
 
   const todayNotifs = notifs.filter(
@@ -246,6 +309,15 @@ export default function NotificationsScreen({
           renderSectionHeader={({ section: { title } }) => (
             <Text style={[styles.groupLabel, { color: theme.textMuted }]}>{title}</Text>
           )}
+          ListHeaderComponent={
+            actionError ? (
+              <View style={styles.routeError}>
+                <Text style={[styles.routeErrorText, { color: theme.danger }]}>
+                  {actionError}
+                </Text>
+              </View>
+            ) : null
+          }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           stickySectionHeadersEnabled={false}
@@ -294,6 +366,18 @@ const styles = StyleSheet.create({
   clearAll: {
     fontSize: typography.bodySmall,
     fontWeight: '600',
+  },
+  routeError: {
+    backgroundColor: 'rgba(196, 168, 130, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 168, 130, 0.32)',
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  routeErrorText: {
+    fontSize: typography.caption,
+    lineHeight: 18,
   },
 
   scrollContent: {

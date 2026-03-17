@@ -199,6 +199,37 @@ describe('ProfileService', () => {
     expect(result!.id).toBe('user-1');
   });
 
+  it('strips private account fields from getPublicProfile result', async () => {
+    prismaMock.user.findFirst.mockResolvedValue({
+      id: 'user-1',
+      birthdate: new Date('1995-06-15'),
+      email: 'alice@example.com',
+      phoneNumber: '+18085551234',
+      hasVerifiedEmail: true,
+      hasVerifiedPhone: true,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      passwordHash: 'super-secret-hash',
+      providerId: 'provider-xyz',
+      authProvider: 'phone',
+      fitnessProfile: null,
+      profile: null,
+      photos: [],
+    });
+
+    const result = await service.getPublicProfile('user-1');
+
+    expect(result).not.toBeNull();
+    expect(result).not.toHaveProperty('email');
+    expect(result).not.toHaveProperty('phoneNumber');
+    expect(result).not.toHaveProperty('hasVerifiedEmail');
+    expect(result).not.toHaveProperty('hasVerifiedPhone');
+    expect(result).not.toHaveProperty('createdAt');
+    expect(result).not.toHaveProperty('updatedAt');
+    expect(result).not.toHaveProperty('birthdate');
+    expect(result!.age).toBeGreaterThan(0);
+  });
+
   it('uploads photos with deterministic ordering', async () => {
     photoStorageMock.saveProfilePhoto.mockResolvedValue({
       storageKey: 'http://local/photo-1.jpg',

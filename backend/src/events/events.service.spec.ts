@@ -225,7 +225,7 @@ describe('EventsService', () => {
   });
 
   describe('create validation', () => {
-    it('throws BadRequest when startsAt is in the past', async () => {
+    it('currently allows startsAt values in the past', async () => {
       await expect(
         service.create(
           {

@@ -1,6 +1,8 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
 import SwipeDeck from '../SwipeDeck';
+
+let onSwipedAllCallback: (() => void) | null = null;
 
 jest.mock('react-native-deck-swiper', () => {
   const React = require('react');
@@ -9,10 +11,14 @@ jest.mock('react-native-deck-swiper', () => {
   return function MockSwiper({
     cards,
     renderCard,
+    onSwipedAll,
   }: {
     cards: unknown[];
+    onSwipedAll?: () => void;
     renderCard: (card: unknown) => React.ReactElement;
   }) {
+    onSwipedAllCallback = onSwipedAll || null;
+
     return (
       <View>
         {cards.map((card: unknown, i: number) => (
@@ -45,6 +51,28 @@ describe('SwipeDeck', () => {
   it('renders empty state when data is empty', () => {
     const { getByText } = render(<SwipeDeck data={[]} onSwipeLeft={noop} onSwipeRight={noop} />);
     expect(getByText('No new profiles tonight')).toBeTruthy();
+  });
+
+  it('resets empty state when a fresh dataset arrives after swiping all cards', () => {
+    const { getByText, rerender, queryByText } = render(
+      <SwipeDeck data={[{ id: 'old-1', firstName: 'Kai' }]} onSwipeLeft={noop} onSwipeRight={noop} />,
+    );
+
+    act(() => {
+      onSwipedAllCallback?.();
+    });
+    expect(getByText('No new profiles tonight')).toBeTruthy();
+
+    rerender(
+      <SwipeDeck
+        data={[{ id: 'new-1', firstName: 'Rae' }, { id: 'new-2', firstName: 'Mika' }]}
+        onSwipeLeft={noop}
+        onSwipeRight={noop}
+      />,
+    );
+
+    expect(queryByText('No new profiles tonight')).toBeFalsy();
+    expect(getByText('Rae')).toBeTruthy();
   });
 
   it('renders cards and tolerates duplicate chip labels from multiple fields', () => {

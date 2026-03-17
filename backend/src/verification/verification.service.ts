@@ -63,6 +63,31 @@ export class VerificationService {
     // code from also passing the guard and double-verifying.
     this.pending.delete(key);
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        phoneNumber: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const storedTarget =
+      channel === 'email'
+        ? user.email?.trim().toLowerCase()
+        : user.phoneNumber?.trim();
+    const pendingTarget =
+      channel === 'email'
+        ? pending.target.trim().toLowerCase()
+        : pending.target.trim();
+
+    if (!storedTarget || storedTarget !== pendingTarget) {
+      return { verified: false };
+    }
+
     try {
       if (channel === 'email') {
         await this.prisma.user.update({

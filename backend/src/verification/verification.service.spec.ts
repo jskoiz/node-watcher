@@ -80,6 +80,10 @@ describe('VerificationService', () => {
     it('verifies email and updates user when code matches', async () => {
       const { devCode } = service.start('user-1', 'email', 'alice@example.com');
       expect(devCode).toBeDefined();
+      userFindUnique.mockResolvedValue({
+        email: 'alice@example.com',
+        phoneNumber: null,
+      });
       userUpdate.mockResolvedValue({});
 
       const result = await service.confirm('user-1', 'email', devCode!);
@@ -95,6 +99,10 @@ describe('VerificationService', () => {
     it('verifies phone and updates user when code matches', async () => {
       const { devCode } = service.start('user-1', 'phone', '+18085551234');
       expect(devCode).toBeDefined();
+      userFindUnique.mockResolvedValue({
+        email: 'alice@example.com',
+        phoneNumber: '+18085551234',
+      });
       userUpdate.mockResolvedValue({});
 
       const result = await service.confirm('user-1', 'phone', devCode!);
@@ -110,6 +118,10 @@ describe('VerificationService', () => {
     it('clears the pending entry after successful confirmation', async () => {
       const { devCode } = service.start('user-1', 'email', 'alice@example.com');
       expect(devCode).toBeDefined();
+      userFindUnique.mockResolvedValue({
+        email: 'alice@example.com',
+        phoneNumber: null,
+      });
       userUpdate.mockResolvedValue({});
 
       await service.confirm('user-1', 'email', devCode!);
@@ -122,6 +134,10 @@ describe('VerificationService', () => {
     it('prevents double-verification when two requests race with the same code', async () => {
       const { devCode } = service.start('user-1', 'email', 'alice@example.com');
       expect(devCode).toBeDefined();
+      userFindUnique.mockResolvedValue({
+        email: 'alice@example.com',
+        phoneNumber: null,
+      });
 
       // Simulate two concurrent confirm calls – both start before either resolves.
       let resolveFirst!: () => void;
@@ -137,6 +153,8 @@ describe('VerificationService', () => {
       const first = service.confirm('user-1', 'email', devCode!);
       const second = service.confirm('user-1', 'email', devCode!);
 
+      await Promise.resolve();
+
       // Let the first DB call finish.
       resolveFirst();
 
@@ -147,6 +165,20 @@ describe('VerificationService', () => {
       expect(successes).toBe(1);
       // The DB should only have been called once.
       expect(userUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns verified:false when the pending target does not match stored contact data', async () => {
+      const { devCode } = service.start('user-1', 'email', 'alice@example.com');
+      expect(devCode).toBeDefined();
+      userFindUnique.mockResolvedValue({
+        email: 'someone-else@example.com',
+        phoneNumber: null,
+      });
+
+      const result = await service.confirm('user-1', 'email', devCode!);
+
+      expect(result).toEqual({ verified: false });
+      expect(userUpdate).not.toHaveBeenCalled();
     });
   });
 

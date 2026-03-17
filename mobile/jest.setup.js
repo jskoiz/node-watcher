@@ -1,4 +1,5 @@
 require('@testing-library/jest-native/extend-expect');
+const { cleanup } = require('@testing-library/react-native');
 
 jest.mock('@sentry/react-native', () => ({
   init: jest.fn(),
@@ -144,6 +145,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  cleanup();
+  jest.clearAllTimers();
+  jest.useRealTimers();
   consoleErrorGuard.mockRestore();
   consoleWarnGuard.mockRestore();
 });

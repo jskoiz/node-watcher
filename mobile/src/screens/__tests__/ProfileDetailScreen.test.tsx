@@ -81,6 +81,15 @@ const routeUser = {
   photos: [],
 };
 
+const routeUserWithFriends = {
+  ...routeUser,
+  profile: {
+    ...routeUser.profile,
+    intentDating: true,
+    intentFriends: true,
+  },
+};
+
 const mockRoute = {
   key: 'ProfileDetail-1',
   name: 'ProfileDetail' as const,
@@ -107,6 +116,18 @@ describe('ProfileDetailScreen', () => {
     expect(await screen.findByText('Leilani, 31')).toBeTruthy();
     expect(screen.getByText('Honolulu')).toBeTruthy();
     expect(screen.getAllByText('Trail Runs').length).toBeGreaterThan(0);
+  });
+
+  it('shows friends in the intent label', async () => {
+    const friendsRoute = {
+      ...mockRoute,
+      params: { user: routeUserWithFriends },
+    };
+
+    render(<ProfileDetailScreen navigation={mockNavigation} route={friendsRoute as any} />);
+
+    const matches = await screen.findAllByText('Dating + Training partner + Friends');
+    expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows error state when the route has no user payload', () => {

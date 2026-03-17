@@ -12,7 +12,6 @@ import { CompletenessBar } from './CompletenessBar';
 import { profileStyles as styles } from './profile.styles';
 import {
   ACTIVITY_OPTIONS,
-  ENVIRONMENT_OPTIONS,
   INTENSITY_OPTIONS,
   PRIMARY_GOAL_OPTIONS,
   SCHEDULE_OPTIONS,
@@ -157,6 +156,7 @@ export function ProfileScreenContent({
   weeklyFrequencyBand: string;
 }) {
   const primaryPhoto = getPrimaryPhotoUri(profile);
+  const isSaving = isSavingFitness || isSavingProfile;
   const buildRows = [
     { label: 'App env', value: buildInfo.appEnv },
     { label: 'Version', value: `${buildInfo.version} (${buildInfo.iosBuildNumber})` },
@@ -196,22 +196,6 @@ export function ProfileScreenContent({
               <Text style={styles.heroLocation}>{profile.profile?.city || 'Location not set'}</Text>
             </LinearGradient>
           </View>
-          <View style={styles.ambientStats}>
-            <View style={styles.ambientStat}>
-              <Text style={[styles.ambientStatNum, { color: '#C4A882' }]}>12</Text>
-              <Text style={styles.ambientStatLabel}>matches</Text>
-            </View>
-            <View style={styles.ambientStatDot} />
-            <View style={styles.ambientStat}>
-              <Text style={[styles.ambientStatNum, { color: '#8BAA7A' }]}>8</Text>
-              <Text style={styles.ambientStatLabel}>activities</Text>
-            </View>
-            <View style={styles.ambientStatDot} />
-            <View style={styles.ambientStat}>
-              <Text style={[styles.ambientStatNum, { color: '#C4A882' }]}>5</Text>
-              <Text style={styles.ambientStatLabel}>connections</Text>
-            </View>
-          </View>
         </View>
 
         <CompletenessBar
@@ -223,9 +207,15 @@ export function ProfileScreenContent({
         />
 
         <View style={styles.editBar}>
-          <Pressable onPress={onSave} disabled={isSavingFitness} style={[styles.editBtnWrap, editMode ? styles.editBtnActive : null]}>
+          <Pressable
+            onPress={onSave}
+            disabled={isSaving}
+            style={[styles.editBtnWrap, editMode ? styles.editBtnActive : null]}
+            accessibilityRole="button"
+            accessibilityLabel={editMode ? 'Save profile' : 'Edit profile'}
+          >
             <Text style={[styles.editBtnText, editMode ? styles.editBtnTextActive : null]}>
-              {isSavingFitness || isSavingProfile ? 'Saving...' : editMode ? 'Save' : 'Edit Profile'}
+              {isSaving ? 'Saving...' : editMode ? 'Save' : 'Edit Profile'}
             </Text>
           </Pressable>
           {editMode ? (
@@ -373,15 +363,6 @@ export function ProfileScreenContent({
                 color="#8BAA7A"
                 interactive={editMode}
               />
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionEyebrow}>Environment</Text>
-          <View style={styles.tagCloud}>
-            {ENVIRONMENT_OPTIONS.map((tag) => (
-              <TagPill key={tag} label={tag} selected={['Outdoors', 'Gym'].includes(tag)} onPress={() => undefined} color="#C4A882" interactive={false} />
             ))}
           </View>
         </View>

@@ -48,7 +48,7 @@ export class EventsController {
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List events created by the current user' })
+  @ApiOperation({ summary: 'List events joined by the current user' })
   @ApiOkResponse({ description: 'Current user events returned successfully.' })
   @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
   myEvents(

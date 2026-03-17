@@ -9,6 +9,7 @@ describe('ProfileController', () => {
 
   const profileServiceMock = {
     getProfile: jest.fn(),
+    getPublicProfile: jest.fn(),
     updateProfile: jest.fn(),
     updateFitnessProfile: jest.fn(),
     uploadPhoto: jest.fn(),
@@ -154,7 +155,7 @@ describe('ProfileController', () => {
   });
 
   it('delegates getProfileById to profile service', async () => {
-    profileServiceMock.getProfile.mockResolvedValue({
+    profileServiceMock.getPublicProfile.mockResolvedValue({
       id: 'user-2',
       firstName: 'Other',
     });
@@ -163,12 +164,11 @@ describe('ProfileController', () => {
       id: 'user-2',
       firstName: 'Other',
     });
+    expect(profileServiceMock.getPublicProfile).toHaveBeenCalledWith('user-2');
   });
 
-  it('throws NotFoundException when getProfileById rejects', async () => {
-    profileServiceMock.getProfile.mockRejectedValue(
-      new NotFoundException('Profile not found'),
-    );
+  it('throws NotFoundException when getProfileById returns null', async () => {
+    profileServiceMock.getPublicProfile.mockResolvedValue(null);
 
     await expect(controller.getProfileById('missing')).rejects.toBeInstanceOf(
       NotFoundException,

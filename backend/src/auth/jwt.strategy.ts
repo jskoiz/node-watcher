@@ -31,7 +31,13 @@ function extractJwt(req: Request): string | null {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly prisma: PrismaService) {
     super({
-      jwtFromRequest: extractJwt,
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (request: { query?: Record<string, unknown> } | undefined) => {
+          const token = request?.query?.token;
+          return typeof token === 'string' && token.trim() ? token : null;
+        },
+      ]),
       ignoreExpiration: false,
       secretOrKey: appConfig.jwt.secret,
     });

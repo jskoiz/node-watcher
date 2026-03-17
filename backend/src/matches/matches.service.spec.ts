@@ -132,6 +132,46 @@ describe('MatchesService realtime', () => {
     ]);
   });
 
+  it('overfetches to fill a page when early matches are filtered out', async () => {
+    jest
+      .mocked(prisma.match.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 'match-1',
+          createdAt: new Date('2026-03-01T00:00:00.000Z'),
+          userAId: 'user-1',
+          userBId: 'user-2',
+          userA: { id: 'user-1', firstName: 'Self', isDeleted: false, isBanned: false, photos: [] },
+          userB: { id: 'user-2', firstName: 'Deleted', isDeleted: true, isBanned: false, photos: [] },
+          messages: [],
+        },
+      ] as any)
+      .mockResolvedValueOnce([
+        {
+          id: 'match-2',
+          createdAt: new Date('2026-03-02T00:00:00.000Z'),
+          userAId: 'user-1',
+          userBId: 'user-3',
+          userA: { id: 'user-1', firstName: 'Self', isDeleted: false, isBanned: false, photos: [] },
+          userB: { id: 'user-3', firstName: 'Valid', isDeleted: false, isBanned: false, photos: [] },
+          messages: [],
+        },
+      ] as any);
+
+    const result = await service.getMatches('user-1', 1, 0);
+
+    expect(jest.mocked(prisma.match.findMany)).toHaveBeenCalledTimes(2);
+    expect(jest.mocked(prisma.match.findMany).mock.calls[1][0]).toEqual(
+      expect.objectContaining({ take: 1, skip: 1 }),
+    );
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 'match-2',
+        user: expect.objectContaining({ id: 'user-3', firstName: 'Valid' }),
+      }),
+    ]);
+  });
+
   it('publishes realtime event when sending a message', async () => {
     const now = new Date('2026-02-20T10:00:00.000Z');
 
@@ -161,6 +201,41 @@ describe('MatchesService realtime', () => {
     expect(jest.mocked(realtime.publishMessage)).toHaveBeenCalledWith(
       'match-1',
       result,
+    );
+  });
+
+  it('trims message content before persistence and notifications', async () => {
+    const now = new Date('2026-02-20T10:00:00.000Z');
+
+    jest.mocked(prisma.match.findUnique).mockResolvedValue({
+      id: 'match-1',
+      userAId: 'user-1',
+      userBId: 'user-2',
+    } as any);
+    jest.mocked(prisma.message.create).mockResolvedValue({
+      id: 'msg-1',
+      body: 'hey',
+      createdAt: now,
+    } as any);
+    jest.mocked(prisma.match.update).mockResolvedValue({} as any);
+
+    await service.sendMessage('match-1', 'user-1', '  hey  ');
+
+    expect(jest.mocked(prisma.message.create)).toHaveBeenCalledWith({
+      data: {
+        matchId: 'match-1',
+        senderId: 'user-1',
+        body: 'hey',
+      },
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+      },
+    });
+    expect(jest.mocked(notifications.create)).toHaveBeenCalledWith(
+      'user-2',
+      expect.objectContaining({ body: 'hey' }),
     );
   });
 

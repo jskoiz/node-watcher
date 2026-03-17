@@ -18,6 +18,8 @@ describe('NotificationsController', () => {
 
   const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
 
+  const originalIsProduction = appConfig.isProduction;
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -29,6 +31,14 @@ describe('NotificationsController', () => {
     }).compile();
 
     controller = module.get<NotificationsController>(NotificationsController);
+  });
+
+  afterEach(() => {
+    (appConfig as { isProduction: boolean }).isProduction = originalIsProduction;
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
   });
 
   it('delegates list to notifications service', async () => {

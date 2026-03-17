@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Post,
   Patch,
   Body,
@@ -58,23 +59,12 @@ export class ProfileController {
   @ApiOkResponse({ description: 'Profile returned successfully.' })
   @ApiNotFoundResponse({ description: 'Profile not found.' })
   async getProfileById(@Param('id') id: string) {
-    const profile = await this.profileService.getProfile(id);
-
-    // Strip sensitive / internal fields from public profile responses
-    const {
-      isDeleted: _del,
-      isBanned: _ban,
-      email: _email,
-      ...safeProfile
-    } = profile;
-
-    // Strip coordinates from nested profile if present
-    if (safeProfile.profile) {
-      const { latitude: _lat, longitude: _lon, ...safeNestedProfile } = safeProfile.profile;
-      return { ...safeProfile, profile: safeNestedProfile };
+    const profile = await this.profileService.getPublicProfile(id);
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
     }
 
-    return safeProfile;
+    return profile;
   }
 
   @Patch()

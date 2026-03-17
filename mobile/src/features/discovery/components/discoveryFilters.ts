@@ -2,6 +2,10 @@ import type { User } from '../../../api/types';
 import type { DiscoveryFiltersInput } from '../../../services/api';
 import type { SessionIntent } from '../../../types/sessionIntent';
 
+const DEFAULT_DISTANCE_KM = 50;
+const DEFAULT_MIN_AGE = 21;
+const DEFAULT_MAX_AGE = 45;
+
 export type QuickFilterKey =
   | 'all'
   | 'strength'
@@ -57,6 +61,23 @@ function mergeUnique<T extends string>(values: T[]) {
   return Array.from(new Set(values));
 }
 
+function parseAgeValue(value: string) {
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function normalizeAgeRange(minAgeValue?: number, maxAgeValue?: number) {
+  if (
+    minAgeValue !== undefined &&
+    maxAgeValue !== undefined &&
+    minAgeValue > maxAgeValue
+  ) {
+    return { minAge: undefined, maxAge: undefined };
+  }
+
+  return { minAge: minAgeValue, maxAge: maxAgeValue };
+}
+
 export function getUserIntent(user?: User | null): SessionIntent {
   if (user?.profile?.intentDating && user?.profile?.intentWorkout) return 'both';
   if (user?.profile?.intentDating) return 'dating';
@@ -75,10 +96,14 @@ export function buildDiscoveryFilters(
     ...(quickFilter?.availability || []),
   ]);
 
+  const parsedMinAge = parseAgeValue(modalState.minAge);
+  const parsedMaxAge = parseAgeValue(modalState.maxAge);
+  const { minAge, maxAge } = normalizeAgeRange(parsedMinAge, parsedMaxAge);
+
   return {
     distanceKm: Number(modalState.distanceKm) || undefined,
-    minAge: Number(modalState.minAge) || undefined,
-    maxAge: Number(modalState.maxAge) || undefined,
+    minAge,
+    maxAge,
     goals: resolvedGoals.length ? resolvedGoals : undefined,
     intensity: modalState.intensity.length ? modalState.intensity : undefined,
     availability: resolvedAvailability.length ? resolvedAvailability : undefined,
@@ -87,15 +112,14 @@ export function buildDiscoveryFilters(
 
 export function countActiveFilters(
   currentFilters: DiscoveryFiltersInput,
-  modalState: FilterModalState,
+  _modalState: FilterModalState,
 ) {
   return (
     (currentFilters.goals?.length || 0) +
     (currentFilters.intensity?.length || 0) +
     (currentFilters.availability?.length || 0) +
-    (modalState.distanceKm !== '50' ? 1 : 0) +
-    (modalState.minAge !== '21' ? 1 : 0) +
-    (modalState.maxAge !== '45' ? 1 : 0)
+    (currentFilters.distanceKm !== undefined && currentFilters.distanceKm !== DEFAULT_DISTANCE_KM ? 1 : 0) +
+    (currentFilters.minAge !== undefined && currentFilters.minAge !== DEFAULT_MIN_AGE ? 1 : 0) +
+    (currentFilters.maxAge !== undefined && currentFilters.maxAge !== DEFAULT_MAX_AGE ? 1 : 0)
   );
 }
-

@@ -15,7 +15,12 @@ export function HomeQuickFilters({
   onPressFilter: (filterId: QuickFilterKey) => void;
   onPressRefine: () => void;
 }) {
-  const refineLabel = activeFilterCount > 0 ? String(activeFilterCount) : 'Refine';
+  const refineLabelText = activeFilterCount > 0 ? String(activeFilterCount) : 'Refine';
+  const refineAccessibilityLabel =
+    activeFilterCount > 0
+      ? `${activeFilterCount} active filters, refine your discovery feed`
+      : 'Refine filters';
+  const accessibilityValue = activeFilterCount > 0 ? { text: `${activeFilterCount} filters set` } : undefined;
 
   return (
     <View style={styles.filterBar}>
@@ -29,7 +34,8 @@ export function HomeQuickFilters({
           onPress={onPressRefine}
           style={[styles.refineTrigger, { minHeight: 44 }]}
           accessibilityRole="button"
-          accessibilityLabel={refineLabel}
+          accessibilityLabel={refineAccessibilityLabel}
+          accessibilityValue={accessibilityValue}
           accessibilityHint="Opens filter options"
         >
           <AppIcon
@@ -43,7 +49,7 @@ export function HomeQuickFilters({
               { color: activeFilterCount > 0 ? '#2C2420' : '#B0A89E' },
             ]}
           >
-            {refineLabel}
+            {activeFilterCount > 0 ? `Refine (${refineLabelText})` : refineLabelText}
           </Text>
         </Pressable>
 
