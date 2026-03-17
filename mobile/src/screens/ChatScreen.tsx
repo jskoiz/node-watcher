@@ -21,6 +21,9 @@ import {
 import { getPrimaryPhotoUri } from '../lib/profilePhotos';
 import { useTheme } from '../theme/useTheme';
 import type { RootStackScreenProps } from '../core/navigation/types';
+import { ReportSheet } from '../features/moderation/components/ReportSheet';
+import { useBlock } from '../features/moderation/hooks/useBlock';
+import { showBlockConfirmation } from '../features/moderation/components/BlockConfirmation';
 
 export default function ChatScreen() {
   const theme = useTheme();
@@ -30,7 +33,11 @@ export default function ChatScreen() {
   const [message, setMessage] = useState(prefillMessage?.trim() ?? '');
   const [sendError, setSendError] = useState<string | null>(null);
   const quickActionsSheet = useSheetController();
-  const { connectionStatus, error, loading, messages, refresh, refreshing, sendMessage, sending } = useChatThread(matchId);
+  const reportSheet = useSheetController();
+  const { block, isLoading: isBlocking } = useBlock({
+    onSuccess: () => navigation.goBack(),
+  });
+  const { connectionStatus, error, isTyping, loading, messages, refresh, refreshing, sendMessage, sending, emitTyping } = useChatThread(matchId);
   const errorMessage = error ? normalizeApiError(error).message : null;
   const photoUrl = getPrimaryPhotoUri(user);
 
@@ -62,7 +69,13 @@ export default function ChatScreen() {
       <ChatHeader
         activityTag={getActivityTag(user)}
         onBack={() => navigation.goBack()}
+        onBlock={() => {
+          showBlockConfirmation(() => {
+            void block({ blockedUserId: user.id });
+          });
+        }}
         onOpenQuickActions={quickActionsSheet.open}
+        onReport={reportSheet.open}
         photoUrl={photoUrl}
         theme={theme}
         user={user}
@@ -83,8 +96,15 @@ export default function ChatScreen() {
 
       {connectionStatus !== 'connected' ? (
         <Text style={[styles.statusNote, { color: theme.textMuted }]}>
-          {connectionStatus === 'connecting' ? 'Connecting…' : 'Auto-refresh mode'}
+          {connectionStatus === 'connecting'
+            ? 'Connecting…'
+            : connectionStatus === 'reconnecting'
+              ? 'Reconnecting…'
+              : 'Auto-refresh mode'}
         </Text>
+      ) : null}
+      {isTyping ? (
+        <Text style={[styles.statusNote, { color: theme.textMuted }]}>Typing…</Text>
       ) : null}
       {(sendError || errorMessage) && messages.length > 0 ? (
         <Text style={[styles.errorNote, { color: theme.danger }]}>{sendError || errorMessage}</Text>
@@ -93,7 +113,10 @@ export default function ChatScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={10}>
         <ChatComposer
           message={message}
-          onChangeMessage={setMessage}
+          onChangeMessage={(text) => {
+            setMessage(text);
+            if (text.length > 0) emitTyping();
+          }}
           onSend={() => { void handleSendMessage(); }}
           sending={sending}
           theme={theme}
@@ -106,6 +129,12 @@ export default function ChatScreen() {
           void triggerSheetCommitHaptic();
           setMessage(nextMessage);
         }}
+      />
+      <ReportSheet
+        controller={reportSheet.sheetProps}
+        onClose={reportSheet.close}
+        reportedUserId={user.id}
+        matchId={matchId}
       />
     </SafeAreaView>
   );

@@ -71,7 +71,17 @@ const config: ExpoConfig = {
   scheme: slug,
   userInterfaceStyle: "light",
   newArchEnabled: true,
-  plugins: ["expo-asset", "expo-font"],
+  plugins: [
+    "expo-asset",
+    "expo-font",
+    [
+      "expo-location",
+      {
+        locationWhenInUsePermission:
+          "BRDG uses your location to show people nearby and display distances.",
+      },
+    ],
+  ],
   runtimeVersion: {
     policy: "appVersion",
   },
@@ -89,6 +99,8 @@ const config: ExpoConfig = {
     buildNumber: iosBuildNumber,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      NSLocationWhenInUseUsageDescription:
+        "BRDG uses your location to show people nearby and display distances.",
     },
   },
   android: {

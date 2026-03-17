@@ -19,8 +19,7 @@ import {
   DISCOVERY_FEED_RESULT_LIMIT,
   DISCOVERY_SCORE_WEIGHTS,
   EARTH_RADIUS_KM,
-  PROFILE_COMPLETENESS_BIO_MIN_CHARS,
-  PROFILE_COMPLETENESS_PHOTO_MIN_COUNT,
+  PROFILE_COMPLETENESS_CHECKS,
   PROFILE_COMPLETENESS_PROMPTS,
 } from './discovery.constants';
 
@@ -597,48 +596,29 @@ export class DiscoveryService {
     if (!user) {
       return {
         score: 0,
+        total: PROFILE_COMPLETENESS_CHECKS.length,
+        earned: 0,
         prompts: [PROFILE_COMPLETENESS_PROMPTS.missingProfile],
+        missing: PROFILE_COMPLETENESS_CHECKS.map((c) => ({
+          field: c.field,
+          label: c.label,
+          route: c.route,
+        })),
       };
     }
 
-    const checks = [
-      { ok: !!user.firstName, prompt: PROFILE_COMPLETENESS_PROMPTS.firstName },
-      { ok: !!user.birthdate, prompt: PROFILE_COMPLETENESS_PROMPTS.birthdate },
-      {
-        ok:
-          !!user.profile?.bio &&
-          user.profile.bio.length >= PROFILE_COMPLETENESS_BIO_MIN_CHARS,
-        prompt: PROFILE_COMPLETENESS_PROMPTS.bio,
-      },
-      {
-        ok: !!user.profile?.city,
-        prompt: PROFILE_COMPLETENESS_PROMPTS.city,
-      },
-      {
-        ok: user.photos.length >= PROFILE_COMPLETENESS_PHOTO_MIN_COUNT,
-        prompt: PROFILE_COMPLETENESS_PROMPTS.photos,
-      },
-      {
-        ok: !!user.fitnessProfile?.primaryGoal,
-        prompt: PROFILE_COMPLETENESS_PROMPTS.primaryGoal,
-      },
-      {
-        ok: !!user.fitnessProfile?.intensityLevel,
-        prompt: PROFILE_COMPLETENESS_PROMPTS.intensity,
-      },
-      {
-        ok: !!(
-          user.fitnessProfile?.prefersMorning ||
-          user.fitnessProfile?.prefersEvening
-        ),
-        prompt: PROFILE_COMPLETENESS_PROMPTS.availability,
-      },
-    ];
+    const checks = PROFILE_COMPLETENESS_CHECKS.map((check) => ({
+      ...check,
+      ok: check.test(user),
+    }));
 
     const earned = checks.filter((c) => c.ok).length;
     const score = Math.round((earned / checks.length) * 100);
     const prompts = checks.filter((c) => !c.ok).map((c) => c.prompt);
+    const missing = checks
+      .filter((c) => !c.ok)
+      .map((c) => ({ field: c.field, label: c.label, route: c.route }));
 
-    return { score, prompts };
+    return { score, total: checks.length, earned, prompts, missing };
   }
 }
