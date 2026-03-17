@@ -1,5 +1,7 @@
 import { useNotifications } from './useNotifications';
 
 export function useUnreadNotificationCount() {
-  return useNotifications();
+  const { unreadCount } = useNotifications();
+
+  return { unreadCount };
 }

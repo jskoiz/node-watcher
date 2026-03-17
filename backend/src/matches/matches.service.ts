@@ -21,76 +21,103 @@ export class MatchesService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  async getMatches(userId: string, take: number, skip: number) {
-    const safeTake = Math.min(Math.max(take, 1), 100);
-    const matches = await this.prisma.match.findMany({
-      where: {
-        OR: [{ userAId: userId }, { userBId: userId }],
-        isBlocked: false,
-        isArchived: false,
-      },
+  private readonly matchListSelect = {
+    id: true,
+    createdAt: true,
+    userAId: true,
+    userBId: true,
+    userA: {
       select: {
         id: true,
-        createdAt: true,
-        userAId: true,
-        userBId: true,
-        userA: {
-          select: {
-            id: true,
-            firstName: true,
-            isDeleted: true,
-            isBanned: true,
-            photos: {
-              where: { isPrimary: true },
-              select: { storageKey: true },
-              take: 1,
-            },
-          },
-        },
-        userB: {
-          select: {
-            id: true,
-            firstName: true,
-            isDeleted: true,
-            isBanned: true,
-            photos: {
-              where: { isPrimary: true },
-              select: { storageKey: true },
-              take: 1,
-            },
-          },
-        },
-        messages: {
-          select: { body: true },
-          orderBy: { createdAt: 'desc' },
+        firstName: true,
+        isDeleted: true,
+        isBanned: true,
+        photos: {
+          where: { isPrimary: true },
+          select: { storageKey: true },
           take: 1,
         },
       },
-      orderBy: { updatedAt: 'desc' },
-      take: safeTake,
-      skip,
-    });
+    },
+    userB: {
+      select: {
+        id: true,
+        firstName: true,
+        isDeleted: true,
+        isBanned: true,
+        photos: {
+          where: { isPrimary: true },
+          select: { storageKey: true },
+          take: 1,
+        },
+      },
+    },
+    messages: {
+      select: { body: true },
+      orderBy: { createdAt: 'desc' as const },
+      take: 1,
+    },
+  };
 
-    // Transform to return the *other* user, filtering out deleted/banned users
-    return matches
-      .filter((match) => {
-        const otherUser = match.userAId === userId ? match.userB : match.userA;
-        return !otherUser.isDeleted && !otherUser.isBanned;
-      })
-      .map((match) => {
-        const isUserA = match.userAId === userId;
-        const otherUser = isUserA ? match.userB : match.userA;
-        return {
-          id: match.id,
-          createdAt: match.createdAt,
-          user: {
-            id: otherUser.id,
-            firstName: otherUser.firstName,
-            photoUrl: otherUser.photos[0]?.storageKey ?? null,
-          },
-          lastMessage: match.messages[0]?.body ?? null,
-        };
+  async getMatches(userId: string, take: number, skip: number) {
+    const safeTake = Math.min(Math.max(take, 1), 100);
+    const validMatches: Array<{
+      id: string;
+      createdAt: Date;
+      user: {
+        id: string;
+        firstName: string;
+        photoUrl: string | null;
+      };
+      lastMessage: string | null;
+    }> = [];
+    let offset = skip;
+    let hasMore = true;
+
+    while (validMatches.length < safeTake && hasMore) {
+      const matches = await this.prisma.match.findMany({
+        where: {
+          OR: [{ userAId: userId }, { userBId: userId }],
+          isBlocked: false,
+          isArchived: false,
+        },
+        select: this.matchListSelect,
+        orderBy: { updatedAt: 'desc' },
+        take: safeTake,
+        skip: offset,
       });
+
+      hasMore = matches.length === safeTake;
+      offset += matches.length;
+
+      const mapped = matches
+        .filter((match) => {
+          const otherUser = match.userAId === userId ? match.userB : match.userA;
+          return !otherUser.isDeleted && !otherUser.isBanned;
+        })
+        .map((match) => {
+          const isUserA = match.userAId === userId;
+          const otherUser = isUserA ? match.userB : match.userA;
+          return {
+            id: match.id,
+            createdAt: match.createdAt,
+            user: {
+              id: otherUser.id,
+              firstName: otherUser.firstName,
+              photoUrl: otherUser.photos[0]?.storageKey ?? null,
+            },
+            lastMessage: match.messages[0]?.body ?? null,
+          };
+        });
+
+      validMatches.push(...mapped);
+
+      if (matches.length < safeTake) {
+        break;
+      }
+    }
+
+    return validMatches.slice(0, safeTake);
   }
   async getMessages(
     matchId: string,
@@ -142,7 +169,8 @@ export class MatchesService {
   }
 
   async sendMessage(matchId: string, userId: string, content: string) {
-    if (!content?.trim()) {
+    const trimmedContent = content?.trim();
+    if (!trimmedContent) {
       throw new BadRequestException('Message content is required');
     }
 
@@ -152,7 +180,7 @@ export class MatchesService {
       data: {
         matchId,
         senderId: userId,
-        body: content,
+        body: trimmedContent,
       },
       select: {
         id: true,
@@ -181,7 +209,7 @@ export class MatchesService {
     void this.notifications.create(recipientId, {
       type: 'message_received',
       title: 'New message',
-      body: content,
+      body: trimmedContent,
       data: { matchId, senderId: userId },
     });
 

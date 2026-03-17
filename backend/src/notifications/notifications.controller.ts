@@ -21,6 +21,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { appConfig } from '../config/app.config';
 import { NotificationsService } from './notifications.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
 import { EmitNotificationDto } from './notifications.dto';
@@ -79,7 +80,7 @@ export class NotificationsController {
     @Request() req: AuthenticatedRequest,
     @Body() body: EmitNotificationDto,
   ) {
-    if (process.env.NODE_ENV === 'production') {
+    if (appConfig.isProduction) {
       throw new ForbiddenException('Endpoint disabled in production');
     }
     return this.notificationsService.create(req.user.id, {

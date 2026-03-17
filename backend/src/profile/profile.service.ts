@@ -12,6 +12,37 @@ import type {
 export class ProfileService {
   private readonly logger = new Logger(ProfileService.name);
 
+  private sanitizeOwnProfile<T extends Record<string, unknown>>(user: T) {
+    const {
+      passwordHash: _ph,
+      providerId: _pid,
+      authProvider: _ap,
+      ...safeUser
+    } = user;
+
+    return safeUser;
+  }
+
+  private sanitizePublicProfile<
+    T extends Record<string, unknown> & { birthdate?: Date | null },
+  >(user: T) {
+    const {
+      passwordHash: _ph,
+      providerId: _pid,
+      authProvider: _ap,
+      email: _email,
+      phoneNumber: _phoneNumber,
+      hasVerifiedEmail: _hasVerifiedEmail,
+      hasVerifiedPhone: _hasVerifiedPhone,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      birthdate: _birthdate,
+      ...safeUser
+    } = user;
+
+    return safeUser;
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly photoStorage: PhotoStorageService,
@@ -78,17 +109,39 @@ export class ProfileService {
       return null;
     }
 
-    // Strip sensitive auth fields before returning — passwordHash must never
-    // leave the service layer (affects both own-profile and getProfileById).
-    const {
-      passwordHash: _ph,
-      providerId: _pid,
-      authProvider: _ap,
-      ...safeUser
-    } = user;
+    return {
+      ...this.sanitizeOwnProfile(user),
+      age: calculateAge(user.birthdate),
+    };
+  }
+
+  async getPublicProfile(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, isDeleted: false, isBanned: false },
+      include: {
+        fitnessProfile: true,
+        profile: true,
+        photos: {
+          where: { isHidden: false },
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            storageKey: true,
+            isPrimary: true,
+            sortOrder: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      this.logger.warn(`Public profile not found for userId=${userId}`);
+      return null;
+    }
 
     return {
-      ...safeUser,
+      ...this.sanitizePublicProfile(user),
       age: calculateAge(user.birthdate),
     };
   }

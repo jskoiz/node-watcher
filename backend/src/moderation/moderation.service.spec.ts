@@ -122,6 +122,12 @@ describe('ModerationService', () => {
           create: { fromUserId: 'user-1', toUserId: 'user-2' },
         }),
       );
+      expect(passUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { fromUserId_toUserId: { fromUserId: 'user-2', toUserId: 'user-1' } },
+          create: { fromUserId: 'user-2', toUserId: 'user-1' },
+        }),
+      );
       expect(notificationsCreate).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({ type: 'system', title: 'User blocked' }),
@@ -141,6 +147,12 @@ describe('ModerationService', () => {
         expect.objectContaining({
           where: { fromUserId_toUserId: { fromUserId: 'user-1', toUserId: 'user-99' } },
           create: { fromUserId: 'user-1', toUserId: 'user-99' },
+        }),
+      );
+      expect(passUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { fromUserId_toUserId: { fromUserId: 'user-99', toUserId: 'user-1' } },
+          create: { fromUserId: 'user-99', toUserId: 'user-1' },
         }),
       );
       expect(notificationsCreate).toHaveBeenCalled();

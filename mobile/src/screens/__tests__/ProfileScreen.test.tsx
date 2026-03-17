@@ -26,6 +26,8 @@ const mockProfile = {
   },
   photos: [],
 };
+let mockIsSavingFitness = false;
+let mockIsSavingProfile = false;
 const mockAuthState = {
   user: { id: "user-1", firstName: "Jordan" },
   logout: mockLogout,
@@ -49,8 +51,8 @@ jest.mock("../../features/profile/hooks/useProfile", () => ({
     error: null,
     isLoading: false,
     isRefetching: false,
-    isSavingFitness: false,
-    isSavingProfile: false,
+    isSavingFitness: mockIsSavingFitness,
+    isSavingProfile: mockIsSavingProfile,
     isUploadingPhoto: false,
     isUpdatingPhoto: false,
     isDeletingPhoto: false,
@@ -112,6 +114,8 @@ jest.mock("../../components/form/LocationField", () => {
 describe("ProfileScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsSavingFitness = false;
+    mockIsSavingProfile = false;
     mockUpdateFitness.mockResolvedValue(undefined);
     mockUpdateProfile.mockResolvedValue(undefined);
     mockRefetch.mockResolvedValue(undefined);
@@ -138,15 +142,24 @@ describe("ProfileScreen", () => {
     });
   });
 
-  it("renders environment preferences as read-only chips in edit mode", async () => {
+  it("does not render fake environment pills", async () => {
     render(<ProfileScreen />);
 
-    expect(await screen.findByText("Environment")).toBeTruthy();
     fireEvent.press(screen.getByText(/Edit Profile/));
 
-    expect(screen.getByText("Outdoors")).toBeTruthy();
-    expect(screen.getByText("Gym")).toBeTruthy();
-    expect(screen.getByText("Pool")).toBeTruthy();
+    expect(screen.queryByText("Outdoors")).toBeNull();
+    expect(screen.queryByText("Gym")).toBeNull();
+  });
+
+  it('disables save while profile updates are in progress', async () => {
+    const { rerender } = render(<ProfileScreen />);
+
+    fireEvent.press(await screen.findByLabelText('Edit profile'));
+    mockIsSavingFitness = true;
+    rerender(<ProfileScreen />);
+
+    expect(screen.getByLabelText('Save profile').props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByText('Saving...')).toBeTruthy();
   });
 
   it("uses the structured city picker when saving profile basics", async () => {

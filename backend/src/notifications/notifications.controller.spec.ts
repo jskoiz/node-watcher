@@ -4,6 +4,7 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { NotificationType } from '../common/enums';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
+import { appConfig } from '../config/app.config';
 
 describe('NotificationsController', () => {
   let controller: NotificationsController;
@@ -17,7 +18,7 @@ describe('NotificationsController', () => {
 
   const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
 
-  const originalNodeEnv = process.env.NODE_ENV;
+  const originalIsProduction = appConfig.isProduction;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -33,11 +34,7 @@ describe('NotificationsController', () => {
   });
 
   afterEach(() => {
-    if (originalNodeEnv === undefined) {
-      delete process.env.NODE_ENV;
-    } else {
-      process.env.NODE_ENV = originalNodeEnv;
-    }
+    (appConfig as { isProduction: boolean }).isProduction = originalIsProduction;
   });
 
   it('should be defined', () => {
@@ -77,7 +74,7 @@ describe('NotificationsController', () => {
   });
 
   it('throws ForbiddenException when NODE_ENV is production', async () => {
-    process.env.NODE_ENV = 'production';
+    (appConfig as { isProduction: boolean }).isProduction = true;
 
     await expect(
       controller.emit(req, {

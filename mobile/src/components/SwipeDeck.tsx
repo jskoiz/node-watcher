@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -163,6 +163,11 @@ export default function SwipeDeck({
   const swiperRef = useRef<Swiper<SwipeDeckUser>>(null);
   const [allSwiped, setAllSwiped] = useState(false);
   const swipingRef = useRef(false);
+  const feedSignatureRef = useRef('');
+  const dataSignature = React.useMemo(
+    () => data.map((user) => user.id).join('|'),
+    [data],
+  );
   const resolvedCardHeight = clampCardHeight(cardHeight);
   const resolvedCardFrameStyle = React.useMemo(
     () => ({
@@ -194,6 +199,13 @@ export default function SwipeDeck({
     },
     [data, onSwipeRight],
   );
+
+  useEffect(() => {
+    if (dataSignature && feedSignatureRef.current !== dataSignature) {
+      setAllSwiped(false);
+    }
+    feedSignatureRef.current = dataSignature;
+  }, [dataSignature]);
 
   if (!data || data.length === 0 || allSwiped) {
     return (

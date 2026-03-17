@@ -1,12 +1,12 @@
-import * as SecureStore from 'expo-secure-store';
 import { handleUnauthorized, setUnauthorizedHandler } from '../authSession';
 import { useAuthStore } from '../../store/authStore';
 import { STORAGE_KEYS } from '../../constants/storage';
+import { storage } from '../storage';
 
-jest.mock('expo-secure-store', () => ({
-  deleteItemAsync: jest.fn(),
-  getItemAsync: jest.fn(),
-  setItemAsync: jest.fn(),
+jest.mock('../storage', () => ({
+  storage: {
+    deleteItemAsync: jest.fn(),
+  },
 }));
 
 describe('authSession', () => {
@@ -34,7 +34,7 @@ describe('authSession', () => {
 
     await handleUnauthorized();
 
-    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(
+    expect(storage.deleteItemAsync).toHaveBeenCalledWith(
       STORAGE_KEYS.accessToken,
     );
     expect(clearSession).toHaveBeenCalledTimes(1);
@@ -42,5 +42,11 @@ describe('authSession', () => {
     expect(useAuthStore.getState().user).toBeNull();
 
     cleanup();
+  });
+
+  it('still clears persisted token when unauthorized handler is not set', async () => {
+    await handleUnauthorized();
+
+    expect(storage.deleteItemAsync).toHaveBeenCalledWith(STORAGE_KEYS.accessToken);
   });
 });

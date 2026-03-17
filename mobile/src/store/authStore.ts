@@ -1,26 +1,9 @@
 import { create } from "zustand";
-import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
 import { authApi } from "../services/api";
 import { STORAGE_KEYS } from "../constants/storage";
 import { normalizeApiError } from "../api/errors";
 import type { User } from "../api/types";
-
-// expo-secure-store has no web implementation; fall back to localStorage
-const storage = {
-  getItemAsync: (key: string) =>
-    Platform.OS === "web"
-      ? Promise.resolve(localStorage.getItem(key))
-      : SecureStore.getItemAsync(key),
-  setItemAsync: (key: string, value: string) =>
-    Platform.OS === "web"
-      ? Promise.resolve(localStorage.setItem(key, value))
-      : SecureStore.setItemAsync(key, value),
-  deleteItemAsync: (key: string) =>
-    Platform.OS === "web"
-      ? Promise.resolve(localStorage.removeItem(key))
-      : SecureStore.deleteItemAsync(key),
-};
+import { storage } from "../api/storage";
 
 interface LoginPayload {
   email: string;

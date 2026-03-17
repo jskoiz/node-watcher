@@ -22,7 +22,6 @@ import AppBackdrop from '../components/ui/AppBackdrop';
 import { Button, Screen, StatePanel } from '../design/primitives';
 import { useTheme } from '../theme/useTheme';
 import { radii, spacing, typography } from '../theme/tokens';
-import { type SessionIntent } from '../types/sessionIntent';
 import { getAvatarInitial, getPrimaryPhotoUri } from '../lib/profilePhotos';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -59,17 +58,13 @@ export default function ProfileDetailScreen() {
     .map((s: string) => s.trim())
     .filter(Boolean);
 
-  const intent: SessionIntent | null =
-    user.profile?.intentDating && user.profile?.intentWorkout ? 'both' :
-    user.profile?.intentDating ? 'dating' :
-    user.profile?.intentWorkout ? 'workout' :
-    null;
+  const intentFlags = [
+    user.profile?.intentDating ? 'Dating' : null,
+    user.profile?.intentWorkout ? 'Training partner' : null,
+    user.profile?.intentFriends ? 'Friends' : null,
+  ].filter(Boolean);
 
-  const intentDisplay =
-    intent === 'dating' ? 'Dating' :
-    intent === 'workout' ? 'Training partner' :
-    intent === 'both' ? 'Open to both' :
-    null;
+  const intentDisplay = intentFlags.length > 0 ? intentFlags.join(' + ') : null;
   const structuredRows = [
     {
       label: 'Pace',
@@ -206,7 +201,7 @@ export default function ProfileDetailScreen() {
               {user.fitnessProfile?.weeklyFrequencyBand ? (
                 <View style={styles.metaIntroCard}>
                   <Text style={styles.metaIntroText}>
-                    Moves {user.fitnessProfile.weeklyFrequencyBand}x per week and prefers cleaner, aligned plans over filler.
+                    Moves {user.fitnessProfile.weeklyFrequencyBand}x per week.
                   </Text>
                 </View>
               ) : null}

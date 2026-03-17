@@ -44,6 +44,7 @@ const LIFECYCLE_ENABLED = process.env.E2E_LIFECYCLE === 'true';
     let app: INestApplication<App>;
     let authToken: string;
     let userId: string;
+    let eventId: string;
 
     beforeAll(async () => {
       const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -134,7 +135,10 @@ const LIFECYCLE_ENABLED = process.env.E2E_LIFECYCLE === 'true';
     });
 
     it('Step 8: Events list returns array', async () => {
-      const res = await request(app.getHttpServer()).get('/events').expect(200);
+      const res = await request(app.getHttpServer())
+        .get('/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
 
       expect(Array.isArray(res.body)).toBe(true);
     });
@@ -152,9 +156,30 @@ const LIFECYCLE_ENABLED = process.env.E2E_LIFECYCLE === 'true';
 
       expect(res.body.id).toBeTruthy();
       expect(res.body.title).toBe('E2E Morning Run');
+      eventId = res.body.id;
     });
 
-    it('Step 10: Verification status returns flags', async () => {
+    it('Step 10: Event detail returns the created event', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/events/${eventId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(res.body.id).toBe(eventId);
+      expect(res.body.title).toBe('E2E Morning Run');
+    });
+
+    it('Step 11: RSVP to an existing event succeeds', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/events/${eventId}/rsvp`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(201);
+
+      expect(res.body.status).toBe('joined');
+      expect(typeof res.body.attendeesCount).toBe('number');
+    });
+
+    it('Step 12: Verification status returns flags', async () => {
       const res = await request(app.getHttpServer())
         .get('/verification/status')
         .set('Authorization', `Bearer ${authToken}`)
@@ -163,11 +188,11 @@ const LIFECYCLE_ENABLED = process.env.E2E_LIFECYCLE === 'true';
       expect(typeof res.body.hasVerifiedEmail).toBe('boolean');
     });
 
-    it('Step 11: Unauthenticated requests are rejected', async () => {
+    it('Step 13: Unauthenticated requests are rejected', async () => {
       await request(app.getHttpServer()).get('/auth/me').expect(401);
     });
 
-    it('Step 12: Delete account succeeds', async () => {
+    it('Step 14: Delete account succeeds', async () => {
       await request(app.getHttpServer())
         .delete('/auth/me')
         .set('Authorization', `Bearer ${authToken}`)

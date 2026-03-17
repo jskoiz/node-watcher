@@ -15,6 +15,7 @@ const mockUser = {
     intentWorkout: true,
   },
 };
+const mockUseAuthStore = jest.fn();
 
 jest.mock('../../features/discovery/hooks/useDiscoveryFeed', () => ({
   useDiscoveryFeed: (...args: unknown[]) => mockUseDiscoveryFeed(...args),
@@ -27,10 +28,8 @@ jest.mock('../../features/notifications/hooks/useUnreadNotificationCount', () =>
 }));
 
 jest.mock('../../store/authStore', () => ({
-  useAuthStore: (selector: (state: { user: typeof mockUser }) => unknown) =>
-    selector({
-      user: mockUser,
-    }),
+  useAuthStore: (selector: (state: { user: typeof mockUser | null; isLoading: boolean }) => unknown) =>
+    mockUseAuthStore(selector),
 }));
 
 jest.mock('../../components/SwipeDeck', () => {
@@ -73,6 +72,9 @@ describe('HomeScreen', () => {
       refetch: mockRefetch,
       undoSwipe: mockUndoSwipe,
     });
+    mockUseAuthStore.mockImplementation((selector) =>
+      selector({ user: mockUser, isLoading: false }),
+    );
   });
 
   it('uses quick filters to refetch discovery with API-backed params', async () => {
@@ -109,6 +111,39 @@ describe('HomeScreen', () => {
           maxAge: 44,
         }),
       );
+    });
+  });
+
+  it('does not redirect while auth state is loading', async () => {
+    mockUseAuthStore.mockImplementation((selector) =>
+      selector({ user: { ...mockUser, isOnboarded: false }, isLoading: true }),
+    );
+    render(<HomeScreen navigation={navigation} route={route} />);
+
+    await waitFor(() => {
+      expect(navigation.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  it('does not redirect on transient auth/me failures with a token retained in storage', async () => {
+    mockUseAuthStore.mockImplementation((selector) =>
+      selector({ user: null, isLoading: false }),
+    );
+    render(<HomeScreen navigation={navigation} route={route} />);
+
+    await waitFor(() => {
+      expect(navigation.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  it('redirects to onboarding when onboarding is explicitly incomplete', async () => {
+    mockUseAuthStore.mockImplementation((selector) =>
+      selector({ user: { ...mockUser, isOnboarded: false }, isLoading: false }),
+    );
+    render(<HomeScreen navigation={navigation} route={route} />);
+
+    await waitFor(() => {
+      expect(navigation.navigate).toHaveBeenCalledWith('Onboarding');
     });
   });
 });

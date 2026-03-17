@@ -38,6 +38,7 @@ function toggleValue<T extends string>(current: T[], value: T) {
 
 export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'>) {
   const user = useAuthStore((state) => state.user);
+  const isAuthLoaded = useAuthStore((state) => !state.isLoading);
   const { unreadCount } = useUnreadNotificationCount();
   const [showMatch, setShowMatch] = useState(false);
   const [matchedProfile, setMatchedProfile] = useState<User | null>(null);
@@ -54,11 +55,11 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
   const errorMessage = error ? normalizeApiError(error).message : null;
 
   useEffect(() => {
-    if (!user?.isOnboarded) {
+    if (isAuthLoaded && user?.isOnboarded === false) {
       const timeout = setTimeout(() => navigation.navigate('Onboarding'), 100);
       return () => clearTimeout(timeout);
     }
-  }, [navigation, user]);
+  }, [isAuthLoaded, navigation, user]);
 
   const intentOption = INTENT_OPTIONS.find((option) => option.value === getUserIntent(user)) || INTENT_OPTIONS[2];
   const activeFilterCount = countActiveFilters(currentFilters, filterState);

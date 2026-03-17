@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DiscoveryController } from './discovery.controller';
 import { DiscoveryService } from './discovery.service';
@@ -86,6 +87,21 @@ describe('DiscoveryController', () => {
       intensity: ['moderate', 'high'],
       availability: ['morning', 'evening'],
     });
+  });
+
+  it('rejects contradictory age ranges', async () => {
+    const req = {
+      user: { id: 'user-1', email: 'u@example.com' },
+    } as AuthenticatedRequest;
+
+    await expect(
+      controller.getFeed(req, {
+        minAge: '40',
+        maxAge: '25',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(discoveryServiceMock.getFeed).not.toHaveBeenCalled();
   });
 
   it('delegates like action to discovery service', async () => {

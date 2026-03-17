@@ -6,8 +6,8 @@ import { ThemeProvider } from '../../theme/useTheme';
 function createTestClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
+      queries: { retry: false, gcTime: 0, staleTime: 0 },
+      mutations: { retry: false, gcTime: 0 },
     },
   });
 }

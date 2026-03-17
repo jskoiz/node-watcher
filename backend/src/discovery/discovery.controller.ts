@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -92,9 +93,20 @@ export class DiscoveryController {
     @Request() req: AuthenticatedRequest,
     @Query() query: DiscoveryFeedQuery,
   ) {
+    const filters = buildDiscoveryFilters(query);
+    if (
+      typeof filters.minAge === 'number' &&
+      typeof filters.maxAge === 'number' &&
+      filters.minAge > filters.maxAge
+    ) {
+      throw new BadRequestException(
+        'minAge must be less than or equal to maxAge',
+      );
+    }
+
     return this.discoveryService.getFeed(
       req.user.id,
-      buildDiscoveryFilters(query),
+      filters,
     );
   }
 

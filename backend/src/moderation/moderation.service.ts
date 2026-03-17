@@ -97,12 +97,29 @@ export class ModerationService {
       });
     }
 
-    // Create a Pass so the blocked user is excluded from the blocker's discovery feed.
-    await this.prisma.pass.upsert({
-      where: { fromUserId_toUserId: { fromUserId: actorId, toUserId: targetUserId } },
-      update: {},
-      create: { fromUserId: actorId, toUserId: targetUserId },
-    });
+    // Create reciprocal passes so both users are excluded from discovery.
+    await Promise.all([
+      this.prisma.pass.upsert({
+        where: {
+          fromUserId_toUserId: {
+            fromUserId: actorId,
+            toUserId: targetUserId,
+          },
+        },
+        update: {},
+        create: { fromUserId: actorId, toUserId: targetUserId },
+      }),
+      this.prisma.pass.upsert({
+        where: {
+          fromUserId_toUserId: {
+            fromUserId: targetUserId,
+            toUserId: actorId,
+          },
+        },
+        update: {},
+        create: { fromUserId: targetUserId, toUserId: actorId },
+      }),
+    ]);
 
     void this.notifications
       .create(actorId, {
