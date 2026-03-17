@@ -81,6 +81,7 @@ export function LoginScreenView({
               name="email"
               render={({ field: { onBlur, onChange, value } }) => (
                 <Input
+                  testID="login-email-input"
                   label="Email"
                   placeholder="you@example.com"
                   value={value}
@@ -105,6 +106,7 @@ export function LoginScreenView({
               name="password"
               render={({ field: { onBlur, onChange, value } }) => (
                 <Input
+                  testID="login-password-input"
                   label="Password"
                   placeholder="••••••••"
                   value={value}
@@ -133,6 +135,7 @@ export function LoginScreenView({
             ) : null}
 
             <Button
+              testID="login-submit-button"
               label="Sign in"
               onPress={onSubmit}
               loading={isSubmitting}
