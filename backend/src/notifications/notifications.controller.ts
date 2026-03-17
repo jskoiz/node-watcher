@@ -3,6 +3,8 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   Patch,
@@ -64,9 +66,10 @@ export class NotificationsController {
     return result;
   }
 
-  @Post('mark-all-read')
+  @Patch('mark-all-read')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark all notifications as read' })
-  @ApiCreatedResponse({ description: 'All notifications marked as read.' })
+  @ApiOkResponse({ description: 'All notifications marked as read.' })
   async markAllRead(@Request() req: AuthenticatedRequest) {
     return this.notificationsService.markAllRead(req.user.id);
   }
