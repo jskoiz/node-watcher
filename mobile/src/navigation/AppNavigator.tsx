@@ -20,6 +20,27 @@ import { TabBarVisibilityProvider } from "./TabBarVisibilityContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const linking: import('@react-navigation/native').LinkingOptions<RootStackParamList> = {
+  prefixes: ['brdg://', 'https://brdg.app'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Discover: 'discover',
+          Explore: 'explore',
+          Create: 'create',
+          Inbox: 'inbox',
+          You: 'you',
+        },
+      },
+      Chat: 'chat/:matchId',
+      EventDetail: 'event/:eventId',
+      ProfileDetail: 'profile/:userId',
+      Notifications: 'notifications',
+    },
+  },
+};
+
 export default function AppNavigator() {
   const token = useAuthStore((state) => state.token);
   const isLoading = useAuthStore((state) => state.isLoading);
@@ -64,7 +85,7 @@ export default function AppNavigator() {
 
   return (
     <TabBarVisibilityProvider>
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer theme={navigationTheme} linking={linking}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
