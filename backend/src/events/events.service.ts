@@ -125,6 +125,10 @@ export class EventsService {
       throw new BadRequestException('A valid start time is required');
     }
 
+    if (startsAt.getTime() < Date.now()) {
+      throw new BadRequestException('Start time must not be in the past');
+    }
+
     if (endsAt && Number.isNaN(endsAt.getTime())) {
       throw new BadRequestException('End time must be a valid date');
     }
