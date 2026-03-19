@@ -254,6 +254,14 @@ case "$MODE" in
       )
     fi
 
+    run_xcodebuild_with_auth() {
+      if [[ -n "$ASC_API_KEY_ID" ]]; then
+        xcodebuild "$@" "${XCODE_AUTH_ARGS[@]}" -allowProvisioningUpdates
+      else
+        xcodebuild "$@" -allowProvisioningUpdates
+      fi
+    }
+
     mkdir -p "$EXPORT_PATH"
     cat >"$EXPORT_OPTIONS_PATH" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -278,7 +286,7 @@ EOF
 
     (
       cd "$MOBILE_DIR"
-      xcodebuild \
+      run_xcodebuild_with_auth \
         "${XCODE_TARGET_ARGS[@]}" \
         -scheme "$XCODE_SCHEME" \
         -configuration Release \
@@ -288,18 +296,14 @@ EOF
         PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_IDENTIFIER" \
         DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM" \
         MARKETING_VERSION="$APP_VERSION" \
-        CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
-        "${XCODE_AUTH_ARGS[@]}" \
-        -allowProvisioningUpdates
+        CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER"
 
-      xcodebuild \
+      run_xcodebuild_with_auth \
         -exportArchive \
         -archivePath "$ARCHIVE_PATH" \
         -exportPath "$EXPORT_PATH" \
         -exportOptionsPlist "$EXPORT_OPTIONS_PATH" \
-        DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM" \
-        "${XCODE_AUTH_ARGS[@]}" \
-        -allowProvisioningUpdates
+        DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM"
     )
     ;;
 esac
