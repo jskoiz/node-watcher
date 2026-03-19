@@ -100,6 +100,16 @@ detect_xcode_scheme() {
   echo "${container_name%.*}"
 }
 
+patch_ios_bundle_phase() {
+  local pbxproj_path="$IOS_DIR/BRDG.xcodeproj/project.pbxproj"
+
+  [[ -f "$pbxproj_path" ]] || fail "unable to locate generated Xcode project at $pbxproj_path"
+
+  perl -0pi -e '
+    s#/bin/sh `"\$NODE_BINARY" --print "require\\(\x27path\x27\\)\\.dirname\\(require\\.resolve\\(\x27\@sentry/react-native/package\\.json\x27\\)\\) \+ \x27/scripts/sentry-xcode\\.sh\x27"` `"\$NODE_BINARY" --print "require\\(\x27path\x27\\)\\.dirname\\(require\\.resolve\\(\x27react-native/package\\.json\x27\\)\\) \+ \x27/scripts/react-native-xcode\\.sh\x27"`\\n\\n#RN_XCODE_SCRIPT=`"\$NODE_BINARY" --print "require(\x27path\x27).dirname(require.resolve(\x27react-native/package.json\x27)) + \x27/scripts/react-native-xcode.sh\x27"`\\n/bin/sh "\$RN_XCODE_SCRIPT"\\n\\nif [[ "\$CONFIGURATION" != *Debug* ]]; then\\n  BUNDLE_PATH="\$CONFIGURATION_BUILD_DIR/\$UNLOCALIZED_RESOURCES_FOLDER_PATH/main.jsbundle"\\n  if [[ ! -f "\$BUNDLE_PATH" ]]; then\\n    echo "error: Missing bundled JavaScript at \$BUNDLE_PATH" >&2\\n    exit 1\\n  fi\\nfi\\n#s
+  ' "$pbxproj_path"
+}
+
 load_env_file() {
   local env_file="$1"
 
@@ -231,6 +241,8 @@ case "$MODE" in
       cd "$MOBILE_DIR"
       npx expo prebuild --clean -p ios --npm
     )
+
+    patch_ios_bundle_phase
 
     IFS=":" read -r XCODE_CONTAINER_KIND XCODE_CONTAINER_PATH <<<"$(detect_xcode_container)"
     XCODE_SCHEME="$(detect_xcode_scheme "$XCODE_CONTAINER_PATH")"
