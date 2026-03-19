@@ -51,6 +51,24 @@ detect_apple_team_id() {
   ' "$MOBILE_DIR"
 }
 
+detect_app_store_connect_key_path() {
+  local key_id="$1"
+  local candidate
+  local candidates=(
+    "$ROOT_DIR/private_keys/AuthKey_${key_id}.p8"
+    "$HOME/private_keys/AuthKey_${key_id}.p8"
+    "$HOME/.private_keys/AuthKey_${key_id}.p8"
+    "$HOME/.appstoreconnect/private_keys/AuthKey_${key_id}.p8"
+  )
+
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      echo "$candidate"
+      return
+    fi
+  done
+}
+
 detect_xcode_container() {
   local workspace_path
   workspace_path="$(
@@ -150,12 +168,22 @@ export IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-}"
 export IOS_BUNDLE_IDENTIFIER="${IOS_BUNDLE_IDENTIFIER:-}"
 export IOS_DEVELOPMENT_TEAM="${IOS_DEVELOPMENT_TEAM:-$(detect_apple_team_id)}"
 export EXPO_PUBLIC_API_URL="${EXPO_PUBLIC_API_URL:-}"
+export ASC_API_KEY_ID="${ASC_API_KEY_ID:-}"
+export ASC_API_ISSUER_ID="${ASC_API_ISSUER_ID:-}"
+export ASC_API_KEY_PATH="${ASC_API_KEY_PATH:-}"
 
 [[ -n "$IOS_BUILD_NUMBER" ]] || fail "IOS_BUILD_NUMBER must be set before running a release"
 [[ -n "$IOS_BUNDLE_IDENTIFIER" ]] || fail "IOS_BUNDLE_IDENTIFIER must be set before running a release"
 [[ -n "$EXPO_PUBLIC_API_URL" ]] || fail "EXPO_PUBLIC_API_URL must be set before running a release"
 if [[ "$MODE" == "xcode" ]]; then
   [[ -n "$IOS_DEVELOPMENT_TEAM" ]] || fail "IOS_DEVELOPMENT_TEAM is required for xcode releases when mobile/eas.json does not define submit.production.ios.appleTeamId"
+  if [[ -n "$ASC_API_KEY_ID" || -n "$ASC_API_ISSUER_ID" || -n "$ASC_API_KEY_PATH" ]]; then
+    [[ -n "$ASC_API_KEY_ID" ]] || fail "ASC_API_KEY_ID must be set when App Store Connect API key auth is used"
+    [[ -n "$ASC_API_ISSUER_ID" ]] || fail "ASC_API_ISSUER_ID must be set when App Store Connect API key auth is used"
+    ASC_API_KEY_PATH="${ASC_API_KEY_PATH:-$(detect_app_store_connect_key_path "$ASC_API_KEY_ID")}"
+    [[ -n "$ASC_API_KEY_PATH" ]] || fail "unable to locate AuthKey_${ASC_API_KEY_ID}.p8; set ASC_API_KEY_PATH to the App Store Connect private key file"
+    [[ -f "$ASC_API_KEY_PATH" ]] || fail "ASC_API_KEY_PATH does not exist: $ASC_API_KEY_PATH"
+  fi
   if [[ -z "${SENTRY_ALLOW_FAILURE:-}" && ( -z "${SENTRY_ORG:-}" || -z "${SENTRY_PROJECT:-}" || -z "${SENTRY_AUTH_TOKEN:-}" ) ]]; then
     export SENTRY_ALLOW_FAILURE=true
   fi
@@ -210,11 +238,20 @@ case "$MODE" in
     EXPORT_PATH="$MOBILE_DIR/build/ios-export"
     EXPORT_OPTIONS_PATH="$MOBILE_DIR/build/ios-export-options.plist"
     XCODE_TARGET_ARGS=()
+    XCODE_AUTH_ARGS=()
 
     if [[ "$XCODE_CONTAINER_KIND" == "workspace" ]]; then
       XCODE_TARGET_ARGS=(-workspace "$XCODE_CONTAINER_PATH")
     else
       XCODE_TARGET_ARGS=(-project "$XCODE_CONTAINER_PATH")
+    fi
+
+    if [[ -n "$ASC_API_KEY_ID" ]]; then
+      XCODE_AUTH_ARGS=(
+        -authenticationKeyPath "$ASC_API_KEY_PATH"
+        -authenticationKeyID "$ASC_API_KEY_ID"
+        -authenticationKeyIssuerID "$ASC_API_ISSUER_ID"
+      )
     fi
 
     mkdir -p "$EXPORT_PATH"
@@ -252,6 +289,7 @@ EOF
         DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM" \
         MARKETING_VERSION="$APP_VERSION" \
         CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
+        "${XCODE_AUTH_ARGS[@]}" \
         -allowProvisioningUpdates
 
       xcodebuild \
@@ -260,6 +298,7 @@ EOF
         -exportPath "$EXPORT_PATH" \
         -exportOptionsPlist "$EXPORT_OPTIONS_PATH" \
         DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM" \
+        "${XCODE_AUTH_ARGS[@]}" \
         -allowProvisioningUpdates
     )
     ;;
