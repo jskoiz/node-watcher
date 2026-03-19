@@ -43,6 +43,7 @@ describe('useBlock', () => {
     await act(async () => {
       await result.current.block({ blockedUserId: 'u1' });
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(mockBlock).toHaveBeenCalledWith({ blockedUserId: 'u1' });
   });
@@ -58,6 +59,7 @@ describe('useBlock', () => {
     await act(async () => {
       await result.current.block({ blockedUserId: 'u1' });
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: queryKeys.matches.list }),
@@ -73,6 +75,7 @@ describe('useBlock', () => {
     await act(async () => {
       await result.current.block({ blockedUserId: 'u1' });
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(Alert.alert).toHaveBeenCalledWith(
       'User blocked',
@@ -90,6 +93,7 @@ describe('useBlock', () => {
     await act(async () => {
       await result.current.block({ blockedUserId: 'u1' });
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(onSuccess).toHaveBeenCalled();
   });
@@ -107,6 +111,7 @@ describe('useBlock', () => {
         // expected
       }
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(Alert.alert).toHaveBeenCalledWith(
       'Could not block user',
@@ -123,6 +128,7 @@ describe('useBlock', () => {
     await act(async () => {
       await result.current.block({ blockedUserId: 'u1', matchId: 'm1' });
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(mockBlock).toHaveBeenCalledWith({ blockedUserId: 'u1', matchId: 'm1' });
   });

@@ -1,12 +1,12 @@
 import { useAuthStore } from '../authStore';
 import { authApi } from '../../services/api';
-import { getToken, setToken, deleteToken } from '../../lib/secureStorage';
+import { getToken, setToken, deleteToken } from '../../api/tokenStorage';
 
 jest.mock('@sentry/react-native', () => ({
   setUser: jest.fn(),
 }));
 
-jest.mock('../../lib/secureStorage', () => ({
+jest.mock('../../api/tokenStorage', () => ({
   getToken: jest.fn(),
   setToken: jest.fn(),
   deleteToken: jest.fn(),

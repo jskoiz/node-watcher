@@ -1,5 +1,5 @@
 import { env } from '../config/env';
-import { getToken } from '../lib/secureStorage';
+import { getToken } from '../api/tokenStorage';
 
 type RealtimeStatus = 'connecting' | 'connected' | 'fallback';
 

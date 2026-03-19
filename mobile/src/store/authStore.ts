@@ -2,7 +2,7 @@ import { create } from "zustand";
 import * as Sentry from "@sentry/react-native";
 import { authApi } from "../services/api";
 import { normalizeApiError } from "../api/errors";
-import { getToken, setToken, deleteToken } from "../lib/secureStorage";
+import { getToken, setToken, deleteToken } from "../api/tokenStorage";
 import { queryClient } from "../lib/query/queryClient";
 import type { User } from "../api/types";
 

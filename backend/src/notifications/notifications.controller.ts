@@ -26,7 +26,6 @@ import { appConfig } from '../config/app.config';
 import { NotificationsService } from './notifications.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
 import { EmitNotificationDto } from './notifications.dto';
-import { appConfig } from '../config/app.config';
 
 @Controller('notifications')
 @UseGuards(AuthGuard('jwt'))

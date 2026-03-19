@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { env } from '../config/env';
 import { handleUnauthorized } from './authSession';
-import { getToken } from '../lib/secureStorage';
+import { getToken } from './tokenStorage';
 
 const client = axios.create({
     baseURL: env.apiUrl,

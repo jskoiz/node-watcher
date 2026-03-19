@@ -220,6 +220,13 @@ export class AuthService {
     return this.issueAuthToken(foundUser);
   }
 
+  async registerPushToken(userId: string, token: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { pushToken: token },
+    });
+  }
+
   private issueAuthToken(user: AuthenticatedUser): AuthResult {
     const userEmail = user.email?.trim() ?? '';
     const payload = { sub: user.id };

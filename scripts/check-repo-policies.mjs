@@ -37,6 +37,7 @@ const mobileScreenLimits = new Map([
 
 const allowedEnvFiles = new Set([
   'backend/src/config/app.config.ts',
+  'backend/src/config/app.config.spec.ts',
   'mobile/src/config/env.ts',
 ]);
 
