@@ -38,6 +38,7 @@ symphony/dist/
 
 # runtime uploads
 backend/public/pfps/
+backend/public/uploads/
 
 # maestro screenshots (regenerated on demand)
 maestro/screenshots/

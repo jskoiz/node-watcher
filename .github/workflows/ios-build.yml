@@ -40,10 +40,12 @@ jobs:
         working-directory: mobile/ios
 
       - name: Build for iOS Simulator
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: "true"
         run: |
           xcodebuild build \
-            -workspace ios/mobile.xcworkspace \
-            -scheme mobile \
+            -workspace ios/BRDG.xcworkspace \
+            -scheme BRDG \
             -destination 'platform=iOS Simulator,name=iPhone 16' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO

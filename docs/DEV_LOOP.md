@@ -29,6 +29,8 @@ npm run dev:bootstrap
 
 `dev:bootstrap` reuses the canonical BRDG Docker project so Postgres/Redis can be shared across Codex worktrees instead of colliding on container names.
 
+`npm run dev:backend` now loads `backend/.env` before starting Nest. Keep `backend/.env` present for local runtime work instead of relying on ad hoc shell exports.
+
 ## Release-hardening smoke run
 
 From repo root:
@@ -119,6 +121,41 @@ Recommended local QA loop for the current Phase 3 surface:
 7. Pull to refresh or revisit downstream screens and confirm the updated primary photo and profile fields are reflected outside the Profile tab.
 
 Use this seeded app loop after Storybook review, not instead of Storybook review, when a task is primarily visual.
+
+## Fast iOS simulator loop
+
+For repeated QA on the iOS simulator, split the native install step from the day-to-day validation loop.
+
+One-time install for the current native graph:
+
+```bash
+npm run ios:install
+```
+
+This boots the latest available iPhone simulator (or `IOS_SIMULATOR_NAME` if you set it), builds the current dev client without leaving Metro attached, installs it, and disables Sentry auto-upload for the local debug build.
+
+Fast repeat loop after the app is already installed:
+
+```bash
+# terminal 1
+npm run dev:backend
+
+# terminal 2
+npm run qa:ios
+```
+
+If you need to reset deterministic preview data before opening the app:
+
+```bash
+npm run qa:ios:reset
+```
+
+Recommended usage:
+
+1. Run `npm run ios:install` only when native dependencies, Expo config, or iOS-native files changed.
+2. Reuse the installed dev client with `npm run qa:ios` for normal screen and flow testing.
+3. Use `npm run qa:ios:reset` when login state, preview users, or seeded data drift.
+4. Set `IOS_SIMULATOR_NAME="Your Simulator Name"` if you want a different device target.
 
 If you are planning post-Phase-3 work, the current recommended next track is event conversion and re-engagement:
 - improve event invite/share flows

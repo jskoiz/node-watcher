@@ -26,7 +26,11 @@ npm run hooks:install
 npm run storybook
 npm run dev:backend
 npm run dev:mobile
+npm run dev:mobile:dev-client
 npm run dev:scenario -- ui-preview
+npm run ios:install
+npm run qa:ios
+npm run qa:ios:reset
 npm run release:ios
 npm run release:ios:check
 ```
@@ -38,6 +42,8 @@ npm run release:ios:check
 - Run `npm run pre-submit` before opening a PR. Use `npm run hooks:install` if you want the repo-managed pre-commit hook to enforce the same checklist on staged changes.
 - Visual-only mobile work should ship with a Storybook update in the same diff unless the PR explains why Storybook is the wrong surface.
 - Prefer Storybook for isolated UI work. Use the seeded `ui-preview` runtime only for integrated validation.
+- For iOS simulator QA, install the dev client once with `npm run ios:install`, then prefer `npm run qa:ios` or `npm run qa:ios:reset` over rerunning `expo run:ios`. The scripts pick the latest available iPhone simulator unless `IOS_SIMULATOR_NAME` is set. Only rebuild with `npm run ios:install` when native dependencies, Expo config, or iOS-native files change.
+- `npm run dev:backend` is the preferred local backend entrypoint because it loads `backend/.env` before starting Nest.
 - Use one Codex thread per task and one git worktree per active task. Prefer [`scripts/codex-worktree.sh`](scripts/codex-worktree.sh) for new worktrees.
 - Use `npm run symphony` from repo root for the repo-owned Linear orchestration flow. Keep it running as a long-lived operator process rather than starting a fresh manual Codex session per issue.
 

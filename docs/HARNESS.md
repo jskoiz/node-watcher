@@ -15,6 +15,10 @@ npm run repo:index
 npm run harness:ci-context -- --branch main
 npm run hooks:install
 npm run storybook
+npm run dev:backend
+npm run ios:install
+npm run qa:ios
+npm run qa:ios:reset
 npm run scaffold:mobile-feature -- --name "Example Feature"
 npm run scaffold:backend-module -- --name moderation
 ```
@@ -35,6 +39,12 @@ npm run scaffold:backend-module -- --name moderation
   - regenerates [`../artifacts/repo-index.json`](../artifacts/repo-index.json), the machine-readable repo map used by agents and maintenance
 - `npm run harness:ci-context -- --branch <name>`
   - summarizes recent CI and maintenance runs, selected commands, failure category, and the next local command to run
+- `npm run ios:install`
+  - builds and installs the current iOS dev client on the selected simulator with local Sentry auto-upload disabled by default
+- `npm run qa:ios`
+  - boots the iOS simulator, opens the installed dev client, and starts Metro on localhost for fast repeat QA
+- `npm run qa:ios:reset`
+  - reruns the deterministic `ui-preview` reset before starting the same fast iOS simulator loop
 
 ## Policy Rules
 
