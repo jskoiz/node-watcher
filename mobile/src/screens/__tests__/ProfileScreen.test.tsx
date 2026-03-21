@@ -175,5 +175,10 @@ describe("ProfileScreen", () => {
         }),
       );
     });
+
+    await waitFor(() => {
+      expect(mockRefetch).toHaveBeenCalled();
+      expect(screen.getByText(/Edit Profile/)).toBeTruthy();
+    });
   });
 });

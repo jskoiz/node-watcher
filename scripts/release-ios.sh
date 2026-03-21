@@ -36,18 +36,68 @@ run_eas() {
   npx -y eas-cli "$@"
 }
 
+detect_apple_team_id() {
+  node -e '
+    const fs = require("fs");
+    const path = require("path");
+    const easPath = path.join(process.argv[1], "eas.json");
+    try {
+      const eas = JSON.parse(fs.readFileSync(easPath, "utf8"));
+      const teamId = eas?.submit?.production?.ios?.appleTeamId ?? "";
+      process.stdout.write(teamId.trim());
+    } catch {
+      process.stdout.write("");
+    }
+  ' "$MOBILE_DIR"
+}
+
+detect_app_store_connect_key_path() {
+  local key_id="$1"
+  local candidate
+  local candidates=(
+    "$ROOT_DIR/private_keys/AuthKey_${key_id}.p8"
+    "$HOME/private_keys/AuthKey_${key_id}.p8"
+    "$HOME/.private_keys/AuthKey_${key_id}.p8"
+    "$HOME/.appstoreconnect/private_keys/AuthKey_${key_id}.p8"
+  )
+
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      echo "$candidate"
+      return
+    fi
+  done
+}
+
 detect_xcode_container() {
-  if [[ -d "$IOS_DIR/mobile.xcworkspace" ]]; then
-    echo "workspace:$IOS_DIR/mobile.xcworkspace"
+  local workspace_path
+  workspace_path="$(
+    find "$IOS_DIR" -maxdepth 1 -type d -name '*.xcworkspace' ! -name 'project.xcworkspace' | sort | head -n 1
+  )"
+
+  if [[ -n "$workspace_path" ]]; then
+    echo "workspace:$workspace_path"
     return
   fi
 
-  if [[ -d "$IOS_DIR/mobile.xcodeproj" ]]; then
-    echo "project:$IOS_DIR/mobile.xcodeproj"
+  local project_path
+  project_path="$(
+    find "$IOS_DIR" -maxdepth 1 -type d -name '*.xcodeproj' | sort | head -n 1
+  )"
+
+  if [[ -n "$project_path" ]]; then
+    echo "project:$project_path"
     return
   fi
 
   fail "unable to locate Xcode project or workspace under $IOS_DIR"
+}
+
+detect_xcode_scheme() {
+  local container_path="$1"
+  local container_name
+  container_name="$(basename "$container_path")"
+  echo "${container_name%.*}"
 }
 
 load_env_file() {
@@ -116,11 +166,31 @@ export BRDG_RELEASE_PROFILE="$PROFILE"
 export APP_VERSION="${APP_VERSION:-1.0.0}"
 export IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-}"
 export IOS_BUNDLE_IDENTIFIER="${IOS_BUNDLE_IDENTIFIER:-}"
+export IOS_DEVELOPMENT_TEAM="${IOS_DEVELOPMENT_TEAM:-$(detect_apple_team_id)}"
 export EXPO_PUBLIC_API_URL="${EXPO_PUBLIC_API_URL:-}"
+export ASC_API_KEY_ID="${ASC_API_KEY_ID:-}"
+export ASC_API_ISSUER_ID="${ASC_API_ISSUER_ID:-}"
+export ASC_API_KEY_PATH="${ASC_API_KEY_PATH:-}"
 
 [[ -n "$IOS_BUILD_NUMBER" ]] || fail "IOS_BUILD_NUMBER must be set before running a release"
 [[ -n "$IOS_BUNDLE_IDENTIFIER" ]] || fail "IOS_BUNDLE_IDENTIFIER must be set before running a release"
 [[ -n "$EXPO_PUBLIC_API_URL" ]] || fail "EXPO_PUBLIC_API_URL must be set before running a release"
+if [[ "$MODE" == "xcode" ]]; then
+  [[ -n "$IOS_DEVELOPMENT_TEAM" ]] || fail "IOS_DEVELOPMENT_TEAM is required for xcode releases when mobile/eas.json does not define submit.production.ios.appleTeamId"
+  if [[ -n "$ASC_API_KEY_ID" || -n "$ASC_API_ISSUER_ID" || -n "$ASC_API_KEY_PATH" ]]; then
+    [[ -n "$ASC_API_KEY_ID" ]] || fail "ASC_API_KEY_ID must be set when App Store Connect API key auth is used"
+    [[ -n "$ASC_API_ISSUER_ID" ]] || fail "ASC_API_ISSUER_ID must be set when App Store Connect API key auth is used"
+    ASC_API_KEY_PATH="${ASC_API_KEY_PATH:-$(detect_app_store_connect_key_path "$ASC_API_KEY_ID")}"
+    [[ -n "$ASC_API_KEY_PATH" ]] || fail "unable to locate AuthKey_${ASC_API_KEY_ID}.p8; set ASC_API_KEY_PATH to the App Store Connect private key file"
+    [[ -f "$ASC_API_KEY_PATH" ]] || fail "ASC_API_KEY_PATH does not exist: $ASC_API_KEY_PATH"
+  fi
+  if [[ -z "${SENTRY_ALLOW_FAILURE:-}" && ( -z "${SENTRY_ORG:-}" || -z "${SENTRY_PROJECT:-}" || -z "${SENTRY_AUTH_TOKEN:-}" ) ]]; then
+    export SENTRY_ALLOW_FAILURE=true
+  fi
+  if [[ -z "${SENTRY_DISABLE_AUTO_UPLOAD:-}" ]]; then
+    export SENTRY_DISABLE_AUTO_UPLOAD=true
+  fi
+fi
 
 echo "release-ios: running repo validation"
 (
@@ -159,17 +229,41 @@ case "$MODE" in
     )
     ;;
   xcode)
+    echo "release-ios: regenerating Expo iOS project"
+    (
+      cd "$MOBILE_DIR"
+      npx expo prebuild --clean -p ios --npm
+    )
+
     IFS=":" read -r XCODE_CONTAINER_KIND XCODE_CONTAINER_PATH <<<"$(detect_xcode_container)"
-    ARCHIVE_PATH="$MOBILE_DIR/build/BRDG.xcarchive"
+    XCODE_SCHEME="$(detect_xcode_scheme "$XCODE_CONTAINER_PATH")"
+    ARCHIVE_PATH="$MOBILE_DIR/build/${XCODE_SCHEME}.xcarchive"
     EXPORT_PATH="$MOBILE_DIR/build/ios-export"
     EXPORT_OPTIONS_PATH="$MOBILE_DIR/build/ios-export-options.plist"
     XCODE_TARGET_ARGS=()
+    XCODE_AUTH_ARGS=()
 
     if [[ "$XCODE_CONTAINER_KIND" == "workspace" ]]; then
       XCODE_TARGET_ARGS=(-workspace "$XCODE_CONTAINER_PATH")
     else
       XCODE_TARGET_ARGS=(-project "$XCODE_CONTAINER_PATH")
     fi
+
+    if [[ -n "$ASC_API_KEY_ID" ]]; then
+      XCODE_AUTH_ARGS=(
+        -authenticationKeyPath "$ASC_API_KEY_PATH"
+        -authenticationKeyID "$ASC_API_KEY_ID"
+        -authenticationKeyIssuerID "$ASC_API_ISSUER_ID"
+      )
+    fi
+
+    run_xcodebuild_with_auth() {
+      if [[ -n "$ASC_API_KEY_ID" ]]; then
+        xcodebuild "$@" "${XCODE_AUTH_ARGS[@]}" -allowProvisioningUpdates
+      else
+        xcodebuild "$@" -allowProvisioningUpdates
+      fi
+    }
 
     mkdir -p "$EXPORT_PATH"
     cat >"$EXPORT_OPTIONS_PATH" <<'EOF'
@@ -195,24 +289,27 @@ EOF
 
     (
       cd "$MOBILE_DIR"
-      xcodebuild \
+      run_xcodebuild_with_auth \
         "${XCODE_TARGET_ARGS[@]}" \
-        -scheme mobile \
+        -scheme "$XCODE_SCHEME" \
         -configuration Release \
         -destination 'generic/platform=iOS' \
         archive \
         -archivePath "$ARCHIVE_PATH" \
         PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_IDENTIFIER" \
+        DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM" \
         MARKETING_VERSION="$APP_VERSION" \
-        CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
-        -allowProvisioningUpdates
+        CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER"
 
-      xcodebuild \
+      MAIN_BUNDLE_PATH="$ARCHIVE_PATH/Products/Applications/${XCODE_SCHEME}.app/main.jsbundle"
+      [[ -f "$MAIN_BUNDLE_PATH" ]] || fail "archive is missing main.jsbundle at $MAIN_BUNDLE_PATH"
+
+      run_xcodebuild_with_auth \
         -exportArchive \
         -archivePath "$ARCHIVE_PATH" \
         -exportPath "$EXPORT_PATH" \
         -exportOptionsPlist "$EXPORT_OPTIONS_PATH" \
-        -allowProvisioningUpdates
+        DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM"
     )
     ;;
 esac

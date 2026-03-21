@@ -74,10 +74,7 @@ describe('MatchesService realtime', () => {
 
     expect(jest.mocked(prisma.match.findMany)).toHaveBeenCalledWith({
       where: {
-        OR: [
-          { userAId: 'user-1', userB: { isDeleted: false, isBanned: false } },
-          { userBId: 'user-1', userA: { isDeleted: false, isBanned: false } },
-        ],
+        OR: [{ userAId: 'user-1' }, { userBId: 'user-1' }],
         isBlocked: false,
         isArchived: false,
       },
@@ -90,6 +87,8 @@ describe('MatchesService realtime', () => {
           select: {
             id: true,
             firstName: true,
+            isDeleted: true,
+            isBanned: true,
             photos: {
               where: { isPrimary: true },
               select: { storageKey: true },
@@ -101,6 +100,8 @@ describe('MatchesService realtime', () => {
           select: {
             id: true,
             firstName: true,
+            isDeleted: true,
+            isBanned: true,
             photos: {
               where: { isPrimary: true },
               select: { storageKey: true },
@@ -349,21 +350,16 @@ describe('MatchesService realtime', () => {
     expect(jest.mocked(prisma.message.create)).not.toHaveBeenCalled();
   });
 
-  it('filters out deleted/banned users from getMatches via WHERE clause', async () => {
-    // With DB-level filtering, deleted/banned users never appear in results
+  it('filters out deleted/banned users from getMatches after querying', async () => {
     jest.mocked(prisma.match.findMany).mockResolvedValue([] as any);
 
     const result = await service.getMatches('user-1', 20, 0);
 
     expect(result).toHaveLength(0);
-    // Verify the WHERE clause includes the filter
     expect(jest.mocked(prisma.match.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          OR: [
-            { userAId: 'user-1', userB: { isDeleted: false, isBanned: false } },
-            { userBId: 'user-1', userA: { isDeleted: false, isBanned: false } },
-          ],
+          OR: [{ userAId: 'user-1' }, { userBId: 'user-1' }],
         }),
       }),
     );

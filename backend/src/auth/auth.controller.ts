@@ -23,16 +23,12 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService, type AuthResult } from './auth.service';
 import { SignupDto, LoginDto, RegisterPushTokenDto } from './auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { PrismaService } from '../prisma/prisma.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
 
 @Controller('auth')
 @ApiTags('Auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private prisma: PrismaService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Throttle({ default: { ttl: 60_000, limit: 3 } })
   @Post('signup')
@@ -85,9 +81,6 @@ export class AuthController {
     @Request() req: AuthenticatedRequest,
     @Body() body: RegisterPushTokenDto,
   ): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: req.user.id },
-      data: { pushToken: body.token },
-    });
+    await this.authService.registerPushToken(req.user.id, body.token);
   }
 }

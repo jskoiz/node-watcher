@@ -44,6 +44,7 @@ describe('useReport', () => {
         description: 'Test report',
       });
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(mockReport).toHaveBeenCalledWith({
       reportedUserId: 'u1',
@@ -65,6 +66,7 @@ describe('useReport', () => {
         category: 'SPAM',
       });
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(Alert.alert).toHaveBeenCalledWith(
       'Report submitted',
@@ -86,6 +88,7 @@ describe('useReport', () => {
         category: 'FAKE_PROFILE',
       });
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(onSuccess).toHaveBeenCalled();
   });
@@ -107,6 +110,7 @@ describe('useReport', () => {
         // expected
       }
     });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(Alert.alert).toHaveBeenCalledWith(
       'Could not submit report',

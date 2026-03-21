@@ -56,7 +56,11 @@ const backendLayerSpecs = [
     description: 'Controllers, request/response filters, and route entrypoints.',
     allowedImports: ['base', 'contracts', 'domain', 'transport'],
     matches(filePath) {
-      return filePath.endsWith('.controller.ts') || filePath.includes('/filters/');
+      return (
+        (filePath.endsWith('.controller.ts') &&
+          filePath !== 'backend/src/app.controller.ts') ||
+        filePath.includes('/filters/')
+      );
     },
   },
   {

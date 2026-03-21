@@ -1,17 +1,9 @@
 import { PushService } from './push.service';
 import { PrismaService } from '../prisma/prisma.service';
-
-// Mock expo-server-sdk
-const mockSendPushNotificationsAsync = jest.fn();
-const mockIsExpoPushToken = jest.fn();
-
-jest.mock('expo-server-sdk', () => {
-  const MockExpo = jest.fn().mockImplementation(() => ({
-    sendPushNotificationsAsync: mockSendPushNotificationsAsync,
-  }));
-  (MockExpo as any).isExpoPushToken = mockIsExpoPushToken;
-  return { __esModule: true, default: MockExpo };
-});
+import {
+  mockIsExpoPushToken,
+  mockSendPushNotificationsAsync,
+} from '../test-support/expo-server-sdk.mock';
 
 function makeMockPrisma() {
   return {

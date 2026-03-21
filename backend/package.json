@@ -94,6 +94,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "moduleNameMapper": {
+      "^expo-server-sdk$": "<rootDir>/test-support/expo-server-sdk.mock.ts"
+    },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
