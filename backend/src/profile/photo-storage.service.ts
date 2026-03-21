@@ -2,7 +2,10 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
+import heicConvert from 'heic-convert';
 import { appConfig } from '../config/app.config';
+
+const HEIC_MIME_TYPES = new Set(['image/heic', 'image/heif']);
 
 function extensionForMimeType(mimeType: string) {
   switch (mimeType) {
@@ -12,8 +15,35 @@ function extensionForMimeType(mimeType: string) {
       return 'png';
     case 'image/webp':
       return 'webp';
+    case 'image/heic':
+      return 'heic';
+    case 'image/heif':
+      return 'heif';
     default:
       return 'bin';
+  }
+}
+
+async function normalizeProfilePhoto(file: Express.Multer.File) {
+  if (!HEIC_MIME_TYPES.has(file.mimetype)) {
+    return file;
+  }
+
+  try {
+    const convertedBuffer = await heicConvert({
+      buffer: file.buffer,
+      format: 'JPEG',
+      quality: 0.92,
+    });
+
+    return {
+      ...file,
+      buffer: Buffer.from(convertedBuffer),
+      mimetype: 'image/jpeg',
+      size: Buffer.byteLength(convertedBuffer),
+    };
+  } catch {
+    throw new BadRequestException('Unable to process HEIC/HEIF photo');
   }
 }
 
@@ -57,13 +87,14 @@ function profilePhotoFileNameFromStorageKey(storageKey: string) {
 @Injectable()
 export class PhotoStorageService {
   async saveProfilePhoto(file: Express.Multer.File) {
-    const extension = extensionForMimeType(file.mimetype);
+    const normalizedFile = await normalizeProfilePhoto(file);
+    const extension = extensionForMimeType(normalizedFile.mimetype);
     const fileName = `${randomUUID()}.${extension}`;
     const absoluteDir = join(process.cwd(), appConfig.uploads.profileDir);
     const absolutePath = join(absoluteDir, fileName);
 
     await mkdir(absoluteDir, { recursive: true });
-    await writeFile(absolutePath, file.buffer);
+    await writeFile(absolutePath, normalizedFile.buffer);
 
     return {
       storageKey: `${appConfig.uploads.profilePublicBaseUrl}/${fileName}`,

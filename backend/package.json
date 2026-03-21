@@ -47,6 +47,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "expo-server-sdk": "^6.1.0",
+    "heic-convert": "^2.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "passport": "^0.7.0",

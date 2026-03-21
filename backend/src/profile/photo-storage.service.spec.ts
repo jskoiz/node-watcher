@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
+import heicConvert from 'heic-convert';
 import { PhotoStorageService } from './photo-storage.service';
 import { appConfig } from '../config/app.config';
 
@@ -15,6 +16,8 @@ jest.mock('crypto', () => ({
   randomUUID: jest.fn(),
 }));
 
+jest.mock('heic-convert', () => jest.fn());
+
 describe('PhotoStorageService', () => {
   let service: PhotoStorageService;
 
@@ -22,11 +25,13 @@ describe('PhotoStorageService', () => {
   const rmMock = jest.mocked(rm);
   const writeFileMock = jest.mocked(writeFile);
   const randomUUIDMock = jest.mocked(randomUUID);
+  const heicConvertMock = jest.mocked(heicConvert);
 
   beforeEach(() => {
     jest.clearAllMocks();
     service = new PhotoStorageService();
     randomUUIDMock.mockReturnValue('11111111-1111-1111-1111-111111111111');
+    heicConvertMock.mockResolvedValue(Buffer.from('converted-image-bytes'));
   });
 
   it('generates a profile upload path and persists the file', async () => {
@@ -53,6 +58,49 @@ describe('PhotoStorageService', () => {
       storageKey: `${appConfig.uploads.profilePublicBaseUrl}/11111111-1111-1111-1111-111111111111.png`,
       fileName: '11111111-1111-1111-1111-111111111111.png',
     });
+  });
+
+  it.each(['image/heic', 'image/heif'])(
+    'transcodes %s uploads to jpeg before storing them',
+    async (mimetype) => {
+      const file = {
+        mimetype,
+        buffer: Buffer.from('image-bytes'),
+      } as Express.Multer.File;
+
+      const result = await service.saveProfilePhoto(file);
+
+      expect(heicConvertMock).toHaveBeenCalledWith({
+        buffer: file.buffer,
+        format: 'JPEG',
+        quality: 0.92,
+      });
+      expect(writeFileMock).toHaveBeenCalledWith(
+        join(
+          process.cwd(),
+          appConfig.uploads.profileDir,
+          '11111111-1111-1111-1111-111111111111.jpg',
+        ),
+        Buffer.from('converted-image-bytes'),
+      );
+      expect(result).toEqual({
+        storageKey: `${appConfig.uploads.profilePublicBaseUrl}/11111111-1111-1111-1111-111111111111.jpg`,
+        fileName: '11111111-1111-1111-1111-111111111111.jpg',
+      });
+    },
+  );
+
+  it('rejects invalid heic/heif payloads that cannot be transcoded', async () => {
+    heicConvertMock.mockRejectedValue(new Error('decode failed'));
+
+    await expect(
+      service.saveProfilePhoto({
+        mimetype: 'image/heic',
+        buffer: Buffer.from('broken-heic'),
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(writeFileMock).not.toHaveBeenCalled();
   });
 
   it('deletes a valid profile photo path', async () => {
