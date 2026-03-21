@@ -175,6 +175,7 @@
       "prisma",
       "profile",
       "test-support",
+      "types",
       "verification"
     ],
     "layers": [
