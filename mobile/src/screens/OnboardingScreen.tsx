@@ -168,31 +168,38 @@ export default function OnboardingScreen({
   const toggleArray = (arr: string[], key: string): string[] =>
     arr.includes(key) ? arr.filter((k) => k !== key) : [...arr, key];
 
-  const submitOnboarding = handleSubmit(async (values) => {
-    try {
-      const favoriteActivities = values.activities
-        .map((key) => ACTIVITIES.find((activity) => activity.key === key)?.label ?? key)
-        .join(', ');
+  const submitOnboarding = handleSubmit(
+    async (values) => {
+      try {
+        const favoriteActivities = values.activities
+          .map((key) => ACTIVITIES.find((activity) => activity.key === key)?.label ?? key)
+          .join(', ');
 
-      await updateFitness({
-        intensityLevel: values.intensityLevel,
-        weeklyFrequencyBand: values.weeklyFrequencyBand,
-        primaryGoal:
-          values.intent === 'dating'
-            ? 'connection'
-            : values.intent === 'workout'
-              ? 'performance'
-              : 'both',
-        favoriteActivities,
-        prefersMorning: values.schedule.includes('morning'),
-        prefersEvening: values.schedule.includes('evening'),
-      });
-      if (user) setUser({ ...user, isOnboarded: true });
-      navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
-    } catch (error) {
-      Alert.alert('Could not save profile', normalizeApiError(error).message);
-    }
-  });
+        await updateFitness({
+          intensityLevel: values.intensityLevel,
+          weeklyFrequencyBand: values.weeklyFrequencyBand,
+          primaryGoal:
+            values.intent === 'dating'
+              ? 'connection'
+              : values.intent === 'workout'
+                ? 'performance'
+                : 'both',
+          favoriteActivities,
+          prefersMorning: values.schedule.includes('morning'),
+          prefersEvening: values.schedule.includes('evening'),
+        });
+        if (user) setUser({ ...user, isOnboarded: true });
+        navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+      } catch (error) {
+        Alert.alert('Could not save profile', normalizeApiError(error).message);
+      }
+    },
+    (errors) => {
+      const firstError = Object.values(errors)[0];
+      const message = firstError?.message ?? 'Please complete all steps before continuing.';
+      Alert.alert('Missing info', String(message));
+    },
+  );
 
   React.useEffect(() => {
     pulseLoopRef.current?.stop();
