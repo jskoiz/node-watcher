@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
-import * as ImagePicker from 'expo-image-picker';
+import { useCallback, useEffect, useState } from 'react';
 import type { User } from '../../../api/types';
 import { normalizeApiError } from '../../../api/errors';
 import { normalizeIntensityLevelForForm } from '../../../api/profileIntensity';
 import type { LocationSuggestion } from '../../locations/locationSuggestions';
-import { triggerErrorHaptic, triggerSelectionHaptic, triggerSuccessHaptic } from '../../../lib/interaction/feedback';
+import { triggerErrorHaptic, triggerSuccessHaptic } from '../../../lib/interaction/feedback';
 import { buildSchedulePreferences, parseFavoriteActivities } from '../components/profile.helpers';
-import { buildPhotoReorderPlan } from './profilePhotoHelpers';
 
 function toggleValue(values: string[], nextValue: string) {
   return values.includes(nextValue)
@@ -14,19 +12,11 @@ function toggleValue(values: string[], nextValue: string) {
     : [...values, nextValue];
 }
 
-export type PhotoOperationState =
-  | { type: 'upload'; label: string; progress: number; photoId?: undefined }
-  | { type: 'primary' | 'delete' | 'reorder'; label: string; photoId: string; progress?: undefined }
-  | null;
-
 export function useProfileEditor({
   profile,
   refetch,
   updateFitness,
   updateProfile,
-  uploadPhoto,
-  updatePhoto,
-  deletePhoto,
 }: {
   profile: User | null;
   refetch: () => Promise<unknown>;
@@ -47,14 +37,6 @@ export function useProfileEditor({
     intentWorkout?: boolean;
     intentFriends?: boolean;
   }) => Promise<unknown>;
-  uploadPhoto: (payload: {
-    uri: string;
-    mimeType?: string | null;
-    fileName?: string | null;
-    onProgress?: (progress: number) => void;
-  }) => Promise<unknown>;
-  updatePhoto: (payload: { photoId: string; payload: { isPrimary?: boolean; sortOrder?: number } }) => Promise<unknown>;
-  deletePhoto: (photoId: string) => Promise<unknown>;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -70,43 +52,27 @@ export function useProfileEditor({
   const [primaryGoal, setPrimaryGoal] = useState('');
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState<string[]>([]);
-  const [photoOperation, setPhotoOperation] = useState<PhotoOperationState>(null);
+
+  const syncFromProfile = useCallback((source: User) => {
+    setBio(source.profile?.bio || '');
+    setCity(source.profile?.city || '');
+    setCitySelection({
+      latitude: source.profile?.latitude,
+      longitude: source.profile?.longitude,
+    });
+    setIntensityLevel(normalizeIntensityLevelForForm(source.fitnessProfile?.intensityLevel));
+    setIntentDating(Boolean(source.profile?.intentDating));
+    setIntentWorkout(Boolean(source.profile?.intentWorkout));
+    setIntentFriends(Boolean(source.profile?.intentFriends));
+    setWeeklyFrequencyBand(source.fitnessProfile?.weeklyFrequencyBand || '');
+    setPrimaryGoal(source.fitnessProfile?.primaryGoal || '');
+    setSelectedActivities(parseFavoriteActivities(source.fitnessProfile?.favoriteActivities));
+    setSelectedSchedule(buildSchedulePreferences(source.fitnessProfile));
+  }, []);
 
   useEffect(() => {
-    if (!profile) return;
-    setBio(profile.profile?.bio || '');
-    setCity(profile.profile?.city || '');
-    setCitySelection({
-      latitude: profile.profile?.latitude,
-      longitude: profile.profile?.longitude,
-    });
-    setIntensityLevel(normalizeIntensityLevelForForm(profile.fitnessProfile?.intensityLevel));
-    setIntentDating(Boolean(profile.profile?.intentDating));
-    setIntentWorkout(Boolean(profile.profile?.intentWorkout));
-    setIntentFriends(Boolean(profile.profile?.intentFriends));
-    setWeeklyFrequencyBand(profile.fitnessProfile?.weeklyFrequencyBand || '');
-    setPrimaryGoal(profile.fitnessProfile?.primaryGoal || '');
-    setSelectedActivities(parseFavoriteActivities(profile.fitnessProfile?.favoriteActivities));
-    setSelectedSchedule(buildSchedulePreferences(profile.fitnessProfile));
-  }, [profile]);
-
-  const resetFromProfile = () => {
-    if (!profile) return;
-    setBio(profile.profile?.bio || '');
-    setCity(profile.profile?.city || '');
-    setCitySelection({
-      latitude: profile.profile?.latitude,
-      longitude: profile.profile?.longitude,
-    });
-    setIntensityLevel(normalizeIntensityLevelForForm(profile.fitnessProfile?.intensityLevel));
-    setIntentDating(Boolean(profile.profile?.intentDating));
-    setIntentWorkout(Boolean(profile.profile?.intentWorkout));
-    setIntentFriends(Boolean(profile.profile?.intentFriends));
-    setWeeklyFrequencyBand(profile.fitnessProfile?.weeklyFrequencyBand || '');
-    setPrimaryGoal(profile.fitnessProfile?.primaryGoal || '');
-    setSelectedActivities(parseFavoriteActivities(profile.fitnessProfile?.favoriteActivities));
-    setSelectedSchedule(buildSchedulePreferences(profile.fitnessProfile));
-  };
+    if (profile) syncFromProfile(profile);
+  }, [profile, syncFromProfile]);
 
   const save = async () => {
     if (!editMode) {
@@ -137,65 +103,6 @@ export function useProfileEditor({
       setEditMode(false);
       await refetch();
     } catch (err) {
-      void triggerErrorHaptic();
-      setError(normalizeApiError(err).message);
-    }
-  };
-
-  const pickAndUploadPhoto = async () => {
-    setError(null);
-    try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setError('Photo library permission is required to upload photos.');
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.72,
-      });
-      if (result.canceled || !result.assets.length) return;
-      const asset = result.assets[0];
-      setPhotoOperation({ type: 'upload', label: 'Uploading photo…', progress: 5 });
-      await uploadPhoto({
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        fileName: asset.fileName,
-        onProgress: (progress) => {
-          setPhotoOperation({
-            type: 'upload',
-            label: progress >= 100 ? 'Finalizing photo…' : `Uploading photo… ${progress}%`,
-            progress,
-          });
-        },
-      });
-      void triggerSuccessHaptic();
-      await refetch();
-      setPhotoOperation(null);
-    } catch (err) {
-      setPhotoOperation(null);
-      void triggerErrorHaptic();
-      setError(normalizeApiError(err).message);
-    }
-  };
-
-  const updatePhotoOrder = async (photoId: string, direction: 'left' | 'right') => {
-    const reorderPlan = buildPhotoReorderPlan(profile?.photos, photoId, direction);
-    if (!reorderPlan) return;
-
-    try {
-      setPhotoOperation({ type: 'reorder', photoId, label: 'Reordering photos…' });
-      await Promise.all([
-        updatePhoto({ photoId: reorderPlan.currentPhotoId, payload: { sortOrder: reorderPlan.targetSortOrder } }),
-        updatePhoto({ photoId: reorderPlan.targetPhotoId, payload: { sortOrder: reorderPlan.currentSortOrder } }),
-      ]);
-      void triggerSelectionHaptic();
-      await refetch();
-      setPhotoOperation(null);
-    } catch (err) {
-      setPhotoOperation(null);
       void triggerErrorHaptic();
       setError(normalizeApiError(err).message);
     }
@@ -238,42 +145,11 @@ export function useProfileEditor({
     },
     toggleActivity: (value: string) => setSelectedActivities((current) => toggleValue(current, value)),
     toggleSchedule: (value: string) => setSelectedSchedule((current) => toggleValue(current, value)),
-    photoOperation,
-    isEditingPhotos: photoOperation !== null,
     cancelEdit: () => {
-      resetFromProfile();
+      if (profile) syncFromProfile(profile);
       setEditMode(false);
       setError(null);
     },
     save,
-    uploadPhoto: pickAndUploadPhoto,
-    makePrimaryPhoto: async (photoId: string) => {
-      try {
-        setPhotoOperation({ type: 'primary', photoId, label: 'Setting primary photo…' });
-        await updatePhoto({ photoId, payload: { isPrimary: true } });
-        void triggerSelectionHaptic();
-        await refetch();
-        setPhotoOperation(null);
-      } catch (err) {
-        setPhotoOperation(null);
-        void triggerErrorHaptic();
-        setError(normalizeApiError(err).message);
-      }
-    },
-    movePhotoLeft: async (photoId: string) => updatePhotoOrder(photoId, 'left'),
-    movePhotoRight: async (photoId: string) => updatePhotoOrder(photoId, 'right'),
-    removePhoto: async (photoId: string) => {
-      try {
-        setPhotoOperation({ type: 'delete', photoId, label: 'Removing photo…' });
-        await deletePhoto(photoId);
-        void triggerSuccessHaptic();
-        await refetch();
-        setPhotoOperation(null);
-      } catch (err) {
-        setPhotoOperation(null);
-        void triggerErrorHaptic();
-        setError(normalizeApiError(err).message);
-      }
-    },
   };
 }

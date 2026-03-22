@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
 import { createLocationSuggestion } from '../features/locations/locationSuggestions';
 import { ProfileScreenContent } from '../features/profile/components/ProfileScreenContent';
-import type { PhotoOperationState } from '../features/profile/hooks/useProfileEditor';
+import type { PhotoOperationState } from '../features/profile/hooks/usePhotoManager';
 import { LOW_CONTRAST_HERO_PHOTO, makeUser, makeUserPhoto, withStoryScreenFrame } from './support';
 
 function ProfileScreenContentStory({

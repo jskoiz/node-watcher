@@ -6,7 +6,7 @@ import {
   PhotoManager,
   TagPill,
 } from '../features/profile/components/ProfileSections';
-import type { PhotoOperationState } from '../features/profile/hooks/useProfileEditor';
+import type { PhotoOperationState } from '../features/profile/hooks/usePhotoManager';
 import { withStorySurface, makeUser, makeUserPhoto } from './support';
 
 function ProfileSectionsStory({

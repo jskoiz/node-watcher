@@ -5,7 +5,7 @@ import type { UserPhoto } from '../../../api/types';
 import AppIcon from '../../../components/ui/AppIcon';
 import { Button, Card, Chip } from '../../../design/primitives';
 import { profileStyles as styles } from './profile.styles';
-import type { PhotoOperationState } from '../hooks/useProfileEditor';
+import type { PhotoOperationState } from '../hooks/usePhotoManager';
 import { getVisibleOrderedPhotos } from '../hooks/profilePhotoHelpers';
 
 export function TagPill({

@@ -18,7 +18,7 @@ import {
   WEEKLY_FREQUENCY_OPTIONS,
 } from './profile.helpers';
 import { EditableField, PhotoManager, TagPill } from './ProfileSections';
-import type { PhotoOperationState } from '../hooks/useProfileEditor';
+import type { PhotoOperationState } from '../hooks/usePhotoManager';
 import { getAvatarInitial, getPrimaryPhotoUri } from '../../../lib/profilePhotos';
 import type { LocationSuggestion } from '../../locations/locationSuggestions';
 

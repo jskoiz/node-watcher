@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { useProfile } from '../features/profile/hooks/useProfile';
 import { useProfileCompleteness } from '../features/profile/hooks/useProfileCompleteness';
 import { useProfileEditor } from '../features/profile/hooks/useProfileEditor';
+import { usePhotoManager } from '../features/profile/hooks/usePhotoManager';
 import { ProfileScreenContent } from '../features/profile/components/ProfileScreenContent';
 import { useKnownLocationSuggestions } from '../features/locations/useKnownLocationSuggestions';
 import type { MainTabScreenProps } from '../core/navigation/types';
@@ -39,9 +40,14 @@ export default function ProfileScreen({ navigation }: MainTabScreenProps<'You'>)
     refetch,
     updateFitness,
     updateProfile,
+  });
+  const photos = usePhotoManager({
+    profile,
+    refetch,
     uploadPhoto,
     updatePhoto,
     deletePhoto,
+    setError: editor.setError,
   });
 
   const errorMessage = editor.error ?? (queryError ? normalizeApiError(queryError).message : null);
@@ -59,7 +65,7 @@ export default function ProfileScreen({ navigation }: MainTabScreenProps<'You'>)
       completenessScore={completenessScore}
       completenessMissing={completenessMissing}
       deletingAccount={deletingAccount}
-      editingPhotos={editor.isEditingPhotos || isUploadingPhoto || isUpdatingPhoto || isDeletingPhoto}
+      editingPhotos={photos.isEditingPhotos || isUploadingPhoto || isUpdatingPhoto || isDeletingPhoto}
       bio={editor.bio}
       city={editor.city}
       editMode={editor.editMode}
@@ -100,10 +106,10 @@ export default function ProfileScreen({ navigation }: MainTabScreenProps<'You'>)
           ],
         );
       }}
-      onDeletePhoto={(photoId) => { void editor.removePhoto(photoId); }}
-      onMakePrimaryPhoto={(photoId) => { void editor.makePrimaryPhoto(photoId); }}
-      onMovePhotoLeft={(photoId) => { void editor.movePhotoLeft(photoId); }}
-      onMovePhotoRight={(photoId) => { void editor.movePhotoRight(photoId); }}
+      onDeletePhoto={(photoId) => { void photos.removePhoto(photoId); }}
+      onMakePrimaryPhoto={(photoId) => { void photos.makePrimaryPhoto(photoId); }}
+      onMovePhotoLeft={(photoId) => { void photos.movePhotoLeft(photoId); }}
+      onMovePhotoRight={(photoId) => { void photos.movePhotoRight(photoId); }}
       onRefresh={() => { void refetch(); }}
       onLogout={() => {
         void logout();
@@ -121,8 +127,8 @@ export default function ProfileScreen({ navigation }: MainTabScreenProps<'You'>)
       onSetSelectedSchedule={editor.toggleSchedule}
       onSetWeeklyFrequencyBand={editor.setWeeklyFrequencyBand}
       onToggleBuildInfo={() => editor.setShowBuildInfo((current) => !current)}
-      onUploadPhoto={() => { void editor.uploadPhoto(); }}
-      photoOperation={editor.photoOperation}
+      onUploadPhoto={() => { void photos.uploadPhoto(); }}
+      photoOperation={photos.photoOperation}
       primaryGoal={editor.primaryGoal}
       profile={profile}
       selectedActivities={editor.selectedActivities}
