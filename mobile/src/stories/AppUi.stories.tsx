@@ -66,6 +66,20 @@ function AppUiPlaceholderSelectStory() {
   );
 }
 
+function AppUiEmptySelectStory() {
+  return (
+    <View style={{ gap: 20, padding: 24 }}>
+      <AppSelect
+        label="Intensity"
+        onSelect={() => undefined}
+        options={[]}
+        placeholder="Choose intensity"
+        value=""
+      />
+    </View>
+  );
+}
+
 const meta = {
   title: 'Components/AppUi',
   component: AppUiStory,
@@ -80,4 +94,8 @@ export const Default: Story = {};
 
 export const PlaceholderSelect: Story = {
   render: () => <AppUiPlaceholderSelectStory />,
+};
+
+export const EmptySelect: Story = {
+  render: () => <AppUiEmptySelectStory />,
 };
