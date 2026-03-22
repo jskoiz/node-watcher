@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, RefreshControl, Dimensions } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, Pressable, RefreshControl, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -14,50 +14,59 @@ import { fontFamily } from '../lib/fonts';
 import { useMatches } from '../features/matches/hooks/useMatches';
 import type { MainTabScreenProps } from '../core/navigation/types';
 import { getAvatarInitial, getPrimaryPhotoUri } from '../lib/profilePhotos';
-import { getActivityTag } from '../lib/profile-helpers';
-
-// ─── Design Tokens (reactive via useTheme() in components) ───────────────────
 import { useTheme } from '../theme/useTheme';
-import { lightTheme } from '../theme/tokens';
-
-// Static references for StyleSheet (module-level); components use useTheme() for reactivity
-const BASE = lightTheme.background;
-const SURFACE = lightTheme.surface;
-const PRIMARY = lightTheme.primary;
-const ACCENT = lightTheme.accent;
-const TEXT_PRIMARY = lightTheme.textPrimary;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function timeAgo(timestamp?: string) {
-  if (!timestamp) return '';
-  const diff = Date.now() - new Date(timestamp).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}d`;
-}
 
-// Assign a consistent accent color per user based on name
+// Curated accent palette — spread across distinct hues so nearby names don't collide
+const ACCENT_PALETTE = ['#C4A882', '#D4A59A', '#B8A9C4', '#8BAA7A', '#D4C9DB', '#A8C4B8'];
+
+/** Assign a consistent accent color per user using a simple hash over the full name. */
 function getUserAccent(name?: string): string {
-  const ACCENTS = ['#C4A882', '#D4A59A', '#B8A9C4', '#8BAA7A', '#D4C9DB', '#C4A882'];
-  const idx = (name?.charCodeAt(0) ?? 65) % ACCENTS.length;
-  return ACCENTS[idx];
+  if (!name) return ACCENT_PALETTE[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  }
+  return ACCENT_PALETTE[Math.abs(hash) % ACCENT_PALETTE.length];
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_GAP = 12;
 const GRID_PADDING = spacing.xxl;
-const CARD_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP) / 2;
 
 // ─── Match Card (photo-forward grid) ─────────────────────────────────────────
-const MatchCard = React.memo(function MatchCard({ item, onPress }: { item: Match; onPress: () => void }) {
+const MatchCard = React.memo(function MatchCard({
+  item,
+  onPress,
+  cardWidth,
+}: {
+  item: Match;
+  onPress: () => void;
+  cardWidth: number;
+}) {
+  const theme = useTheme();
   const accent = getUserAccent(item.user.firstName);
   const photoUrl = getPrimaryPhotoUri(item.user);
 
+  const cardStyle = useMemo(
+    () => ({
+      width: cardWidth,
+      height: cardWidth * 1.3,
+      borderRadius: 18,
+      overflow: 'hidden' as const,
+      backgroundColor: theme.surface,
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
+    }),
+    [cardWidth, theme.surface],
+  );
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, { opacity: pressed ? 0.9 : 1 }]}
+      style={({ pressed }) => [cardStyle, { opacity: pressed ? 0.9 : 1 }]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Conversation with ${item.user.firstName || 'Match'}. ${item.lastMessage || 'No messages yet'}`}
@@ -91,6 +100,9 @@ const MatchCard = React.memo(function MatchCard({ item, onPress }: { item: Match
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function MatchesScreen({ navigation }: MainTabScreenProps<'Inbox'>) {
   const theme = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = (screenWidth - GRID_PADDING * 2 - GRID_GAP) / 2;
+
   const { error, isLoading: loading, isRefetching, matches, refetch } =
     useMatches();
   const errorMessage = error ? normalizeApiError(error).message : null;
@@ -101,17 +113,54 @@ export default function MatchesScreen({ navigation }: MainTabScreenProps<'Inbox'
     }, [refetch]),
   );
 
+  const dynamicStyles = useMemo(
+    () => ({
+      container: { flex: 1, backgroundColor: theme.background } as const,
+      ambientGlow: {
+        position: 'absolute' as const,
+        top: -40,
+        left: -60,
+        width: 220,
+        height: 220,
+        borderRadius: 110,
+        backgroundColor: theme.primary,
+        opacity: 0.04,
+      },
+      eyebrow: {
+        fontSize: 10,
+        fontWeight: '900' as const,
+        letterSpacing: 3.5,
+        color: theme.accent,
+        marginBottom: spacing.sm,
+      },
+      title: {
+        fontSize: 32,
+        fontFamily: fontFamily.serifBold,
+        letterSpacing: -0.5,
+        color: theme.textPrimary,
+        lineHeight: 36,
+        marginBottom: spacing.md,
+      },
+      countBadgeText: {
+        fontSize: 12,
+        fontWeight: '800' as const,
+        color: theme.primary,
+      },
+    }),
+    [theme],
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={dynamicStyles.container}>
       <AppBackdrop />
-      <View style={styles.ambientGlow} pointerEvents="none" />
+      <View style={dynamicStyles.ambientGlow} pointerEvents="none" />
 
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>MATCHES</Text>
-        <Text style={styles.title} accessibilityRole="header">Matches</Text>
+        <Text style={dynamicStyles.eyebrow}>MATCHES</Text>
+        <Text style={dynamicStyles.title} accessibilityRole="header">Matches</Text>
         {matches.length > 0 && (
           <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{matches.length} active</Text>
+            <Text style={dynamicStyles.countBadgeText}>{matches.length} active</Text>
           </View>
         )}
       </View>
@@ -144,6 +193,7 @@ export default function MatchesScreen({ navigation }: MainTabScreenProps<'Inbox'
               <MatchCard
                 item={item}
                 onPress={() => navigation.navigate('Chat', { matchId: item.id, user: item.user })}
+                cardWidth={cardWidth}
               />
             </View>
           }
@@ -167,39 +217,10 @@ export default function MatchesScreen({ navigation }: MainTabScreenProps<'Inbox'
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BASE,
-  },
-  ambientGlow: {
-    position: 'absolute',
-    top: -40,
-    left: -60,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: PRIMARY,
-    opacity: 0.04,
-  },
   header: {
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.lg,
     paddingBottom: spacing.lg,
-  },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 3.5,
-    color: ACCENT,
-    marginBottom: spacing.sm,
-  },
-  title: {
-    fontSize: 32,
-    fontFamily: fontFamily.serifBold,
-    letterSpacing: -0.5,
-    color: TEXT_PRIMARY,
-    lineHeight: 36,
-    marginBottom: spacing.md,
   },
   countBadge: {
     alignSelf: 'flex-start',
@@ -210,26 +231,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(196,168,130,0.35)',
   },
-  countBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: PRIMARY,
-  },
   list: {
     paddingHorizontal: GRID_PADDING,
     paddingBottom: 80,
-  },
-  card: {
-    width: CARD_WIDTH,
-    height: CARD_WIDTH * 1.3,
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: SURFACE,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
   },
   cardImage: {
     ...StyleSheet.absoluteFillObject,

@@ -27,6 +27,23 @@ jest.mock('../../features/matches/hooks/useMatches', () => ({
 
 jest.mock('../../components/ui/AppBackdrop', () => () => null);
 
+jest.mock('../../theme/useTheme', () => ({
+  useTheme: () => ({
+    primary: '#C4A882',
+    accent: '#C4A882',
+    surface: '#FFFFFF',
+    background: '#FDFBF8',
+    textPrimary: '#2C2420',
+    textSecondary: '#7A7068',
+    textMuted: '#B0A89E',
+    border: '#E8E2DA',
+    borderSoft: '#F0EBE4',
+    primarySubtle: '#F7F4F0',
+    surfaceElevated: '#F7F4F0',
+    danger: '#C0392B',
+  }),
+}));
+
 describe('MatchesScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
