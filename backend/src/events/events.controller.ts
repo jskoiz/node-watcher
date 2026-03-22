@@ -23,16 +23,16 @@ import { CreateEventDto } from './create-event.dto';
 import { InviteEventDto } from './invite-event.dto';
 
 @Controller('events')
+@UseGuards(AuthGuard('jwt'))
 @ApiTags('Events')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Authentication is required.' })
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
-  @UseGuards(AuthGuard('jwt'))
   @Get()
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'List public events' })
   @ApiOkResponse({ description: 'Events returned successfully.' })
-  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
   list(
     @Request() req: AuthenticatedRequest,
     @Query('take') take?: string,
@@ -45,12 +45,9 @@ export class EventsController {
     return this.eventsService.list(req.user.id, safeTake, safeSkip);
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Get('me')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'List events joined by the current user' })
   @ApiOkResponse({ description: 'Current user events returned successfully.' })
-  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
   myEvents(
     @Request() req: AuthenticatedRequest,
     @Query('take') take?: string,
@@ -64,21 +61,15 @@ export class EventsController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard('jwt'))
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get event details for the current user' })
   @ApiOkResponse({ description: 'Event details returned successfully.' })
-  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
   detail(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.eventsService.detail(id, req.user.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Post()
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new event' })
   @ApiCreatedResponse({ description: 'Event created successfully.' })
-  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
   create(
     @Body() payload: CreateEventDto,
     @Request() req: AuthenticatedRequest,
@@ -86,22 +77,16 @@ export class EventsController {
     return this.eventsService.create(payload, req.user.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Post(':id/rsvp')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'RSVP to an event' })
   @ApiCreatedResponse({ description: 'RSVP recorded successfully.' })
-  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
   rsvp(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.eventsService.rsvp(id, req.user.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Post(':id/invite')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Invite a match to an event' })
   @ApiCreatedResponse({ description: 'Invite sent successfully.' })
-  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
   invite(
     @Param('id') id: string,
     @Body() payload: InviteEventDto,
@@ -115,12 +100,9 @@ export class EventsController {
     );
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Get(':id/invites')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'List invites for an event (host only)' })
   @ApiOkResponse({ description: 'Event invites returned successfully.' })
-  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
   getInvites(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
