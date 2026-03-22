@@ -120,17 +120,22 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
       }}
       onSwipeLeft={(profile) => {
         void triggerSelectionHaptic();
-        void passUser(profile.id);
+        passUser(profile.id).catch(() => {
+          // Mutation onError already rolls back the optimistic update.
+        });
       }}
       onSwipeRight={(profile) => {
         void triggerSelectionHaptic();
-        void likeUser(profile.id).then((response) => {
+        likeUser(profile.id).then((response) => {
           if (response.status === 'match' && response.match) {
             void triggerSuccessHaptic();
             setMatchedProfile(profile);
             setMatchId(response.match.id);
             setShowMatch(true);
           }
+        }).catch(() => {
+          // Mutation onError already rolls back the optimistic update;
+          // swallow here so the floating promise never rejects unhandled.
         });
       }}
       onToggleAvailability={(value) =>
@@ -150,10 +155,12 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
       }
       onUndoAndClose={() => {
         void triggerSheetCommitHaptic();
-        void undoSwipe().then((response) => {
+        undoSwipe().then((response) => {
           if (response.status === 'undone') {
             void refetch();
           }
+        }).catch(() => {
+          // Swallow — undo failure is non-critical and the UI stays consistent.
         });
         filtersSheet.close();
       }}

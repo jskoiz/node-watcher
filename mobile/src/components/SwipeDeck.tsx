@@ -252,13 +252,15 @@ export default function SwipeDeck({
             },
           },
         }}
-        renderCard={(card) => (
-          <SwipeDeckCard
-            cardHeight={resolvedCardHeight}
-            onPress={() => onPress && onPress(card)}
-            user={card}
-          />
-        )}
+        renderCard={(card) =>
+          card ? (
+            <SwipeDeckCard
+              cardHeight={resolvedCardHeight}
+              onPress={() => onPress && onPress(card)}
+              user={card}
+            />
+          ) : null
+        }
         stackSeparation={14}
         stackSize={2}
         swipeBackCard
