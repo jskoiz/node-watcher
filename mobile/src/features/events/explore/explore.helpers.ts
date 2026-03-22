@@ -80,14 +80,3 @@ export function getEventMeta(event: EventSummary) {
   return { icon: 'calendar' as const, gradientColors: ['#B8A9C4', '#C4A882'] as const };
 }
 
-export function formatEventDate(startsAt: string) {
-  const start = new Date(startsAt);
-  return start.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-

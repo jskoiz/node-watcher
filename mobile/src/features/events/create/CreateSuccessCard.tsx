@@ -4,7 +4,7 @@ import type { EventSummary } from '../../../api/types';
 import AppIcon from '../../../components/ui/AppIcon';
 import { Button, Card } from '../../../design/primitives';
 import { createStyles as styles } from './create.styles';
-import { formatCreatedEventMeta } from './create.helpers';
+import { formatEventDate } from '../../../lib/date';
 
 export function CreateSuccessCard({
   event,
@@ -27,7 +27,7 @@ export function CreateSuccessCard({
           <Text style={styles.successEyebrow}>INVITE POSTED</Text>
           <Text style={styles.successTitle}>{event.title}</Text>
           <Text style={styles.successMeta}>
-            {formatCreatedEventMeta(event)}
+            {formatEventDate(event.startsAt)}
             {event.location ? ` · ${event.location}` : ''}
           </Text>
         </View>

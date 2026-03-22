@@ -1,5 +1,3 @@
-import type { EventSummary } from '../../../api/types';
-
 export const ACTIVITY_TYPES = [
   { icon: 'activity', label: 'Run', color: '#8BAA7A' },
   { icon: 'circle', label: 'Yoga', color: '#B8A9C4' },
@@ -76,15 +74,5 @@ export function buildDescription({
   ].filter(Boolean);
 
   return parts.join(' ');
-}
-
-export function formatCreatedEventMeta(event: EventSummary) {
-  return new Date(event.startsAt).toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
 }
 

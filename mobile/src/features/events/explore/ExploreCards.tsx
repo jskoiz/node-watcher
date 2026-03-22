@@ -6,7 +6,8 @@ import type { EventSummary } from '../../../api/types';
 import AppIcon from '../../../components/ui/AppIcon';
 import { Button, Card, Chip } from '../../../design/primitives';
 import { ACTIVITY_SPOTS, COMMUNITY_POSTS } from './explore.data';
-import { getEventMeta, formatEventDate } from './explore.helpers';
+import { getEventMeta } from './explore.helpers';
+import { formatEventDate } from '../../../lib/date';
 import { exploreStyles as styles } from './explore.styles';
 
 export function EventCard({
