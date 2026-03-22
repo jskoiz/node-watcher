@@ -37,15 +37,24 @@ function getNotificationMeta(type: AppNotification['type']) {
   }
 }
 
+function isSameDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
 function getNotificationGroup(dateValue: string | Date) {
   const createdAt = new Date(dateValue);
   const now = new Date();
-  const isToday =
-    createdAt.getFullYear() === now.getFullYear() &&
-    createdAt.getMonth() === now.getMonth() &&
-    createdAt.getDate() === now.getDate();
 
-  return isToday ? 'Today' : 'Earlier';
+  if (isSameDay(createdAt, now)) return 'Today';
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  return isSameDay(createdAt, yesterday) ? 'Yesterday' : 'Earlier';
 }
 
 function getIdFromNotificationData(data: Record<string, unknown> | undefined, key: string) {
@@ -237,11 +246,15 @@ export default function NotificationsScreen({
     setActionError('This notification does not support direct navigation.');
   };
 
-  const todayNotifs = notifs.filter(
-    (n) => getNotificationGroup(n.createdAt) === 'Today',
-  );
-  const earlierNotifs = notifs.filter(
-    (n) => getNotificationGroup(n.createdAt) === 'Earlier',
+  const { today: todayNotifs, yesterday: yesterdayNotifs, earlier: earlierNotifs } = notifs.reduce(
+    (groups, n) => {
+      const group = getNotificationGroup(n.createdAt);
+      if (group === 'Today') groups.today.push(n);
+      else if (group === 'Yesterday') groups.yesterday.push(n);
+      else groups.earlier.push(n);
+      return groups;
+    },
+    { today: [] as typeof notifs, yesterday: [] as typeof notifs, earlier: [] as typeof notifs },
   );
 
   return (
@@ -295,6 +308,7 @@ export default function NotificationsScreen({
         <SectionList
           sections={[
             ...(todayNotifs.length > 0 ? [{ title: 'Today', data: todayNotifs }] : []),
+            ...(yesterdayNotifs.length > 0 ? [{ title: 'Yesterday', data: yesterdayNotifs }] : []),
             ...(earlierNotifs.length > 0 ? [{ title: 'Earlier', data: earlierNotifs }] : []),
           ]}
           keyExtractor={(item) => item.id}

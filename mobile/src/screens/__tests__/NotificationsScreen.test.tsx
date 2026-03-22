@@ -215,6 +215,32 @@ describe('NotificationsScreen', () => {
     });
   });
 
+  it('groups yesterday notifications under a Yesterday header', async () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    mockUseNotifications.mockReturnValue({
+      ...baseNotificationState,
+      notifications: [
+        {
+          id: 'notif-yesterday',
+          userId: 'user-1',
+          type: 'match_created',
+          title: 'Yesterday match',
+          body: 'You matched yesterday',
+          readAt: null,
+          createdAt: yesterday.toISOString(),
+          data: { matchId: 'match-y', withUserId: 'user-y' },
+        },
+      ],
+    });
+
+    render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
+
+    expect(await screen.findByText('Yesterday')).toBeTruthy();
+    expect(screen.getByText('Yesterday match')).toBeTruthy();
+  });
+
   it('clears all notifications and resets the unread badge count', async () => {
     render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
 

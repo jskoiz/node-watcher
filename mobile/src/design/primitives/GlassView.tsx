@@ -148,7 +148,11 @@ function useReduceTransparency(): boolean {
   useEffect(() => {
     AccessibilityInfo.isReduceTransparencyEnabled?.()
       .then(setEnabled)
-      .catch(() => {});
+      .catch((err: unknown) => {
+        if (__DEV__) {
+          console.warn('GlassView: failed to read reduceTransparency setting', err);
+        }
+      });
 
     const sub = AccessibilityInfo.addEventListener(
       'reduceTransparencyChanged',

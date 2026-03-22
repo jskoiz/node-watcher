@@ -62,7 +62,13 @@ export function LocationField({
   const [recentSuggestions, setRecentSuggestions] = useState<LocationSuggestion[]>([]);
 
   useEffect(() => {
-    void loadRecentLocationSuggestions().then(setRecentSuggestions);
+    void loadRecentLocationSuggestions()
+      .then(setRecentSuggestions)
+      .catch((err: unknown) => {
+        if (__DEV__) {
+          console.warn('LocationField: failed to load recent suggestions', err);
+        }
+      });
   }, []);
 
   const suggestions = useMemo(() => {
@@ -81,10 +87,16 @@ export function LocationField({
   const commitSelection = (suggestion: LocationSuggestion) => {
     onChangeText(suggestion.value);
     onSelectSuggestion?.(suggestion);
-    void saveRecentLocationSuggestion(suggestion).then(async () => {
-      const nextRecents = await loadRecentLocationSuggestions();
-      setRecentSuggestions(nextRecents);
-    });
+    void saveRecentLocationSuggestion(suggestion)
+      .then(async () => {
+        const nextRecents = await loadRecentLocationSuggestions();
+        setRecentSuggestions(nextRecents);
+      })
+      .catch((err: unknown) => {
+        if (__DEV__) {
+          console.warn('LocationField: failed to save recent suggestion', err);
+        }
+      });
     sheet.close();
   };
 

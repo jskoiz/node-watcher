@@ -86,33 +86,41 @@ export default function AppSelect({
       {open ? (
         <View style={styles.menu}>
           <ScrollView nestedScrollEnabled style={styles.menuScroll}>
-            {options.map((option) => {
-              const selected = option.value === value;
-              return (
-                <Pressable
-                  key={option.value}
-                  accessibilityLabel={option.label}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    onSelect(option.value);
-                    setOpen(false);
-                  }}
-                  style={[
-                    styles.option,
-                    selected && { backgroundColor: theme.primarySubtle },
-                  ]}
-                >
-                  <Text
+            {options.length === 0 ? (
+              <View style={styles.option}>
+                <Text style={[styles.optionText, { color: theme.textMuted }]}>
+                  No options available
+                </Text>
+              </View>
+            ) : (
+              options.map((option) => {
+                const selected = option.value === value;
+                return (
+                  <Pressable
+                    key={option.value}
+                    accessibilityLabel={option.label}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      onSelect(option.value);
+                      setOpen(false);
+                    }}
                     style={[
-                      styles.optionText,
-                      { color: selected ? theme.primary : theme.textPrimary },
+                      styles.option,
+                      selected && { backgroundColor: theme.primarySubtle },
                     ]}
                   >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.optionText,
+                        { color: selected ? theme.primary : theme.textPrimary },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })
+            )}
           </ScrollView>
         </View>
       ) : null}
