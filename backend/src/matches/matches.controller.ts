@@ -23,6 +23,7 @@ import {
 import { MatchesService } from './matches.service';
 import { AuthGuard } from '@nestjs/passport';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
+import { parseTake, parseSkip } from '../common/pagination.util';
 import { SendMessageDto } from './matches.dto';
 
 @Controller('matches')
@@ -41,15 +42,7 @@ export class MatchesController {
     @Query('take') take?: string,
     @Query('skip') skip?: string,
   ) {
-    const parsedTake = take ? Number.parseInt(take, 10) : NaN;
-    const parsedSkip = skip ? Number.parseInt(skip, 10) : NaN;
-
-    const safeTake = Number.isNaN(parsedTake)
-      ? 20
-      : Math.min(Math.max(parsedTake, 1), 100);
-    const safeSkip = Number.isNaN(parsedSkip) ? 0 : Math.max(parsedSkip, 0);
-
-    return this.matchesService.getMatches(req.user.id, safeTake, safeSkip);
+    return this.matchesService.getMatches(req.user.id, parseTake(take), parseSkip(skip));
   }
 
   @Get(':id/messages')
@@ -61,14 +54,10 @@ export class MatchesController {
     @Query('take') take?: string,
     @Query('cursor') cursor?: string,
   ) {
-    const parsedTake = take ? Number.parseInt(take, 10) : NaN;
-    const safeTake = Number.isNaN(parsedTake)
-      ? 50
-      : Math.min(Math.max(parsedTake, 1), 100);
     return this.matchesService.getMessages(
       id,
       req.user.id,
-      safeTake,
+      parseTake(take, 50),
       cursor || undefined,
     );
   }

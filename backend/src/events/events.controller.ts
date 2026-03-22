@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { EventsService } from './events.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
+import { parseTake, parseSkip } from '../common/pagination.util';
 import { CreateEventDto } from './create-event.dto';
 import { InviteEventDto } from './invite-event.dto';
 
@@ -38,11 +39,7 @@ export class EventsController {
     @Query('take') take?: string,
     @Query('skip') skip?: string,
   ) {
-    const parsedTake = parseInt(take ?? '', 10);
-    const parsedSkip = parseInt(skip ?? '', 10);
-    const safeTake = Number.isNaN(parsedTake) ? 20 : Math.min(Math.max(parsedTake, 1), 100);
-    const safeSkip = Number.isNaN(parsedSkip) ? 0 : Math.max(parsedSkip, 0);
-    return this.eventsService.list(req.user.id, safeTake, safeSkip);
+    return this.eventsService.list(req.user.id, parseTake(take), parseSkip(skip));
   }
 
   @Get('me')
@@ -53,11 +50,7 @@ export class EventsController {
     @Query('take') take?: string,
     @Query('skip') skip?: string,
   ) {
-    const parsedTake = parseInt(take ?? '', 10);
-    const parsedSkip = parseInt(skip ?? '', 10);
-    const safeTake = Number.isNaN(parsedTake) ? 20 : Math.min(Math.max(parsedTake, 1), 100);
-    const safeSkip = Number.isNaN(parsedSkip) ? 0 : Math.max(parsedSkip, 0);
-    return this.eventsService.myEvents(req.user.id, safeTake, safeSkip);
+    return this.eventsService.myEvents(req.user.id, parseTake(take), parseSkip(skip));
   }
 
   @Get(':id')
