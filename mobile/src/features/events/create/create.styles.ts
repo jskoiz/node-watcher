@@ -2,17 +2,24 @@ import { StyleSheet } from 'react-native';
 import { lightTheme, radii, spacing, typography } from '../../../theme/tokens';
 
 const BASE = lightTheme.background;
-const SURFACE = lightTheme.surface;
 const SURFACE_ELEVATED = lightTheme.surfaceElevated;
-const BORDER = lightTheme.border;
-const PRIMARY = lightTheme.primary;
 const ACCENT = lightTheme.accent;
 const TEXT_PRIMARY = lightTheme.textPrimary;
 const TEXT_SECONDARY = lightTheme.textSecondary;
 const TEXT_MUTED = lightTheme.textMuted;
 const ERROR = lightTheme.danger;
 
+/**
+ * Shared / layout styles consumed by CreateScreenContent and re-used
+ * across multiple create-flow sub-components (Details, Timing, etc.).
+ *
+ * Component-specific styles live in co-located files:
+ *   createHeader.styles.ts
+ *   createDetails.styles.ts
+ *   createTiming.styles.ts
+ */
 export const createStyles = StyleSheet.create({
+  /* ── Layout / scaffold ──────────────────────────────────── */
   container: {
     flex: 1,
     backgroundColor: BASE,
@@ -33,33 +40,8 @@ export const createStyles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 64,
   },
-  header: {
-    paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-  },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 2,
-    color: PRIMARY,
-    marginBottom: spacing.xs,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -1,
-    color: TEXT_PRIMARY,
-    lineHeight: 34,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontSize: typography.bodySmall,
-    fontWeight: '500',
-    color: TEXT_MUTED,
-    lineHeight: 20,
-    maxWidth: 300,
-  },
+
+  /* ── Plan summary card (CreatePlanSummaryCard) ──────────── */
   planCard: {
     marginHorizontal: spacing.xxl,
     marginBottom: spacing.md,
@@ -109,6 +91,8 @@ export const createStyles = StyleSheet.create({
   planPillLabelActive: {
     color: TEXT_PRIMARY,
   },
+
+  /* ── Selection cards (CreateScreenContent) ──────────────── */
   selectionCard: {
     marginHorizontal: spacing.xxl,
     marginBottom: spacing.md,
@@ -133,6 +117,8 @@ export const createStyles = StyleSheet.create({
     fontWeight: '700',
     color: TEXT_PRIMARY,
   },
+
+  /* ── Activity picker (CreateActivityPicker) ─────────────── */
   activitySection: {
     marginBottom: spacing.md,
   },
@@ -207,6 +193,8 @@ export const createStyles = StyleSheet.create({
     letterSpacing: 0.2,
     textAlign: 'center',
   },
+
+  /* ── Shared form primitives ─────────────────────────────── */
   formSection: {
     paddingHorizontal: spacing.xxl,
     marginBottom: spacing.lg,
@@ -224,63 +212,10 @@ export const createStyles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  pillWrap: {
-    borderRadius: radii.pill,
-    overflow: 'hidden',
-  },
-  pillActive: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: radii.pill,
-  },
-  pillTextActive: {
-    fontSize: typography.bodySmall,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  pillInactive: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-  },
-  pillTextInactive: {
-    fontSize: typography.bodySmall,
-    fontWeight: '700',
-    color: TEXT_MUTED,
-  },
-  textInput: {
-    borderRadius: 18,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.body,
-    backgroundColor: SURFACE_ELEVATED,
-    color: TEXT_PRIMARY,
-  },
-  textArea: {
-    minHeight: 80,
-    paddingTop: spacing.md,
-  },
   stepperRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xl,
-  },
-  stepperBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 0,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepperBtnText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    lineHeight: 26,
   },
   stepperValueWrap: {
     alignItems: 'center',
@@ -299,15 +234,17 @@ export const createStyles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  feedbackWrap: {
-    marginHorizontal: spacing.xxl,
-    marginBottom: spacing.md,
-  },
   inlineError: {
     color: ERROR,
     fontSize: typography.caption,
     fontWeight: '700',
     marginTop: spacing.sm,
+  },
+
+  /* ── Feedback / submit area (CreateScreenContent) ───────── */
+  feedbackWrap: {
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.md,
   },
   feedbackError: {
     color: ERROR,
@@ -315,6 +252,8 @@ export const createStyles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 20,
   },
+
+  /* ── Success card (CreateSuccessCard) ───────────────────── */
   successCard: {
     marginHorizontal: spacing.xxl,
     marginBottom: spacing.md,
@@ -375,6 +314,8 @@ export const createStyles = StyleSheet.create({
     fontSize: typography.bodySmall,
     fontWeight: '700',
   },
+
+  /* ── Post button ────────────────────────────────────────── */
   postBtnWrap: {
     marginHorizontal: spacing.xxl,
     marginTop: spacing.md,

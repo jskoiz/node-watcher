@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { fontFamily } from '../../../lib/fonts';
-import { createStyles as styles } from './create.styles';
+import { createHeaderStyles as styles } from './createHeader.styles';
 
 export function CreateHeader() {
   return (

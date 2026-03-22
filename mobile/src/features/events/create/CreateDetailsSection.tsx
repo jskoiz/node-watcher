@@ -5,6 +5,7 @@ import { LocationField } from '../../../components/form/LocationField';
 import { Input } from '../../../design/primitives';
 import type { CreateEventFormValues } from '../schema';
 import { createStyles as styles } from './create.styles';
+import { createDetailsStyles as detailStyles } from './createDetails.styles';
 
 function SectionLabel({ label }: { label: string }) {
   return <Text style={styles.sectionLabel}>{label}</Text>;
@@ -62,24 +63,24 @@ export function CreateDetailsSection({
         <SectionLabel label="Spots available" />
         <View style={styles.stepperRow}>
           <TouchableOpacity
-            style={styles.stepperBtn}
+            style={detailStyles.stepperBtn}
             onPress={() => onChangeSpots(Math.max(1, spots - 1))}
             activeOpacity={0.7}
             disabled={isSubmitting}
           >
-            <Text style={styles.stepperBtnText}>-</Text>
+            <Text style={detailStyles.stepperBtnText}>-</Text>
           </TouchableOpacity>
           <View style={styles.stepperValueWrap}>
             <Text style={styles.stepperValue}>{spots}</Text>
             <Text style={styles.stepperSub}>open spots</Text>
           </View>
           <TouchableOpacity
-            style={styles.stepperBtn}
+            style={detailStyles.stepperBtn}
             onPress={() => onChangeSpots(Math.min(10, spots + 1))}
             activeOpacity={0.7}
             disabled={isSubmitting}
           >
-            <Text style={styles.stepperBtnText}>+</Text>
+            <Text style={detailStyles.stepperBtnText}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -92,7 +93,7 @@ export function CreateDetailsSection({
           name="note"
           render={({ field: { onBlur, onChange, value } }) => (
             <Input
-              style={[styles.textInput, styles.textArea]}
+              style={[detailStyles.textInput, detailStyles.textArea]}
               placeholder="Easy pace, bring water, no experience needed..."
               value={value}
               onBlur={onBlur}
