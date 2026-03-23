@@ -107,7 +107,7 @@ export default function ChatScreen({ navigation, route }: RootStackScreenProps<'
         <Text style={[styles.errorNote, { color: theme.danger }]}>{sendError || errorMessage}</Text>
       ) : null}
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={10}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
         <ChatComposer
           message={message}
           onChangeMessage={(text) => {

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import type { Match, User } from '../../../api/types';
 import AppBackButton from '../../../components/ui/AppBackButton';
@@ -29,6 +29,7 @@ export function ChatHeader({
   user: Match['user'] | User;
 }) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const dismissMenu = useCallback(() => setMenuVisible(false), []);
 
   return (
     <GlassView tier="medium" borderRadius={0} style={styles.header}>
@@ -74,36 +75,40 @@ export function ChatHeader({
           </GlassView>
         </Pressable>
         {menuVisible && (
-          <View style={[headerMenuStyles.menu, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Pressable
-              onPress={() => { setMenuVisible(false); onOpenQuickActions(); }}
-              style={headerMenuStyles.menuItem}
-              accessibilityRole="menuitem"
-            >
-              <AppIcon name="zap" size={16} color={theme.textPrimary} />
-              <Text style={[headerMenuStyles.menuItemText, { color: theme.textPrimary }]}>Quick actions</Text>
+          <Modal transparent animationType="none" visible onRequestClose={dismissMenu}>
+            <Pressable style={headerMenuStyles.backdrop} onPress={dismissMenu}>
+              <View style={[headerMenuStyles.menu, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Pressable
+                  onPress={() => { setMenuVisible(false); onOpenQuickActions(); }}
+                  style={headerMenuStyles.menuItem}
+                  accessibilityRole="menuitem"
+                >
+                  <AppIcon name="zap" size={16} color={theme.textPrimary} />
+                  <Text style={[headerMenuStyles.menuItemText, { color: theme.textPrimary }]}>Quick actions</Text>
+                </Pressable>
+                {onReport && (
+                  <Pressable
+                    onPress={() => { setMenuVisible(false); onReport(); }}
+                    style={headerMenuStyles.menuItem}
+                    accessibilityRole="menuitem"
+                  >
+                    <AppIcon name="flag" size={16} color={theme.textPrimary} />
+                    <Text style={[headerMenuStyles.menuItemText, { color: theme.textPrimary }]}>Report</Text>
+                  </Pressable>
+                )}
+                {onBlock && (
+                  <Pressable
+                    onPress={() => { setMenuVisible(false); onBlock(); }}
+                    style={headerMenuStyles.menuItem}
+                    accessibilityRole="menuitem"
+                  >
+                    <AppIcon name="slash" size={16} color={theme.danger} />
+                    <Text style={[headerMenuStyles.menuItemText, { color: theme.danger }]}>Block</Text>
+                  </Pressable>
+                )}
+              </View>
             </Pressable>
-            {onReport && (
-              <Pressable
-                onPress={() => { setMenuVisible(false); onReport(); }}
-                style={headerMenuStyles.menuItem}
-                accessibilityRole="menuitem"
-              >
-                <AppIcon name="flag" size={16} color={theme.textPrimary} />
-                <Text style={[headerMenuStyles.menuItemText, { color: theme.textPrimary }]}>Report</Text>
-              </Pressable>
-            )}
-            {onBlock && (
-              <Pressable
-                onPress={() => { setMenuVisible(false); onBlock(); }}
-                style={headerMenuStyles.menuItem}
-                accessibilityRole="menuitem"
-              >
-                <AppIcon name="slash" size={16} color={theme.danger} />
-                <Text style={[headerMenuStyles.menuItemText, { color: theme.danger }]}>Block</Text>
-              </Pressable>
-            )}
-          </View>
+          </Modal>
         )}
       </View>
     </GlassView>
@@ -115,10 +120,14 @@ const headerMenuStyles = StyleSheet.create({
     position: 'relative',
     zIndex: 10,
   },
+  backdrop: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 100,
+    paddingRight: spacing.lg,
+  },
   menu: {
-    position: 'absolute',
-    top: 44,
-    right: 0,
     borderRadius: radii.lg,
     paddingVertical: spacing.xs,
     minWidth: 170,
