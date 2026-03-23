@@ -1,0 +1,55 @@
+import React from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { Button } from '../../../design/primitives';
+import AppIcon from '../../../components/ui/AppIcon';
+import { spacing } from '../../../theme/tokens';
+import { styles } from '../onboarding.styles';
+import { ACTIVITIES } from './constants';
+import type { OnboardingStepProps } from './types';
+
+export function ActivitiesStep({ data, goNext, insets, setValue, theme, toggleArray }: OnboardingStepProps) {
+  return (
+    <View style={[styles.fullScreenStep, { justifyContent: 'flex-start' }]}>
+      <View>
+        <Text style={[styles.stepHeadline, { color: theme.textPrimary }]}>
+          How do you like to move?
+        </Text>
+        <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
+          Pick all that apply.
+        </Text>
+      </View>
+      <View style={styles.activityGrid}>
+        {ACTIVITIES.map((act) => {
+          const selected = data.activities.includes(act.key);
+          return (
+            <Pressable
+              key={act.key}
+              onPress={() => setValue('activities', toggleArray(data.activities, act.key))}
+              style={[
+                styles.activityTile,
+                {
+                  backgroundColor: selected ? theme.primarySubtle : theme.surface,
+                  borderColor: selected ? theme.primary : theme.border,
+                  borderWidth: selected ? 2 : 1.5,
+                },
+              ]}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected }}
+              accessibilityLabel={act.label}
+            >
+              <View style={[styles.activityIconWrap, { backgroundColor: selected ? theme.primarySubtle : theme.surfaceElevated }]}>
+                <AppIcon name={act.icon} size={16} color={selected ? theme.primary : theme.textSecondary} />
+              </View>
+              <Text style={[styles.activityLabel, { color: selected ? theme.primary : theme.textPrimary }]}>
+                {act.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
+        <Button label="Continue" onPress={goNext} disabled={data.activities.length === 0} />
+      </View>
+    </View>
+  );
+}

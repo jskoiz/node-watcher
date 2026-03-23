@@ -19,6 +19,7 @@ const mockLogin = jest.fn();
 const mockSignup = jest.fn();
 const mockMe = jest.fn();
 const mockDeleteAccount = jest.fn();
+const mockDeregisterPushToken = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('../../src/services/api', () => ({
   authApi: {
@@ -44,6 +45,10 @@ jest.mock('../../src/api/tokenStorage', () => ({
 
 jest.mock('../../src/lib/query/queryClient', () => ({
   queryClient: { clear: jest.fn() },
+}));
+
+jest.mock('../../src/services/pushRegistration', () => ({
+  deregisterPushToken: (...args: unknown[]) => mockDeregisterPushToken(...args),
 }));
 
 // The global jest.setup.js Sentry mock does not include setUser, which authStore calls.
