@@ -42,10 +42,15 @@ export default function CreateScreen({ navigation }: MainTabScreenProps<'Create'
   const canPost = !!selectedActivity && !!selectedWhen && !!selectedTime && !!where.trim() && !isCreating;
   const timingError = errors.selectedWhen?.message || errors.selectedTime?.message;
 
-  const clearSuccessState = () => {
-    setCreatedEvent(null);
+  const clearErrors = () => {
     setSubmitError(null);
     reset();
+  };
+
+  const clearSuccessState = () => {
+    setCreatedEvent(null);
+    clearErrors();
+    resetForm(DEFAULT_FORM_VALUES);
   };
 
   const handlePost = handleSubmit(async (values) => {
@@ -71,13 +76,14 @@ export default function CreateScreen({ navigation }: MainTabScreenProps<'Create'
 
       setCreatedEvent(event);
       void triggerSuccessHaptic();
+      reset();
       resetForm(DEFAULT_FORM_VALUES);
       requestAnimationFrame(() => {
         scrollRef.current?.scrollToEnd({ animated: true });
       });
     } catch (err) {
       void triggerErrorHaptic();
-      setSubmitError(normalizeApiError(err).message ?? createError ?? 'Unable to create event.');
+      setSubmitError(normalizeApiError(err).message ?? 'Unable to create event.');
     }
   });
 
@@ -96,24 +102,24 @@ export default function CreateScreen({ navigation }: MainTabScreenProps<'Create'
         });
       }}
       onChangeSpots={(value) => setValue('spots', value, { shouldDirty: true, shouldValidate: true })}
-      onClearSubmitError={() => setSubmitError(null)}
+      onClearSubmitError={clearErrors}
       onPost={() => {
         void handlePost();
       }}
       onSelectActivity={(value) => {
-        setSubmitError(null);
+        clearErrors();
         setValue('selectedActivity', value, { shouldDirty: true, shouldValidate: true });
       }}
       onSelectSkill={(value) => {
-        setSubmitError(null);
+        clearErrors();
         setValue('skillLevel', value, { shouldDirty: true, shouldValidate: true });
       }}
       onSelectTime={(value) => {
-        setSubmitError(null);
+        clearErrors();
         setValue('selectedTime', value, { shouldDirty: true, shouldValidate: true });
       }}
       onSelectWhen={(value) => {
-        setSubmitError(null);
+        clearErrors();
         setValue('selectedWhen', value, { shouldDirty: true, shouldValidate: true });
       }}
       onShareCreatedEvent={() => {
