@@ -4,6 +4,7 @@ import { normalizeApiError } from '../../../api/errors';
 import { normalizeIntensityLevelForForm } from '../../../api/profileIntensity';
 import type { LocationSuggestion } from '../../locations/locationSuggestions';
 import { triggerErrorHaptic, triggerSuccessHaptic } from '../../../lib/interaction/feedback';
+import { showToast } from '../../../store/toastStore';
 import { buildSchedulePreferences, parseFavoriteActivities } from '../components/profile.helpers';
 
 function toggleValue(values: string[], nextValue: string) {
@@ -100,6 +101,7 @@ export function useProfileEditor({
         prefersEvening: selectedSchedule.includes('Evening'),
       });
       void triggerSuccessHaptic();
+      showToast('Profile saved', 'success');
       setEditMode(false);
       await refetch();
     } catch (err) {

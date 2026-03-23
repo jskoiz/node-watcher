@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { captureException, logDevOnly } from '../core/observability/sentry';
 import { lightTheme } from '../theme/tokens';
 
-interface Props { children: ReactNode; fallback?: ReactNode; }
+interface Props { children: ReactNode; fallback?: ReactNode; name?: string; }
 interface State { hasError: boolean; error?: Error; }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -15,7 +15,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     captureException(error, {
-      tags: { source: 'error-boundary' },
+      tags: { source: 'error-boundary', ...(this.props.name ? { boundary: this.props.name } : {}) },
       extra: {
         componentStack: errorInfo.componentStack,
       },

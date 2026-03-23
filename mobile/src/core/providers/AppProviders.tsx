@@ -8,7 +8,9 @@ import { ThemeProvider } from '../../theme/useTheme';
 import { lightTheme } from '../../theme/tokens';
 import { queryClient } from '../../lib/query/queryClient';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { ToastOverlay } from '../../components/ui/ToastOverlay';
 import { initSentry } from '../observability/sentry';
+import { installGlobalErrorHandler } from '../observability/globalErrorHandler';
 import {
   configureNotificationHandler,
   registerForPushNotifications,
@@ -16,6 +18,7 @@ import {
 } from '../../lib/pushNotifications';
 
 initSentry();
+installGlobalErrorHandler();
 
 export function AppProviders({ children }: PropsWithChildren) {
   useEffect(() => {
@@ -42,14 +45,17 @@ export function AppProviders({ children }: PropsWithChildren) {
   }, []);
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary name="root">
       <SafeAreaProvider>
         <GestureHandlerRootView
           style={{ flex: 1, backgroundColor: lightTheme.background }}
         >
           <QueryClientProvider client={queryClient}>
             <BottomSheetModalProvider>
-              <ThemeProvider>{children}</ThemeProvider>
+              <ThemeProvider>
+                {children}
+                <ToastOverlay />
+              </ThemeProvider>
             </BottomSheetModalProvider>
           </QueryClientProvider>
         </GestureHandlerRootView>

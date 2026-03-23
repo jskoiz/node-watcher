@@ -2,6 +2,7 @@ import axios from 'axios';
 import { env } from '../config/env';
 import { handleUnauthorized } from './authSession';
 import { getToken } from './tokenStorage';
+import { showToast } from '../store/toastStore';
 
 const client = axios.create({
     baseURL: env.apiUrl,
@@ -32,6 +33,11 @@ client.interceptors.response.use(
     async (error) => {
         if (error?.response?.status === 401) {
             await handleUnauthorized();
+        } else if (!error?.response) {
+            // Network error — no response received
+            showToast('Network error. Please check your connection.', 'error');
+        } else if (error.response.status >= 500) {
+            showToast('Server error. Please try again later.', 'error');
         }
         return Promise.reject(error);
     }

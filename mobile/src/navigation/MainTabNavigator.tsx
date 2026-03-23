@@ -15,6 +15,7 @@ import ExploreScreen from '../screens/ExploreScreen';
 import CreateScreen from '../screens/CreateScreen';
 import MatchesScreen from '../screens/MatchesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import { withBoundary } from '../components/withBoundary';
 import { useTheme } from '../theme/useTheme';
 import AppIcon from '../components/ui/AppIcon';
 import { GlassView } from '../design/primitives/GlassView';
@@ -156,6 +157,12 @@ function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarPro
   );
 }
 
+const BoundedHome = withBoundary(HomeScreen, 'discovery');
+const BoundedExplore = withBoundary(ExploreScreen, 'explore');
+const BoundedCreate = withBoundary(CreateScreen, 'create');
+const BoundedMatches = withBoundary(MatchesScreen, 'chat');
+const BoundedProfile = withBoundary(ProfileScreen, 'profile');
+
 export default function MainTabNavigator() {
   return (
     <View testID="main-screen" style={styles.mainContainer}>
@@ -163,11 +170,11 @@ export default function MainTabNavigator() {
         tabBar={(props) => <FloatingGlassTabBar {...props} />}
         screenOptions={{ headerShown: false }}
       >
-        <Tab.Screen name="Discover" component={HomeScreen} />
-        <Tab.Screen name="Explore" component={ExploreScreen} />
-        <Tab.Screen name="Create" component={CreateScreen} />
-        <Tab.Screen name="Inbox" component={MatchesScreen} />
-        <Tab.Screen name="You" component={ProfileScreen} />
+        <Tab.Screen name="Discover" component={BoundedHome} />
+        <Tab.Screen name="Explore" component={BoundedExplore} />
+        <Tab.Screen name="Create" component={BoundedCreate} />
+        <Tab.Screen name="Inbox" component={BoundedMatches} />
+        <Tab.Screen name="You" component={BoundedProfile} />
       </Tab.Navigator>
     </View>
   );

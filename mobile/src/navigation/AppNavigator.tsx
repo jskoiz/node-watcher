@@ -27,6 +27,7 @@ import { refreshUserLocation } from "../lib/location";
 import { getLastNotificationResponseSafe } from "../lib/pushNotifications";
 
 import MainTabNavigator from "./MainTabNavigator";
+import { withBoundary } from "../components/withBoundary";
 import { setUnauthorizedHandler } from "../api/authSession";
 import { useTheme } from "../theme/useTheme";
 import { TabBarVisibilityProvider } from "./TabBarVisibilityContext";
@@ -37,6 +38,10 @@ import {
 } from "../lib/deepLinks";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const BoundedChat = withBoundary(ChatScreen, 'chat');
+const BoundedEventDetail = withBoundary(EventDetailScreen, 'events');
+const BoundedProfileDetail = withBoundary(ProfileDetailScreen, 'profile');
 
 /** Dev-only: auto-login with preview credentials when no token is stored. */
 let devAutoLoginDone = false;
@@ -194,13 +199,13 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabNavigator} />
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} options={{ presentation: 'modal' }} />
+            <Stack.Screen name="Chat" component={BoundedChat} options={{ presentation: 'modal' }} />
             <Stack.Screen
               name="ProfileDetail"
-              component={ProfileDetailScreen}
+              component={BoundedProfileDetail}
               options={{ presentation: 'modal' }}
             />
-            <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ presentation: 'modal' }} />
+            <Stack.Screen name="EventDetail" component={BoundedEventDetail} options={{ presentation: 'modal' }} />
             <Stack.Screen name="MyEvents" component={MyEventsScreen} />
             <Stack.Screen
               name="Notifications"
