@@ -16,6 +16,10 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
+    "paths": {
+      "@contracts/*": ["../shared/contracts/*"],
+      "@contracts": ["../shared/contracts/index"]
+    },
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true

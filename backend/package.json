@@ -85,7 +85,8 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "zod": "^4.3.6"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -99,7 +100,9 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "moduleNameMapper": {
-      "^expo-server-sdk$": "<rootDir>/test-support/expo-server-sdk.mock.ts"
+      "^expo-server-sdk$": "<rootDir>/test-support/expo-server-sdk.mock.ts",
+      "^@contracts/(.*)$": "<rootDir>/../../shared/contracts/$1",
+      "^@contracts$": "<rootDir>/../../shared/contracts/index"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

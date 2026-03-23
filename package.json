@@ -37,5 +37,8 @@
     "test:mobile": "npm --prefix mobile run test",
     "screenshots": "./scripts/screenshot-all.sh",
     "screenshots:quick": "./scripts/screenshot-all.sh --quick"
+  },
+  "devDependencies": {
+    "zod": "^4.3.6"
   }
 }
