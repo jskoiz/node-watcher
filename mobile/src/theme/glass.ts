@@ -22,7 +22,7 @@ export const glass: Record<GlassTier | GlassTintKey, GlassMaterial> = {
   thin:    { background: 'rgba(255,255,255,0.12)', blur: 8,  border: 'rgba(255,255,255,0.15)' },
   light:   { background: 'rgba(255,255,255,0.20)', blur: 20, border: 'rgba(255,255,255,0.18)' },
   medium:  { background: 'rgba(255,255,255,0.35)', blur: 24, border: 'rgba(255,255,255,0.22)' },
-  thick:   { background: 'rgba(255,255,255,0.55)', blur: 32, border: 'rgba(255,255,255,0.25)' },
+  thick:   { background: 'rgba(255,255,255,0.82)', blur: 40, border: 'rgba(255,255,255,0.35)' },
   frosted: { background: 'rgba(255,255,255,0.72)', blur: 40, border: 'rgba(255,255,255,0.30)' },
 
   // Warm tint variants matching BRDG palette
