@@ -1,5 +1,4 @@
 import React from 'react';
-import { View } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import ChatScreen from '../ChatScreen';
 
@@ -36,6 +35,7 @@ const mockChatThreadState = {
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children, ...props }: any) => {
+    const { View } = require('react-native');
     safeAreaViewProps = props;
     return <View>{children}</View>;
   },
