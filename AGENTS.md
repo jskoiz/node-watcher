@@ -52,9 +52,14 @@ npm run release:ios:check
 - Treat `main` as the source of truth for shippable mobile code unless the user explicitly designates a release branch.
 - Never produce a TestFlight or App Store build from a dirty working tree, a detached `HEAD`, or an unpushed local-only commit.
 - Require a clean `main` or `release/*` branch plus passing backend and mobile checks before recommending or cutting a release build.
+- Before choosing `IOS_BUILD_NUMBER`, verify the latest live App Store Connect build number for `com.avmillabs.brdg` and pick a higher number. Do not rely on historical notes or local memory for build-number selection.
+- Before `npm run release:ios` or `npm run release:ios:check`, verify the branch already has an upstream on `origin` and that the worktree is fully clean after any generated-file checks.
+- Before release preflight, run `npm run repo:index` if repo policy reports `artifacts/repo-index.json` drift.
+- Before a release that uses App Store Connect API key auth, verify `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, and an accessible `AuthKey_<key>.p8` path or confirm that Xcode account auth will be used instead.
 - BRDG ships to TestFlight/App Store through local Xcode by default, even though the mobile app uses Expo and the repo contains `eas.json`.
 - Prefer [`scripts/release-ios.sh`](scripts/release-ios.sh) or `npm run release:ios` over ad hoc release commands, and assume `xcode` mode unless the user explicitly asks for `eas`.
 - Do not treat missing Expo auth as a blocker for the normal BRDG release path.
+- Treat older TestFlight rollout notes as historical context only. When release state matters, prefer live App Store Connect state and the current release manifest over doc snapshots.
 - If local dev output and a shipped build disagree, inspect source and shipped artifacts before proposing fixes.
 - Preserve current bug fixes and API contracts when reapplying older UI states. Restore deltas selectively instead of blanket cherry-picks.
 

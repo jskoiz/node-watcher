@@ -2,6 +2,8 @@
 
 BRDG uses Expo for app development and native config, but the canonical internal TestFlight/App Store upload path is a local Xcode archive/upload driven by the repo wrapper script. Do not assume Expo login or EAS is required unless a release explicitly calls for the EAS path.
 
+This document describes the current release workflow. Historical rollout notes are useful for context, but they are not the source of truth for the next build number or the currently attached TestFlight build.
+
 ## Engineering baseline
 
 - Mobile app config is driven by [`mobile/app.config.ts`](../mobile/app.config.ts) instead of placeholder identifiers in `app.json`.
@@ -37,6 +39,24 @@ Current production values prepared in this workspace:
 
 For local release builds, start from `mobile/.env.example` and provide production values before running the release wrapper.
 
+## Live preflight before choosing a build number
+
+Do these checks before `npm run release:ios:check`:
+
+1. Verify the latest live App Store Connect build number for `com.avmillabs.brdg`.
+2. Choose an `IOS_BUILD_NUMBER` strictly higher than the latest uploaded build.
+3. Do not trust historical rollout docs or local memory for this value.
+
+Recommended release preflight checklist:
+
+- confirm the release branch is `main` or `release/*`
+- confirm the branch is pushed and tracking `origin`
+- confirm the worktree is completely clean
+- confirm `EXPO_PUBLIC_API_URL`, `IOS_BUNDLE_IDENTIFIER`, and `IOS_BUILD_NUMBER` are set
+- confirm `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, and `ASC_API_KEY_PATH` are available if using API-key auth, or confirm that Xcode account auth is available instead
+- run `npm run repo:index` if repo policy reports `artifacts/repo-index.json` drift
+- run `npm run release:ios:check` before the full upload
+
 ## Recommended release flow
 
 From repo root:
@@ -54,6 +74,8 @@ If the local Xcode Accounts state is missing or broken, the same wrapper can aut
 
 Use `npm run release:ios:check` when you want the preflight and manifest generation without starting the Xcode archive/upload.
 
+If `npm run release:ios:check` fails on repo policy because `artifacts/repo-index.json` is stale, run `npm run repo:index`, commit that generated change if it reflects real repo state, push the branch, and rerun release preflight.
+
 If you intentionally need the Expo/EAS path instead, call it explicitly:
 
 ```bash
@@ -68,6 +90,8 @@ Before any production or TestFlight archive:
 - Do not build from a dirty working tree.
 - Do not build from a detached `HEAD`.
 - Do not build from local-only, unpushed commits.
+- Verify the branch already exists on `origin` before starting the wrapper.
+- Verify the next `IOS_BUILD_NUMBER` against live App Store Connect state, not historical docs.
 - Record the exact branch, full git SHA, app version, iOS build number, API URL, and build date in the release notes or handoff.
 - Keep the release notes tied to the exact attached TestFlight/App Store artifact; do not reuse notes from an older build after Phase 3 profile/photo changes land.
 
@@ -81,6 +105,8 @@ The script blocks release if any of these conditions fail:
 - repo validation fails
 
 If the build is intended for App Store review, use the uploaded Xcode build in App Store Connect or submit the resulting `.ipa` through Transporter if a manual attach step is still required.
+
+Successful uploads may still warn about missing vendored framework dSYMs for `React.framework`, `ReactNativeDependencies.framework`, and `hermes.framework`. Treat those as release-quality warnings to follow up on, but they do not necessarily block TestFlight delivery if App Store Connect accepts the package.
 
 ## App Store Connect items still required
 

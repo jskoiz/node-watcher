@@ -1,5 +1,7 @@
 # TestFlight Honolulu Rollout Notes
 
+This document is a historical rollout snapshot. Do not use it to choose the next live App Store Connect build number or to infer the current attached TestFlight build. Verify live App Store Connect state before every new release.
+
 Date: 2026-03-11
 
 ## Scope
