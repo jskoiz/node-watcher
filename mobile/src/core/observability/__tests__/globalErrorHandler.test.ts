@@ -1,5 +1,6 @@
 import { installGlobalErrorHandler } from '../globalErrorHandler';
 import { useToastStore } from '../../../store/toastStore';
+import { logDevOnly } from '../sentry';
 
 jest.mock('../sentry', () => ({
   captureException: jest.fn(),
@@ -9,17 +10,20 @@ jest.mock('../sentry', () => ({
 const mockPreviousHandler = jest.fn();
 const mockSetGlobalHandler = jest.fn();
 
-jest.mock('react-native', () => ({
-  ErrorUtils: {
-    getGlobalHandler: () => mockPreviousHandler,
-    setGlobalHandler: (...args: unknown[]) => mockSetGlobalHandler(...args),
-  },
-}));
-
 beforeEach(() => {
   useToastStore.setState({ toasts: [] });
   mockPreviousHandler.mockReset();
   mockSetGlobalHandler.mockReset();
+  Object.assign(globalThis, {
+    ErrorUtils: {
+      getGlobalHandler: () => mockPreviousHandler,
+      setGlobalHandler: (...args: unknown[]) => mockSetGlobalHandler(...args),
+    },
+  });
+});
+
+afterEach(() => {
+  delete (globalThis as typeof globalThis & { ErrorUtils?: unknown }).ErrorUtils;
 });
 
 describe('installGlobalErrorHandler', () => {
@@ -49,5 +53,17 @@ describe('installGlobalErrorHandler', () => {
 
     const toasts = useToastStore.getState().toasts;
     expect(toasts[0].message).toContain('restart');
+  });
+
+  it('logs and exits when ErrorUtils is unavailable', () => {
+    delete (globalThis as typeof globalThis & { ErrorUtils?: unknown }).ErrorUtils;
+
+    installGlobalErrorHandler();
+
+    expect(mockSetGlobalHandler).not.toHaveBeenCalled();
+    expect(logDevOnly).toHaveBeenCalledWith(
+      'warn',
+      '[global-error-handler] ErrorUtils unavailable',
+    );
   });
 });

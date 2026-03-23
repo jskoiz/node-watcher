@@ -1,6 +1,20 @@
-import { ErrorUtils } from 'react-native';
 import { captureException, logDevOnly } from './sentry';
 import { showToast } from '../../store/toastStore';
+
+type ErrorHandler = (error: Error, isFatal?: boolean) => void;
+
+type ErrorUtilsLike = {
+  getGlobalHandler?: () => ErrorHandler | undefined;
+  setGlobalHandler?: (handler: ErrorHandler) => void;
+};
+
+const getErrorUtils = (): ErrorUtilsLike | undefined => {
+  const globalScope = globalThis as typeof globalThis & {
+    ErrorUtils?: ErrorUtilsLike;
+  };
+
+  return globalScope.ErrorUtils;
+};
 
 /**
  * Installs a global handler for uncaught JS errors so they are logged to
@@ -9,9 +23,15 @@ import { showToast } from '../../store/toastStore';
  * Call once during app bootstrap (e.g. inside AppProviders).
  */
 export function installGlobalErrorHandler() {
-  const previousHandler = ErrorUtils.getGlobalHandler();
+  const errorUtils = getErrorUtils();
+  const previousHandler = errorUtils?.getGlobalHandler?.();
 
-  ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
+  if (!errorUtils?.setGlobalHandler) {
+    logDevOnly('warn', '[global-error-handler] ErrorUtils unavailable');
+    return;
+  }
+
+  errorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
     captureException(error, {
       tags: { source: 'global-error-handler', fatal: String(Boolean(isFatal)) },
     });
