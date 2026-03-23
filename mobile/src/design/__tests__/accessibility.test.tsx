@@ -98,7 +98,8 @@ describe('primitives accessibility', () => {
       );
       // The outermost container View should have accessibilityRole="alert"
       const alertView = UNSAFE_root.findAll(
-        (node) => node.props.accessibilityRole === 'alert',
+        (node: { props: { accessibilityRole?: string } }) =>
+          node.props.accessibilityRole === 'alert',
       );
       expect(alertView.length).toBeGreaterThan(0);
     });
