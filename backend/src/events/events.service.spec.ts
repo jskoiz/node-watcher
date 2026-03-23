@@ -3,6 +3,7 @@ import { EventCategory } from '@prisma/client';
 import { EventsService } from './events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BlockService } from '../moderation/block.service';
 
 const eventFindMany = jest.fn();
 const eventFindUnique = jest.fn();
@@ -31,6 +32,11 @@ const notifications = {
   create: notificationsCreate,
 } as unknown as NotificationsService;
 
+const blockServiceMock = {
+  getBlockedUserIds: jest.fn().mockResolvedValue([]),
+  isBlocked: jest.fn().mockResolvedValue(false),
+} as unknown as BlockService;
+
 const baseEvent = {
   id: 'event-1',
   title: 'Morning Run',
@@ -49,7 +55,7 @@ describe('EventsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new EventsService(prisma, notifications);
+    service = new EventsService(prisma, notifications, blockServiceMock);
   });
 
   describe('list', () => {

@@ -12,6 +12,7 @@ describe('notification templates', () => {
       title: 'New like',
       body: 'Someone liked your profile.',
       data: { fromUserId: 'user-1' },
+      sourceUserId: 'user-1',
     });
   });
 
@@ -21,6 +22,7 @@ describe('notification templates', () => {
       title: "It's a match!",
       body: 'You can start chatting now.',
       data: { matchId: 'match-1', withUserId: 'user-2' },
+      sourceUserId: 'user-2',
     });
   });
 
@@ -30,6 +32,7 @@ describe('notification templates', () => {
       title: 'New RSVP',
       body: 'Someone joined Sunrise Run',
       data: { eventId: 'event-1', attendeeId: 'user-3' },
+      sourceUserId: 'user-3',
     });
   });
 

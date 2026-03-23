@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BlockService } from '../moderation/block.service';
 import {
   buildEventInviteNotification,
   buildEventReminderNotification,
@@ -55,11 +56,19 @@ export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly blockService: BlockService,
   ) {}
 
   async list(userId?: string, take = 20, skip = 0) {
+    const blockedIds = userId
+      ? await this.blockService.getBlockedUserIds(userId)
+      : [];
+
     const events = await this.prisma.event.findMany({
-      where: { startsAt: { gte: new Date() } },
+      where: {
+        startsAt: { gte: new Date() },
+        ...(blockedIds.length ? { hostId: { notIn: blockedIds } } : {}),
+      },
       orderBy: { startsAt: 'asc' },
       take,
       skip,
@@ -252,6 +261,12 @@ export class EventsService {
 
     const inviteeId =
       match.userAId === userId ? match.userBId : match.userAId;
+
+    // Check block relationship even when match is not flagged (e.g. block from discovery)
+    const blocked = await this.blockService.isBlocked(userId, inviteeId);
+    if (blocked) {
+      throw new ForbiddenException('This conversation is no longer available');
+    }
 
     // Create the invite record (upsert to handle duplicate gracefully)
     const invite = await this.prisma.eventInvite.upsert({

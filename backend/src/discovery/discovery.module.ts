@@ -3,9 +3,10 @@ import { DiscoveryService } from './discovery.service';
 import { DiscoveryController } from './discovery.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfileModule } from '../profile/profile.module';
+import { ModerationModule } from '../moderation/moderation.module';
 
 @Module({
-  imports: [NotificationsModule, ProfileModule],
+  imports: [NotificationsModule, ProfileModule, ModerationModule],
   providers: [DiscoveryService],
   controllers: [DiscoveryController],
 })

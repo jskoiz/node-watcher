@@ -216,6 +216,7 @@ export class MatchesService {
       title: 'New message',
       body: trimmedContent,
       data: { matchId, senderId: userId },
+      sourceUserId: userId,
     });
 
     return response;

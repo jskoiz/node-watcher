@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, ReportCategory } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from './push.service';
 import type { Notification } from '@prisma/client';
@@ -36,8 +36,21 @@ export class NotificationsService {
       title: string;
       body: string;
       data?: Record<string, unknown>;
+      /** When set, the notification is suppressed if recipient has blocked this user. */
+      sourceUserId?: string;
     },
-  ): Promise<Notification> {
+  ): Promise<Notification | null> {
+    // Suppress notification if recipient and source are in a block relationship
+    if (payload.sourceUserId) {
+      const blocked = await this.isBlockedPair(userId, payload.sourceUserId);
+      if (blocked) {
+        this.logger.debug(
+          `Suppressing ${payload.type} notification to ${userId} — blocked by/blocking ${payload.sourceUserId}`,
+        );
+        return null;
+      }
+    }
+
     const notification = await this.prisma.notification.create({
       data: {
         userId,
@@ -107,6 +120,34 @@ export class NotificationsService {
     return this.prisma.notification.count({
       where: { userId, read: false },
     });
+  }
+
+  /**
+   * Lightweight block-pair check to avoid circular dependency with ModerationModule.
+   * Checks blocked matches and BLOCK-category reports.
+   */
+  private async isBlockedPair(
+    userA: string,
+    userB: string,
+  ): Promise<boolean> {
+    const [sortedA, sortedB] = [userA, userB].sort();
+    const blockedMatch = await this.prisma.match.findFirst({
+      where: { userAId: sortedA, userBId: sortedB, isBlocked: true },
+      select: { id: true },
+    });
+    if (blockedMatch) return true;
+
+    const blockReport = await this.prisma.report.findFirst({
+      where: {
+        category: ReportCategory.BLOCK,
+        OR: [
+          { reporterId: userA, reportedUserId: userB },
+          { reporterId: userB, reportedUserId: userA },
+        ],
+      },
+      select: { id: true },
+    });
+    return !!blockReport;
   }
 
   private async dispatchPush(notification: Notification): Promise<void> {

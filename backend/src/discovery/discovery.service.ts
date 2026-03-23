@@ -11,6 +11,7 @@ import {
   buildLikeReceivedNotification,
   buildMatchCreatedNotification,
 } from '../notifications/notification.templates';
+import { BlockService } from '../moderation/block.service';
 import { calculateAge } from '../common/age.util';
 import { deriveMatchClassification } from '../matches/match-classification';
 import {
@@ -65,6 +66,7 @@ export class DiscoveryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly blockService: BlockService,
   ) {}
 
   async getFeed(userId: string, filters: DiscoveryFilters = {}) {
@@ -80,9 +82,11 @@ export class DiscoveryService {
     const birthdateFilter = this.buildBirthdateFilter(filters);
     const fitnessProfileFilter = this.buildFitnessProfileFilter(filters);
 
+    const blockedIds = await this.blockService.getBlockedUserIds(userId);
+
     const users: UserWithRelations[] = await this.prisma.user.findMany({
       where: {
-        id: { not: userId },
+        id: { notIn: [userId, ...blockedIds] },
         isDeleted: false,
         isBanned: false,
         isOnboarded: true,

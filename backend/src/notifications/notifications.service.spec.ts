@@ -15,6 +15,12 @@ function makeMockPrisma() {
     user: {
       findUnique: jest.fn(),
     },
+    match: {
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
+    report: {
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
   } as unknown as PrismaService;
 }
 
@@ -58,8 +64,9 @@ describe('NotificationsService', () => {
       body: 'World',
     });
 
-    expect(n.id).toBeTruthy();
-    expect(n.createdAt).toBeInstanceOf(Date);
+    expect(n).not.toBeNull();
+    expect(n?.id).toBeTruthy();
+    expect(n?.createdAt).toBeInstanceOf(Date);
     expect(prisma.notification.create).toHaveBeenCalledWith({
       data: {
         userId: 'user-1',
@@ -131,5 +138,63 @@ describe('NotificationsService', () => {
     expect(prisma.notification.count).toHaveBeenCalledWith({
       where: { userId: 'user-1', read: false },
     });
+  });
+
+  it('suppresses notification when recipient has blocked the source user via match', async () => {
+    (prisma.match.findFirst as jest.Mock).mockResolvedValue({ id: 'blocked-match' });
+
+    const result = await service.create('user-1', {
+      type: 'like_received',
+      title: 'New like',
+      body: 'Someone liked you',
+      sourceUserId: 'blocked-user',
+    });
+
+    expect(result).toBeNull();
+    expect(prisma.notification.create).not.toHaveBeenCalled();
+  });
+
+  it('suppresses notification when recipient has blocked the source user via report', async () => {
+    (prisma.match.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.report.findFirst as jest.Mock).mockResolvedValue({ id: 'block-report' });
+
+    const result = await service.create('user-1', {
+      type: 'like_received',
+      title: 'New like',
+      body: 'Someone liked you',
+      sourceUserId: 'blocked-user',
+    });
+
+    expect(result).toBeNull();
+    expect(prisma.notification.create).not.toHaveBeenCalled();
+  });
+
+  it('does not suppress notification when no block relationship exists', async () => {
+    (prisma.match.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.report.findFirst as jest.Mock).mockResolvedValue(null);
+
+    const mockNotification = {
+      id: 'uuid-2',
+      userId: 'user-1',
+      type: 'like_received',
+      title: 'New like',
+      body: 'Someone liked you',
+      data: null,
+      read: false,
+      readAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    (prisma.notification.create as jest.Mock).mockResolvedValue(mockNotification);
+
+    const result = await service.create('user-1', {
+      type: 'like_received',
+      title: 'New like',
+      body: 'Someone liked you',
+      sourceUserId: 'normal-user',
+    });
+
+    expect(result).not.toBeNull();
+    expect(prisma.notification.create).toHaveBeenCalled();
   });
 });

@@ -5,6 +5,8 @@ export interface NotificationTemplatePayload {
   title: string;
   body: string;
   data?: Record<string, unknown>;
+  /** When set, notification is suppressed if recipient blocked this user. */
+  sourceUserId?: string;
 }
 
 export function buildLikeReceivedNotification(
@@ -15,6 +17,7 @@ export function buildLikeReceivedNotification(
     title: 'New like',
     body: 'Someone liked your profile.',
     data: { fromUserId },
+    sourceUserId: fromUserId,
   };
 }
 
@@ -27,6 +30,7 @@ export function buildMatchCreatedNotification(
     title: "It's a match!",
     body: 'You can start chatting now.',
     data: { matchId, withUserId },
+    sourceUserId: withUserId,
   };
 }
 
@@ -40,6 +44,7 @@ export function buildEventRsvpNotification(
     title: 'New RSVP',
     body: `Someone joined ${eventTitle}`,
     data: { eventId, attendeeId },
+    sourceUserId: attendeeId,
   };
 }
 

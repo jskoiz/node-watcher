@@ -3,6 +3,7 @@ import { IntensityLevel } from '@prisma/client';
 import { DiscoveryService } from './discovery.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BlockService } from '../moderation/block.service';
 
 describe('DiscoveryService', () => {
   let service: DiscoveryService;
@@ -45,6 +46,11 @@ describe('DiscoveryService', () => {
 
   const notificationsMock = {
     create: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const blockServiceMock = {
+    getBlockedUserIds: jest.fn().mockResolvedValue([]),
+    isBlocked: jest.fn().mockResolvedValue(false),
   };
 
   const makeCandidate = (overrides: Record<string, unknown> = {}) => ({
@@ -90,6 +96,10 @@ describe('DiscoveryService', () => {
           provide: NotificationsService,
           useValue: notificationsMock,
         },
+        {
+          provide: BlockService,
+          useValue: blockServiceMock,
+        },
       ],
     }).compile();
 
@@ -97,6 +107,25 @@ describe('DiscoveryService', () => {
 
     // Default: target user exists (tests that need it missing will override)
     prismaMock.user.findFirst.mockResolvedValue({ id: 'user-2' });
+  });
+
+  it('excludes blocked user IDs from the feed query', async () => {
+    blockServiceMock.getBlockedUserIds.mockResolvedValue(['blocked-1', 'blocked-2']);
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'me',
+      profile: { latitude: 21.3, longitude: -157.8 },
+      fitnessProfile: {
+        intensityLevel: IntensityLevel.INTERMEDIATE,
+        primaryGoal: 'strength',
+        secondaryGoal: 'endurance',
+      },
+    });
+    prismaMock.user.findMany.mockResolvedValue([]);
+
+    await service.getFeed('me');
+
+    const query = prismaMock.user.findMany.mock.calls[0][0];
+    expect(query.where.id).toEqual({ notIn: ['me', 'blocked-1', 'blocked-2'] });
   });
 
   it('pushes like/pass exclusions and profile filters into the feed query', async () => {
@@ -127,7 +156,7 @@ describe('DiscoveryService', () => {
     expect(prismaMock.user.findMany).toHaveBeenCalledTimes(1);
 
     const query = prismaMock.user.findMany.mock.calls[0][0];
-    expect(query.where.id).toEqual({ not: 'me' });
+    expect(query.where.id).toEqual({ notIn: ['me', 'blocked-1', 'blocked-2'] });
     expect(query.where.receivedLikes).toEqual({ none: { fromUserId: 'me' } });
     expect(query.where.receivedPasses).toEqual({ none: { fromUserId: 'me' } });
     expect(query.where.birthdate).toEqual(
