@@ -18,9 +18,11 @@ function makeMockPrisma() {
     },
     match: {
       findFirst: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
     },
     report: {
       findFirst: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
     },
     notificationPreferences: {
       findUnique: jest.fn(),
@@ -42,6 +44,10 @@ describe('NotificationsService', () => {
   beforeEach(() => {
     prisma = makeMockPrisma();
     pushService = makeMockPushService();
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      pushToken: 'token',
+      notificationPreferences: null,
+    });
     service = new NotificationsService(prisma, pushService);
   });
 
@@ -437,7 +443,7 @@ describe('NotificationsService', () => {
   });
 
   describe('dispatchPush', () => {
-    it('sends push notifications for event reminders', async () => {
+    it('sends push notifications for event invites', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         pushToken: 'ExponentPushToken[abc]',
         notificationPreferences: {
@@ -453,17 +459,28 @@ describe('NotificationsService', () => {
       await (service as any).dispatchPush({
         id: 'notif-1',
         userId: 'user-1',
-        type: 'event_reminder',
+        type: 'event_invite',
         title: 'Event invite',
         body: 'Join us',
-        data: { type: 'event_invite', eventId: 'event-1', matchId: 'match-1' },
+        data: {
+          type: 'event_invite',
+          eventId: 'event-1',
+          matchId: 'match-1',
+          withUserId: 'user-2',
+        },
       });
 
       expect(pushService.sendPushNotification).toHaveBeenCalledWith(
         'ExponentPushToken[abc]',
         'Event invite',
         'Join us',
-        { type: 'event_invite', eventId: 'event-1', matchId: 'match-1' },
+        {
+          notificationId: 'notif-1',
+          type: 'event_invite',
+          eventId: 'event-1',
+          matchId: 'match-1',
+          withUserId: 'user-2',
+        },
       );
     });
   });

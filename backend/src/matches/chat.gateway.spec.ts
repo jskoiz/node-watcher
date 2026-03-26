@@ -490,12 +490,13 @@ describe('ChatGateway', () => {
   });
 
   describe('typing lifecycle', () => {
-    it('does not broadcast typing events before a room is joined', () => {
+    it('does not broadcast typing events before a room is joined', async () => {
       const socket = createMockSocket();
+      socket.handshake.auth.token = validToken;
       socket.data = { userId: 'user-1' };
 
-      gateway.handleTypingStart(socket, { matchId: 'match-1' });
-      gateway.handleTypingStop(socket, { matchId: 'match-1' });
+      await gateway.handleTypingStart(socket, { matchId: 'match-1' });
+      await gateway.handleTypingStop(socket, { matchId: 'match-1' });
 
       expect(socket.emit).not.toHaveBeenCalledWith('typing:start', expect.anything());
       expect(socket.emit).not.toHaveBeenCalledWith('typing:stop', expect.anything());
@@ -503,11 +504,12 @@ describe('ChatGateway', () => {
 
     it('broadcasts typing events only after the room is joined', async () => {
       const socket = createMockSocket();
+      socket.handshake.auth.token = validToken;
       socket.data = { userId: 'user-1' };
 
       await gateway.handleJoinMatch(socket, { matchId: 'match-1' });
-      gateway.handleTypingStart(socket, { matchId: 'match-1' });
-      gateway.handleTypingStop(socket, { matchId: 'match-1' });
+      await gateway.handleTypingStart(socket, { matchId: 'match-1' });
+      await gateway.handleTypingStop(socket, { matchId: 'match-1' });
 
       expect(socket.emit).toHaveBeenCalledWith('typing:start', {
         matchId: 'match-1',

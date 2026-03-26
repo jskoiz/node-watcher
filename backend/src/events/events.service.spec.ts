@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
-import { EventCategory } from '@prisma/client';
+import { EventCategory, Prisma } from '@prisma/client';
 import { NotificationType } from '../common/enums';
 import { EventsService } from './events.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -12,14 +12,21 @@ const eventFindUnique = jest.fn();
 const eventCreate = jest.fn();
 const eventRsvpFindUnique = jest.fn();
 const eventRsvpUpsert = jest.fn();
+const eventRsvpCreate = jest.fn();
+const eventRsvpUpdateMany = jest.fn();
 const eventRsvpCount = jest.fn();
 const eventRsvpFindMany = jest.fn();
 const eventInviteUpsert = jest.fn();
+const eventInviteFindUnique = jest.fn();
+const eventInviteCreate = jest.fn();
+const eventInviteUpdate = jest.fn();
+const eventInviteUpdateMany = jest.fn();
 const eventInviteFindMany = jest.fn();
 const matchFindUnique = jest.fn();
 const matchUpdate = jest.fn();
 const messageCreate = jest.fn();
 const userFindFirst = jest.fn();
+const prismaTransaction = jest.fn();
 const notificationsCreate = jest.fn().mockResolvedValue(undefined);
 
 const prisma = {
@@ -32,11 +39,17 @@ const prisma = {
   eventRsvp: {
     findUnique: eventRsvpFindUnique,
     upsert: eventRsvpUpsert,
+    create: eventRsvpCreate,
+    updateMany: eventRsvpUpdateMany,
     count: eventRsvpCount,
     findMany: eventRsvpFindMany,
   },
   eventInvite: {
     upsert: eventInviteUpsert,
+    findUnique: eventInviteFindUnique,
+    create: eventInviteCreate,
+    update: eventInviteUpdate,
+    updateMany: eventInviteUpdateMany,
     findMany: eventInviteFindMany,
   },
   match: {
@@ -49,6 +62,7 @@ const prisma = {
   user: {
     findFirst: userFindFirst,
   },
+  $transaction: prismaTransaction,
 } as unknown as PrismaService;
 
 const notifications = {
@@ -81,6 +95,24 @@ describe('EventsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     userFindFirst.mockResolvedValue({ id: 'host-1', firstName: 'Alice' });
+    eventRsvpCreate.mockReset().mockResolvedValue({});
+    eventRsvpUpdateMany.mockReset().mockResolvedValue({ count: 0 });
+    eventRsvpCount.mockReset().mockResolvedValue(0);
+    eventInviteFindUnique.mockReset().mockResolvedValue(null);
+    eventInviteCreate.mockReset().mockResolvedValue({
+      id: 'invite-1',
+      status: 'pending',
+      event: baseEvent,
+    });
+    eventInviteUpdate.mockReset().mockResolvedValue({
+      id: 'invite-1',
+      status: 'pending',
+      event: baseEvent,
+    });
+    eventInviteUpdateMany.mockReset().mockResolvedValue({ count: 0 });
+    prismaTransaction.mockImplementation(
+      async (callback: (tx: typeof prisma) => unknown) => callback(prisma),
+    );
     debugSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
     errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
     service = new EventsService(prisma, notifications, blockServiceMock);
@@ -273,24 +305,26 @@ describe('EventsService', () => {
   describe('rsvp', () => {
     it('does not send duplicate notifications when the RSVP already exists', async () => {
       eventFindFirst.mockResolvedValue(baseEvent);
-      // First count call: check if RSVP already exists (returns 1 = existing)
-      // Second count call: total attendees
-      eventRsvpCount.mockResolvedValueOnce(1).mockResolvedValueOnce(5);
-      eventRsvpUpsert.mockResolvedValue({});
+      eventRsvpCreate.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('duplicate', {
+          code: 'P2002',
+          clientVersion: 'test',
+        }),
+      );
+      eventRsvpCount.mockResolvedValueOnce(5);
 
       await expect(service.rsvp('event-1', 'user-2')).resolves.toEqual({
         status: 'joined',
         attendeesCount: 5,
       });
 
-      expect(eventRsvpUpsert).toHaveBeenCalled();
+      expect(eventRsvpCreate).toHaveBeenCalled();
       expect(notificationsCreate).not.toHaveBeenCalled();
     });
 
     it('returns joined status with attendee count', async () => {
       eventFindFirst.mockResolvedValue(baseEvent);
-      eventRsvpCount.mockResolvedValueOnce(0).mockResolvedValueOnce(6);
-      eventRsvpUpsert.mockResolvedValue({});
+      eventRsvpCount.mockResolvedValueOnce(6);
 
       const result = await service.rsvp('event-1', 'user-2');
 
@@ -302,8 +336,7 @@ describe('EventsService', () => {
 
     it('sends notification to host when a non-host RSVPs', async () => {
       eventFindFirst.mockResolvedValue(baseEvent);
-      eventRsvpCount.mockResolvedValueOnce(0).mockResolvedValueOnce(6);
-      eventRsvpUpsert.mockResolvedValue({});
+      eventRsvpCount.mockResolvedValueOnce(6);
 
       await service.rsvp('event-1', 'user-2');
 
@@ -315,8 +348,7 @@ describe('EventsService', () => {
 
     it('does not send host notification when the host RSVPs their own event', async () => {
       eventFindFirst.mockResolvedValue(baseEvent);
-      eventRsvpCount.mockResolvedValueOnce(0).mockResolvedValueOnce(5);
-      eventRsvpUpsert.mockResolvedValue({});
+      eventRsvpCount.mockResolvedValueOnce(5);
 
       await service.rsvp('event-1', 'host-1');
 
@@ -332,8 +364,7 @@ describe('EventsService', () => {
 
     it('always sends reminder notification to the RSVPing user', async () => {
       eventFindFirst.mockResolvedValue(baseEvent);
-      eventRsvpCount.mockResolvedValueOnce(0).mockResolvedValueOnce(6);
-      eventRsvpUpsert.mockResolvedValue({});
+      eventRsvpCount.mockResolvedValueOnce(6);
 
       await service.rsvp('event-1', 'user-2');
 
@@ -344,9 +375,8 @@ describe('EventsService', () => {
     });
 
     it('logs RSVP notification failures with operation context', async () => {
-      eventFindUnique.mockResolvedValue(baseEvent);
-      eventRsvpCount.mockResolvedValueOnce(0).mockResolvedValueOnce(6);
-      eventRsvpUpsert.mockResolvedValue({});
+      eventFindFirst.mockResolvedValue(baseEvent);
+      eventRsvpCount.mockResolvedValueOnce(6);
       notificationsCreate.mockRejectedValueOnce(new Error('notify down'));
 
       await service.rsvp('event-1', 'user-2');
@@ -357,7 +387,7 @@ describe('EventsService', () => {
         expect.anything(),
       );
       expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('"operation":"event_rsvp_host"'),
+        expect.stringContaining('"operation":"event_rsvp"'),
         expect.anything(),
       );
     });
@@ -378,7 +408,7 @@ describe('EventsService', () => {
       );
 
       expect(eventFindFirst).not.toHaveBeenCalled();
-      expect(eventRsvpUpsert).not.toHaveBeenCalled();
+      expect(eventRsvpCreate).not.toHaveBeenCalled();
     });
   });
 
@@ -474,21 +504,20 @@ describe('EventsService', () => {
           isBanned: false,
         },
       });
-      eventInviteUpsert.mockResolvedValue({
-        id: 'invite-1',
-        status: 'pending',
-        event: baseEvent,
-      });
       messageCreate.mockResolvedValue({});
       matchUpdate.mockResolvedValue({});
+      eventRsvpCount.mockReset().mockResolvedValue(0);
     });
 
     it('creates an invite and returns the mapped event payload', async () => {
       const result = await service.invite('event-1', 'host-1', 'match-1', 'Join us');
 
-      expect(eventInviteUpsert).toHaveBeenCalledWith(
+      expect(eventInviteCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { eventId_inviteeId: { eventId: 'event-1', inviteeId: 'user-2' } },
+          data: expect.objectContaining({
+            eventId: 'event-1',
+            inviteeId: 'user-2',
+          }),
         }),
       );
       expect(messageCreate).toHaveBeenCalledWith(
@@ -538,7 +567,7 @@ describe('EventsService', () => {
       ).rejects.toThrow("You must be the host or have RSVP'd to invite others");
 
       expect(matchFindUnique).not.toHaveBeenCalled();
-      expect(eventInviteUpsert).not.toHaveBeenCalled();
+      expect(eventInviteCreate).not.toHaveBeenCalled();
       expect(messageCreate).not.toHaveBeenCalled();
     });
 
@@ -551,7 +580,7 @@ describe('EventsService', () => {
 
       expect(eventFindFirst).not.toHaveBeenCalled();
       expect(matchFindUnique).not.toHaveBeenCalled();
-      expect(eventInviteUpsert).not.toHaveBeenCalled();
+      expect(eventInviteCreate).not.toHaveBeenCalled();
       expect(messageCreate).not.toHaveBeenCalled();
     });
 
@@ -626,8 +655,7 @@ describe('EventsService', () => {
         service.invite('event-1', 'host-1', 'match-1'),
       ).rejects.toThrow('This conversation is no longer available');
 
-      expect(blockServiceMock.isBlocked).not.toHaveBeenCalled();
-      expect(eventInviteUpsert).not.toHaveBeenCalled();
+      expect(eventInviteCreate).not.toHaveBeenCalled();
       expect(messageCreate).not.toHaveBeenCalled();
     });
 
@@ -654,19 +682,20 @@ describe('EventsService', () => {
         service.invite('event-1', 'host-1', 'match-1'),
       ).rejects.toThrow('This conversation is no longer available');
 
-      expect(blockServiceMock.isBlocked).not.toHaveBeenCalled();
-      expect(eventInviteUpsert).not.toHaveBeenCalled();
+      expect(eventInviteCreate).not.toHaveBeenCalled();
       expect(messageCreate).not.toHaveBeenCalled();
     });
 
     it('rejects invites when the invitee is blocked even if the match is valid', async () => {
-      blockServiceMock.isBlocked.mockResolvedValueOnce(true);
+      blockServiceMock.isBlocked
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true);
 
       await expect(
         service.invite('event-1', 'host-1', 'match-1'),
       ).rejects.toThrow('This conversation is no longer available');
 
-      expect(eventInviteUpsert).not.toHaveBeenCalled();
+      expect(eventInviteCreate).not.toHaveBeenCalled();
       expect(messageCreate).not.toHaveBeenCalled();
       expect(matchUpdate).not.toHaveBeenCalled();
     });

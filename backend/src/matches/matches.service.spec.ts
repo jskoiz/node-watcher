@@ -4,6 +4,7 @@ import { MatchesService } from './matches.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchesRealtimeService } from './matches-realtime.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../common/enums';
 import { firstValueFrom, of } from 'rxjs';
 
 describe('MatchesService realtime', () => {
@@ -244,12 +245,13 @@ describe('MatchesService realtime', () => {
     expect(jest.mocked(notifications.create)).toHaveBeenCalledWith(
       'user-2',
       expect.objectContaining({
+        type: NotificationType.MessageReceived,
         body: 'hey',
         data: expect.objectContaining({
-          type: 'message_received',
           matchId: 'match-1',
           senderId: 'user-1',
         }),
+        sourceUserId: 'user-1',
       }),
     );
   });

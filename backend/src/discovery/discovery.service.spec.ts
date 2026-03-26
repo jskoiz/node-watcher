@@ -554,7 +554,7 @@ describe('DiscoveryService', () => {
     blockServiceMock.isBlocked.mockResolvedValue(true);
 
     await expect(service.likeUser('user-1', 'user-2')).rejects.toBeInstanceOf(
-      BadRequestException,
+      NotFoundException,
     );
     expect(prismaMock.like.create).not.toHaveBeenCalled();
   });
@@ -608,7 +608,7 @@ describe('DiscoveryService', () => {
     blockServiceMock.isBlocked.mockResolvedValue(true);
 
     await expect(service.passUser('user-1', 'user-2')).rejects.toBeInstanceOf(
-      BadRequestException,
+      NotFoundException,
     );
     expect(prismaMock.pass.create).not.toHaveBeenCalled();
   });
