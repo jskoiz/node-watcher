@@ -4,11 +4,26 @@ tags:
   - all
 ---
 # ============================================================
-# BRDG — Screenshot Every Screen
+# BRDG — Screenshot Every Screen (Expanded)
 # ============================================================
 # Auto-login kicks in on dev builds when no token is stored.
 # Run: maestro test maestro/screenshot-all.yaml
 # Output: screenshots/
+#
+# Coverage:
+#   01 - Login screen
+#   02 - Signup screen
+#   03 - Discover (Home) with swipe deck
+#   04 - Explore (events/spots nearby)
+#   05 - Create (event form)
+#   06 - Inbox (matches list)
+#   07 - Profile (own profile)
+#   08 - Chat (conversation thread)
+#   09 - Notifications feed
+#   10 - Event detail (from Explore)
+#   11 - Profile detail (from Discovery card)
+#   12 - My Events list
+#   13 - Discovery filter sheet
 # ============================================================
 
 # ------ Stop and relaunch app with clean state ------
@@ -50,7 +65,31 @@ tags:
           below: "Runtime version"
       - waitForAnimationToEnd
 
-# Wait for auto-login to complete — use testID instead of text
+# ============================================================
+# AUTH SCREENS — capture before auto-login completes
+# ============================================================
+
+# The login screen appears briefly before dev auto-login fires.
+# Wait for it to render, then screenshot immediately.
+- extendedWaitUntil:
+    visible:
+      id: "login-submit-button"
+    timeout: 30000
+- takeScreenshot: screenshots/01-login-screen
+
+# Navigate to Signup
+- tapOn: "Join BRDG"
+- waitForAnimationToEnd
+- takeScreenshot: screenshots/02-signup-screen
+
+# Go back to Login and let auto-login proceed
+- tapOn: "Sign in"
+- waitForAnimationToEnd
+
+# ============================================================
+# MAIN APP — wait for auto-login to land on main screen
+# ============================================================
+
 - extendedWaitUntil:
     visible:
       id: "main-screen"
@@ -60,11 +99,53 @@ tags:
 # ------ Tab 1: Discover (Home) ------
 - takeScreenshot: screenshots/03-discover-screen
 
+# ------ Discovery Filter Sheet ------
+- tapOn: "Refine"
+- waitForAnimationToEnd
+- takeScreenshot: screenshots/13-discovery-filter-sheet
+# Dismiss filter sheet by tapping outside / swiping down
+- swipe:
+    direction: DOWN
+    duration: 300
+- waitForAnimationToEnd
+
+# ------ Profile Detail (tap discovery card to open) ------
+- tapOn:
+    id: "discovery-deck-area"
+- waitForAnimationToEnd
+# If a profile detail modal opened, screenshot it
+- runFlow:
+    when:
+      visible: "back-button"
+    commands:
+      - takeScreenshot: screenshots/11-profile-detail-screen
+      - tapOn:
+          id: "back-button"
+      - waitForAnimationToEnd
+
 # ------ Tab 2: Explore ------
 - tapOn:
     id: "tab-explore"
 - waitForAnimationToEnd
 - takeScreenshot: screenshots/04-explore-screen
+
+# ------ Event Detail (tap first event card) ------
+- tapOn: "View event"
+- waitForAnimationToEnd
+- takeScreenshot: screenshots/10-event-detail-screen
+# Go back
+- tapOn:
+    id: "back-button"
+- waitForAnimationToEnd
+
+# ------ My Events ------
+- tapOn: "My Events →"
+- waitForAnimationToEnd
+- takeScreenshot: screenshots/12-my-events-screen
+# Go back
+- tapOn:
+    id: "back-button"
+- waitForAnimationToEnd
 
 # ------ Tab 3: Create ------
 - tapOn:
