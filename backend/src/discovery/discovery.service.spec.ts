@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { IntensityLevel } from '@prisma/client';
 import { DiscoveryService } from './discovery.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,6 +9,9 @@ import { BlockService } from '../moderation/block.service';
 
 describe('DiscoveryService', () => {
   let service: DiscoveryService;
+  let debugSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prismaMock: any = {
@@ -85,6 +89,9 @@ describe('DiscoveryService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    debugSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
+    warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -108,6 +115,12 @@ describe('DiscoveryService', () => {
 
     // Default: target user exists (tests that need it missing will override)
     prismaMock.user.findFirst.mockResolvedValue({ id: 'user-2' });
+  });
+
+  afterEach(() => {
+    debugSpy.mockRestore();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('excludes blocked user IDs from the feed query', async () => {
@@ -483,6 +496,9 @@ describe('DiscoveryService', () => {
         take: 100,
       }),
     );
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"discovery.feed.generated"'),
+    );
   });
 
   it('returns feed entries sorted by recommendation score and strips coordinates', async () => {
@@ -630,6 +646,29 @@ describe('DiscoveryService', () => {
 
     expect(result).toEqual({ status: 'already_liked' });
     expect(prismaMock.like.create).not.toHaveBeenCalled();
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"outcome":"already_liked"'),
+    );
+  });
+
+  it('logs notification failures with structured like context', async () => {
+    notificationsMock.create.mockRejectedValueOnce(new Error('push down'));
+    prismaMock.like.findUnique.mockResolvedValue(null);
+    prismaMock.pass.deleteMany.mockResolvedValue({ count: 0 });
+    prismaMock.like.create.mockResolvedValue({ id: 'like-1' });
+    prismaMock.like.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+
+    await service.likeUser('user-1', 'user-2');
+    await new Promise(setImmediate);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"discovery.notification_failed"'),
+      expect.anything(),
+    );
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"operation":"like_received"'),
+      expect.anything(),
+    );
   });
 
   it('creates a pass record and clears any existing like', async () => {
@@ -655,6 +694,9 @@ describe('DiscoveryService', () => {
 
     expect(result).toEqual({ status: 'already_passed' });
     expect(prismaMock.pass.create).not.toHaveBeenCalled();
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"discovery.pass.completed"'),
+    );
   });
 
   it('returns nothing_to_undo when no swipes exist', async () => {
@@ -664,6 +706,9 @@ describe('DiscoveryService', () => {
     const result = await service.undoLastSwipe('user-1');
 
     expect(result).toEqual({ status: 'nothing_to_undo' });
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"discovery.undo.completed"'),
+    );
   });
 
   it('returns liked status when no mutual like exists', async () => {

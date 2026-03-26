@@ -21,6 +21,24 @@ const ICON_FOR_KIND: Record<string, React.ComponentProps<typeof Feather>['name']
     network: 'wifi-off',
 };
 
+const TITLE_FOR_KIND: Partial<Record<NormalizedApiError['kind'], string>> = {
+    forbidden: 'Action unavailable',
+    not_found: 'Content unavailable',
+    rate_limited: 'Too many attempts',
+    service_unavailable: 'Service temporarily unavailable',
+    server_error: 'Server problem',
+    network: 'Connection problem',
+};
+
+const GUIDANCE_FOR_KIND: Partial<Record<NormalizedApiError['kind'], string>> = {
+    forbidden: 'You may need different permissions or a different account to continue.',
+    not_found: 'Refresh the screen or go back if this content was removed.',
+    rate_limited: 'Wait a moment before trying again.',
+    service_unavailable: 'Please try again shortly.',
+    server_error: 'Please try again in a moment.',
+    network: 'Check your connection, then retry.',
+};
+
 export default function RetryableError({ error, onRetry, hideRetry }: RetryableErrorProps) {
     const theme = useTheme();
     const showRetry = !(hideRetry ?? !error.retryable);
@@ -61,12 +79,18 @@ export default function RetryableError({ error, onRetry, hideRetry }: RetryableE
     }, [onRetry]);
 
     const iconName = ICON_FOR_KIND[error.kind] ?? 'alert-circle';
+    const title = TITLE_FOR_KIND[error.kind] ?? 'Something went wrong';
+    const guidance = GUIDANCE_FOR_KIND[error.kind];
     const isWaiting = countdown !== null && countdown > 0;
 
     return (
         <View style={[styles.container, { backgroundColor: theme.backgroundSoft, borderColor: theme.border }]}>
             <Feather name={iconName} size={28} color={theme.textMuted} style={styles.icon} />
+            <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
             <Text style={[styles.message, { color: theme.textPrimary }]}>{error.message}</Text>
+            {guidance ? (
+                <Text style={[styles.guidance, { color: theme.textMuted }]}>{guidance}</Text>
+            ) : null}
 
             {isWaiting && (
                 <Text style={[styles.countdown, { color: theme.textMuted }]}>
@@ -118,6 +142,18 @@ const styles = StyleSheet.create({
         fontSize: typography.body,
         fontWeight: '500',
         lineHeight: 22,
+        textAlign: 'center',
+    },
+    title: {
+        fontSize: typography.body,
+        fontWeight: '700',
+        marginBottom: spacing.sm,
+        textAlign: 'center',
+    },
+    guidance: {
+        fontSize: typography.bodySmall,
+        lineHeight: 20,
+        marginTop: spacing.sm,
         textAlign: 'center',
     },
     countdown: {

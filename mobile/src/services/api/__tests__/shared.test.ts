@@ -33,7 +33,35 @@ describe('withErrorLogging', () => {
       'profile',
       'updateProfile',
       error,
-      undefined,
+      {},
+    );
+  });
+
+  it('passes structured logging options through unchanged', async () => {
+    const error = new Error('unauthorized');
+
+    await expect(
+      withErrorLogging(
+        'auth',
+        'me',
+        async () => {
+          throw error;
+        },
+        {
+          context: { authStrategy: 'bearer-token' },
+          ignoreErrorKinds: ['unauthorized'],
+        },
+      ),
+    ).rejects.toThrow('unauthorized');
+
+    expect(mockLogApiFailure).toHaveBeenCalledWith(
+      'auth',
+      'me',
+      error,
+      {
+        context: { authStrategy: 'bearer-token' },
+        ignoreErrorKinds: ['unauthorized'],
+      },
     );
   });
 });

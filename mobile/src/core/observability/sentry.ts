@@ -40,11 +40,15 @@ export function captureException(
 
   Sentry.withScope((scope) => {
     for (const [key, value] of Object.entries(context.tags ?? {})) {
-      scope.setTag(key, value);
+      if (value) {
+        scope.setTag(key, value);
+      }
     }
 
     for (const [key, value] of Object.entries(context.extra ?? {})) {
-      scope.setExtra(key, value);
+      if (value !== undefined) {
+        scope.setExtra(key, value);
+      }
     }
 
     Sentry.captureException(error);

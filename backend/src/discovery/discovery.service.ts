@@ -64,6 +64,14 @@ interface RecommendationContext {
   goals: Set<string>;
 }
 
+function asLogMessage(event: string, context: Record<string, unknown>) {
+  return JSON.stringify({ event, ...context });
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 @Injectable()
 export class DiscoveryService {
   private readonly logger = new Logger(DiscoveryService.name);
@@ -81,6 +89,11 @@ export class DiscoveryService {
     });
 
     if (!me) {
+      this.logger.warn(
+        asLogMessage('discovery.feed.user_missing', {
+          userId,
+        }),
+      );
       throw new NotFoundException('User not found');
     }
 
@@ -221,6 +234,24 @@ export class DiscoveryService {
         (a, b) => (b?.recommendationScore || 0) - (a?.recommendationScore || 0),
       )
       .slice(0, DISCOVERY_FEED_RESULT_LIMIT);
+
+    this.logger.debug(
+      asLogMessage('discovery.feed.generated', {
+        userId,
+        blockedCount: blockedIds.length,
+        candidateCount: users.length,
+        returnedCount: scored.length,
+        filters: {
+          hasDistanceKm: typeof maxDistanceKm === 'number',
+          hasMinAge: typeof filters.minAge === 'number',
+          hasMaxAge: typeof filters.maxAge === 'number',
+          goalsCount: filters.goals?.length ?? 0,
+          intensityCount: filters.intensity?.length ?? 0,
+          availabilityCount: filters.availability?.length ?? 0,
+        },
+        requesterHasCoordinates,
+      }),
+    );
 
     return scored;
   }
@@ -451,6 +482,12 @@ export class DiscoveryService {
 
   async likeUser(userId: string, targetUserId: string) {
     if (userId === targetUserId) {
+      this.logger.warn(
+        asLogMessage('discovery.like.rejected_self', {
+          userId,
+          targetUserId,
+        }),
+      );
       throw new BadRequestException('Cannot like yourself');
     }
 
@@ -463,6 +500,12 @@ export class DiscoveryService {
       select: { id: true },
     });
     if (!targetUser) {
+      this.logger.warn(
+        asLogMessage('discovery.like.target_missing', {
+          userId,
+          targetUserId,
+        }),
+      );
       throw new NotFoundException('User not found');
     }
 
@@ -547,10 +590,29 @@ export class DiscoveryService {
       return { status: 'liked' as const };
     });
 
+    this.logger.debug(
+      asLogMessage('discovery.like.completed', {
+        userId,
+        targetUserId,
+        outcome: result.status,
+        matchId: result.status === 'match' ? result.match.id : undefined,
+      }),
+    );
+
     if (result.status !== 'already_liked') {
       void this.notifications
         .create(targetUserId, buildLikeReceivedNotification(userId))
-        .catch((err) => this.logger.error('Failed to send notification', err));
+        .catch((err) =>
+          this.logger.error(
+            asLogMessage('discovery.notification_failed', {
+              operation: 'like_received',
+              userId,
+              targetUserId,
+              error: errorMessage(err),
+            }),
+            err instanceof Error ? err.stack : undefined,
+          ),
+        );
     }
 
     if (result.status === 'match') {
@@ -559,13 +621,35 @@ export class DiscoveryService {
           userId,
           buildMatchCreatedNotification(result.match.id, targetUserId),
         )
-        .catch((err) => this.logger.error('Failed to send notification', err));
+        .catch((err) =>
+          this.logger.error(
+            asLogMessage('discovery.notification_failed', {
+              operation: 'match_created_actor',
+              userId,
+              targetUserId,
+              matchId: result.match.id,
+              error: errorMessage(err),
+            }),
+            err instanceof Error ? err.stack : undefined,
+          ),
+        );
       void this.notifications
         .create(
           targetUserId,
           buildMatchCreatedNotification(result.match.id, userId),
         )
-        .catch((err) => this.logger.error('Failed to send notification', err));
+        .catch((err) =>
+          this.logger.error(
+            asLogMessage('discovery.notification_failed', {
+              operation: 'match_created_target',
+              userId,
+              targetUserId,
+              matchId: result.match.id,
+              error: errorMessage(err),
+            }),
+            err instanceof Error ? err.stack : undefined,
+          ),
+        );
     }
 
     return result;
@@ -573,6 +657,12 @@ export class DiscoveryService {
 
   async passUser(userId: string, targetUserId: string) {
     if (userId === targetUserId) {
+      this.logger.warn(
+        asLogMessage('discovery.pass.rejected_self', {
+          userId,
+          targetUserId,
+        }),
+      );
       throw new BadRequestException('Cannot pass on yourself');
     }
 
@@ -585,10 +675,16 @@ export class DiscoveryService {
       select: { id: true },
     });
     if (!targetUser) {
+      this.logger.warn(
+        asLogMessage('discovery.pass.target_missing', {
+          userId,
+          targetUserId,
+        }),
+      );
       throw new NotFoundException('User not found');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const existingPass = await tx.pass.findUnique({
         where: {
           fromUserId_toUserId: {
@@ -613,10 +709,20 @@ export class DiscoveryService {
 
       return { status: 'passed' as const };
     });
+
+    this.logger.debug(
+      asLogMessage('discovery.pass.completed', {
+        userId,
+        targetUserId,
+        outcome: result.status,
+      }),
+    );
+
+    return result;
   }
 
   async undoLastSwipe(userId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const [lastLike, lastPass] = await Promise.all([
         tx.like.findFirst({
           where: { fromUserId: userId },
@@ -669,6 +775,19 @@ export class DiscoveryService {
 
       return { status: 'nothing_to_undo' as const };
     });
+
+    this.logger.debug(
+      asLogMessage('discovery.undo.completed', {
+        userId,
+        outcome: result.status,
+        action: 'action' in result ? result.action : undefined,
+        targetUserId: 'targetUserId' in result ? result.targetUserId : undefined,
+        archivedMatchId:
+          'archivedMatchId' in result ? result.archivedMatchId : undefined,
+      }),
+    );
+
+    return result;
   }
 
 }

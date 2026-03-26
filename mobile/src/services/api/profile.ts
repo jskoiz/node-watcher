@@ -23,6 +23,13 @@ type ReactNativeFormData = FormData & {
 
 type UserProfileRecord = UserProfile & { userId: string };
 
+function getChangedFields(payload: object): string[] {
+  return Object.entries(payload)
+    .filter(([, value]) => value !== undefined)
+    .map(([key]) => key)
+    .sort();
+}
+
 export const profileApi = {
   getProfile: async () =>
     withErrorLogging('profile', 'getProfile', () =>
@@ -34,10 +41,21 @@ export const profileApi = {
         ...payload,
         intensityLevel: normalizeIntensityLevelForApi(payload.intensityLevel),
       }),
+      {
+        context: {
+          changedFields: getChangedFields(payload),
+          intensityLevel: normalizeIntensityLevelForApi(payload.intensityLevel),
+        },
+      },
     ),
   updateProfile: async (payload: UpdateProfilePayload) =>
     withErrorLogging('profile', 'updateProfile', () =>
       client.patch<UserProfileRecord>('/profile', payload),
+      {
+        context: {
+          changedFields: getChangedFields(payload),
+        },
+      },
     ),
   uploadPhoto: async (payload: UploadPhotoPayload) => {
     const formData = new FormData() as ReactNativeFormData;
@@ -60,16 +78,28 @@ export const profileApi = {
           );
         },
       }),
+      {
+        context: {
+          fileType: file.type,
+          hasCustomFileName: Boolean(payload.fileName),
+          hasMimeType: Boolean(payload.mimeType),
+        },
+      },
     );
   },
   updatePhoto: async (photoId: string, payload: UpdatePhotoPayload) =>
     withErrorLogging('profile', 'updatePhoto', () =>
-      client.patch<UserPhoto>(`/profile/photos/${photoId}`, payload),
-      { photoId },
+      client.patch<UserPhoto | null>(`/profile/photos/${photoId}`, payload),
+      {
+        context: {
+          photoId,
+          changedFields: getChangedFields(payload),
+        },
+      },
     ),
   deletePhoto: async (photoId: string) =>
     withErrorLogging('profile', 'deletePhoto', () =>
-      client.delete<UserPhoto>(`/profile/photos/${photoId}`),
-      { photoId },
+      client.delete<UserPhoto | null>(`/profile/photos/${photoId}`),
+      { context: { photoId } },
     ),
 };

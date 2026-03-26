@@ -24,6 +24,9 @@ function RetryableErrorStory({
     isNetworkError: kind === 'network',
     isUnauthorized: kind === 'unauthorized',
     retryable: true,
+    transient: kind === 'network' || kind === 'rate_limited' || kind === 'service_unavailable' || kind === 'server_error',
+    transport: kind === 'network' ? 'network' : 'http',
+    fingerprint: `storybook:${kind}`,
     retryAfterSeconds,
   };
 

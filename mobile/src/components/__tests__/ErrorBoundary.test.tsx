@@ -40,8 +40,10 @@ describe('ErrorBoundary', () => {
     );
 
     expect(getByText('Something went wrong')).toBeTruthy();
-    expect(getByText('Test explosion')).toBeTruthy();
-    expect(getByText('Try Again')).toBeTruthy();
+    expect(
+      getByText('Try reloading this screen. If the problem continues, go back and try again.'),
+    ).toBeTruthy();
+    expect(getByText('Reload screen')).toBeTruthy();
   });
 
   it('shows custom fallback when provided', () => {
@@ -57,7 +59,7 @@ describe('ErrorBoundary', () => {
     expect(queryByText('Something went wrong')).toBeNull();
   });
 
-  it('resets error state when Try Again is pressed', () => {
+  it('resets error state when Reload screen is pressed', () => {
     let shouldThrow = true;
 
     function ControlledChild() {
@@ -78,7 +80,7 @@ describe('ErrorBoundary', () => {
     // Fix the error before retrying
     shouldThrow = false;
 
-    fireEvent.press(getByText('Try Again'));
+    fireEvent.press(getByText('Reload screen'));
 
     expect(getByText('Recovered content')).toBeTruthy();
   });
@@ -98,5 +100,17 @@ describe('ErrorBoundary', () => {
         tags: { source: 'error-boundary' },
       }),
     );
+  });
+
+  it('shows root-specific recovery guidance', () => {
+    const { getByText } = render(
+      <ErrorBoundary name="root">
+        <ThrowingChild shouldThrow={true} />
+      </ErrorBoundary>,
+    );
+
+    expect(
+      getByText('Reload BRDG. If this keeps happening, close and reopen the app.'),
+    ).toBeTruthy();
   });
 });

@@ -19,7 +19,7 @@ export const notificationsApi = {
   markRead: async (id: string) =>
     withErrorLogging('notifications', 'markRead', () =>
       client.patch<AppNotification | null>(`/notifications/${id}/read`),
-      { id },
+      { context: { notificationId: id } },
     ),
   markAllRead: async () =>
     withErrorLogging('notifications', 'markAllRead', () =>
@@ -32,5 +32,10 @@ export const notificationsApi = {
   updatePreferences: async (prefs: Partial<NotificationPreferences>) =>
     withErrorLogging('notifications', 'updatePreferences', () =>
       client.put<NotificationPreferences>('/notifications/preferences', prefs),
+      {
+        context: {
+          changedPreferenceKeys: Object.keys(prefs).sort(),
+        },
+      },
     ),
 };

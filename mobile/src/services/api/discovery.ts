@@ -30,16 +30,27 @@ export const discoveryApi = {
           availability: filters?.availability?.join(','),
         },
       }),
+      {
+        context: {
+          hasFilters: Boolean(filters),
+          distanceKm: filters?.distanceKm,
+          minAge: filters?.minAge,
+          maxAge: filters?.maxAge,
+          goalCount: filters?.goals?.length,
+          intensityCount: filters?.intensity?.length,
+          availabilityCount: filters?.availability?.length,
+        },
+      },
     ),
   pass: async (userId: string) =>
     withErrorLogging('discovery', 'pass', () =>
       client.post<PassResponse>(`/discovery/pass/${userId}`),
-      { targetUserId: userId },
+      { context: { targetUserId: userId } },
     ),
   like: async (userId: string) =>
     withErrorLogging('discovery', 'like', () =>
       client.post<LikeResponse>(`/discovery/like/${userId}`),
-      { targetUserId: userId },
+      { context: { targetUserId: userId } },
     ),
   undo: async () =>
     withErrorLogging('discovery', 'undo', () =>

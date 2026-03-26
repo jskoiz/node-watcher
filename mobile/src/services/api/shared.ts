@@ -1,17 +1,34 @@
-import { logApiFailure } from '../../api/observability';
+import type { ApiErrorKind } from '../../api/errors';
+import { logApiFailure, type ApiDomain, type ApiFailureLogOptions } from '../../api/observability';
 
-export type ApiDomain = Parameters<typeof logApiFailure>[0];
+type ErrorLoggingInput = Record<string, unknown> | ErrorLoggingOptions | undefined;
+
+export interface ErrorLoggingOptions extends ApiFailureLogOptions {
+  ignoreErrorKinds?: ApiErrorKind[];
+}
+
+function resolveOptions(input: ErrorLoggingInput): ErrorLoggingOptions {
+  if (!input) {
+    return {};
+  }
+
+  if ('context' in input || 'ignoreErrorKinds' in input) {
+    return input;
+  }
+
+  return { context: input as Record<string, unknown> };
+}
 
 export async function withErrorLogging<T>(
   domain: ApiDomain,
   action: string,
   fn: () => Promise<T>,
-  context?: Record<string, unknown>,
+  input?: ErrorLoggingInput,
 ): Promise<T> {
   try {
     return await fn();
   } catch (error) {
-    logApiFailure(domain, action, error, context);
+    logApiFailure(domain, action, error, resolveOptions(input));
     throw error;
   }
 }

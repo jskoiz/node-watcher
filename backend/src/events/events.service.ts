@@ -25,6 +25,14 @@ interface ActiveUser {
   firstName: string;
 }
 
+function asLogMessage(event: string, context: Record<string, unknown>) {
+  return JSON.stringify({ event, ...context });
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function mapEventSummary(
   event: {
     id: string;
@@ -223,6 +231,15 @@ export class EventsService {
       },
     });
 
+    this.logger.debug(
+      asLogMessage('events.create.completed', {
+        userId,
+        eventId: event.id,
+        category: event.category,
+        hasEndsAt: Boolean(event.endsAt),
+      }),
+    );
+
     return mapEventSummary(event);
   }
 
@@ -250,6 +267,15 @@ export class EventsService {
 
     // Only send notifications for newly created RSVPs
     if (countBefore === 0) {
+      this.logger.debug(
+        asLogMessage('events.rsvp.completed', {
+          eventId,
+          userId,
+          outcome: 'joined',
+          isNewRsvp: true,
+          hostId: event.host.id,
+        }),
+      );
       if (event.host.id !== userId) {
         void this.notifications
           .create(
@@ -257,7 +283,16 @@ export class EventsService {
             buildEventRsvpNotification(eventId, userId, event.title),
           )
           .catch((err) =>
-            this.logger.error('Failed to send notification', err),
+            this.logger.error(
+              asLogMessage('events.notification_failed', {
+                operation: 'event_rsvp_host',
+                eventId,
+                userId,
+                recipientUserId: event.host.id,
+                error: errorMessage(err),
+              }),
+              err instanceof Error ? err.stack : undefined,
+            ),
           );
       }
 
@@ -267,8 +302,27 @@ export class EventsService {
           buildEventReminderNotification(eventId, event.title),
         )
         .catch((err) =>
-          this.logger.error('Failed to send notification', err),
+          this.logger.error(
+            asLogMessage('events.notification_failed', {
+              operation: 'event_reminder_attendee',
+              eventId,
+              userId,
+              recipientUserId: userId,
+              error: errorMessage(err),
+            }),
+            err instanceof Error ? err.stack : undefined,
+          ),
         );
+    } else {
+      this.logger.debug(
+        asLogMessage('events.rsvp.completed', {
+          eventId,
+          userId,
+          outcome: 'already_joined',
+          isNewRsvp: false,
+          hostId: event.host.id,
+        }),
+      );
     }
 
     const total = await this.prisma.eventRsvp.count({ where: { eventId } });
@@ -405,8 +459,28 @@ export class EventsService {
         ),
       )
       .catch((err) =>
-        this.logger.error('Failed to send event invite notification', err),
+        this.logger.error(
+          asLogMessage('events.notification_failed', {
+            operation: 'event_invite',
+            eventId,
+            matchId,
+            inviterId: userId,
+            inviteeId,
+            error: errorMessage(err),
+          }),
+          err instanceof Error ? err.stack : undefined,
+        ),
       );
+
+    this.logger.debug(
+      asLogMessage('events.invite.completed', {
+        eventId,
+        matchId,
+        inviterId: userId,
+        inviteeId,
+        status: invite.status,
+      }),
+    );
 
     return {
       id: invite.id,

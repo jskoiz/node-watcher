@@ -1,4 +1,10 @@
-import { Inject, Injectable, Optional, forwardRef } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+  forwardRef,
+} from '@nestjs/common';
 import { Observable, Subject, finalize } from 'rxjs';
 import type { ChatGateway } from './chat.gateway';
 
@@ -15,8 +21,13 @@ export interface MatchMessageEvent {
   message: MatchMessagePayload;
 }
 
+function asLogMessage(event: string, context: Record<string, unknown>) {
+  return JSON.stringify({ event, ...context });
+}
+
 @Injectable()
 export class MatchesRealtimeService {
+  private readonly logger = new Logger(MatchesRealtimeService.name);
   private readonly streams = new Map<string, Subject<MatchMessageEvent>>();
   private readonly refCounts = new Map<string, number>();
   private chatGateway: ChatGateway | null = null;
@@ -45,8 +56,10 @@ export class MatchesRealtimeService {
   }
 
   publishMessage(matchId: string, message: MatchMessagePayload) {
+    const stream = this.getOrCreateStream(matchId);
+
     // Publish to SSE subscribers via RxJS Subject
-    this.getOrCreateStream(matchId).next({
+    stream.next({
       type: 'message',
       matchId,
       message,
@@ -54,6 +67,15 @@ export class MatchesRealtimeService {
 
     // Also publish to WebSocket room via the gateway
     this.chatGateway?.emitMessageToRoom(matchId, message);
+
+    this.logger.debug(
+      asLogMessage('realtime.message.published', {
+        matchId,
+        messageId: message.id,
+        subscriberCount: this.refCounts.get(matchId) ?? 0,
+        websocketEnabled: Boolean(this.chatGateway),
+      }),
+    );
   }
 
   private getOrCreateStream(matchId: string): Subject<MatchMessageEvent> {
@@ -62,6 +84,12 @@ export class MatchesRealtimeService {
 
     const subject = new Subject<MatchMessageEvent>();
     this.streams.set(matchId, subject);
+    this.logger.debug(
+      asLogMessage('realtime.stream.created', {
+        matchId,
+        activeStreamCount: this.streams.size,
+      }),
+    );
     return subject;
   }
 
@@ -83,6 +111,12 @@ export class MatchesRealtimeService {
     if (subject) {
       subject.complete();
       this.streams.delete(matchId);
+      this.logger.debug(
+        asLogMessage('realtime.stream.closed', {
+          matchId,
+          activeStreamCount: this.streams.size,
+        }),
+      );
     }
     this.refCounts.delete(matchId);
   }

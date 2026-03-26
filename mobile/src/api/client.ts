@@ -5,6 +5,7 @@ import { handleUnauthorized } from './authSession';
 import { getToken } from './tokenStorage';
 import { showToast } from '../store/toastStore';
 import { parseRetryAfter } from './errors';
+import { logTransientApiClientFailure } from './observability';
 
 const client = axios.create({
     baseURL: env.apiUrl,
@@ -43,6 +44,12 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getRequestLabel(config?: InternalAxiosRequestConfig): string {
+    const method = config?.method?.toUpperCase() ?? 'REQUEST';
+    const url = config?.url ?? 'unknown-url';
+    return `${method} ${url}`;
+}
+
 function getRetryDelayMs(error: AxiosError): number {
     const retryAfterHeader = error.response?.headers?.['retry-after'] as
         | string
@@ -54,6 +61,23 @@ function getRetryDelayMs(error: AxiosError): number {
     return DEFAULT_RETRY_DELAY_MS;
 }
 
+function notifyTransientFailure(
+    error: AxiosError,
+    config?: InternalAxiosRequestConfig,
+): void {
+    const status = error.response?.status;
+    const requestLabel = getRequestLabel(config);
+    const message =
+        status && status >= 500
+            ? 'BRDG is having trouble right now. Please try again in a moment.'
+            : 'BRDG could not reach the server. Check your connection and try again.';
+    const dedupeKey =
+        status && status >= 500 ? 'api:server-error' : 'api:network-error';
+
+    logTransientApiClientFailure(requestLabel, status, error.message);
+    showToast(message, 'error', undefined, { dedupeKey });
+}
+
 client.interceptors.response.use(
     (response) => {
         if (__DEV__) {
@@ -63,6 +87,11 @@ client.interceptors.response.use(
         return response;
     },
     async (error: AxiosError) => {
+        // Cancelled requests (e.g. navigation/unmount) are expected noise — skip all handling.
+        if (axios.isCancel(error) || error?.code === 'ERR_CANCELED') {
+            return Promise.reject(error);
+        }
+
         const config = error.config as InternalAxiosRequestConfig & {
             [RETRY_COUNT_KEY]?: number;
         } | undefined;
@@ -85,10 +114,9 @@ client.interceptors.response.use(
         if (error?.response?.status === 401) {
             await handleUnauthorized();
         } else if (!error?.response) {
-            // Network error — no response received
-            showToast('Network error. Please check your connection.', 'error');
+            notifyTransientFailure(error, config);
         } else if (error.response.status >= 500) {
-            showToast('Server error. Please try again later.', 'error');
+            notifyTransientFailure(error, config);
         }
 
         return Promise.reject(error);

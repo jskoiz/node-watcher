@@ -10,11 +10,16 @@ export const matchesApi = {
   getMessages: async (matchId: string) =>
     withErrorLogging('matches', 'getMessages', () =>
       client.get<ChatMessage[]>(`/matches/${matchId}/messages`),
-      { matchId },
+      { context: { matchId } },
     ),
   sendMessage: async (matchId: string, content: string) =>
     withErrorLogging('matches', 'sendMessage', () =>
       client.post<SendMessageResponse>(`/matches/${matchId}/messages`, { content }),
-      { matchId },
+      {
+        context: {
+          matchId,
+          contentLength: content.trim().length,
+        },
+      },
     ),
 };

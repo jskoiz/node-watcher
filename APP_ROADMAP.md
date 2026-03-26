@@ -29,6 +29,10 @@ Recommended product priorities:
 * **Trust and profile quality**
   * Profile completeness and profile-quality nudges.
   * Stronger moderation/reporting and clearer verification cues.
+* **Observability follow-through**
+  * Make transient mobile failure UX single-owner so generic API toasts do not overlap with inline retry surfaces.
+  * Add request-scoped correlation IDs so discovery, events, push, and realtime logs can be tied together locally during failure triage.
+  * Continue retiring ad hoc mobile warning paths outside the normalized API and boundary flows.
 
 This file remains a historical roadmap, but if it is updated again, Phase 4 should be organized around event conversion and re-engagement rather than the old "connection update" backlog below.
 

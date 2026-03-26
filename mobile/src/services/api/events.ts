@@ -17,17 +17,24 @@ export const eventsApi = {
   create: async (payload: CreateEventPayload) =>
     withErrorLogging('events', 'create', () =>
       client.post<EventSummary>('/events', payload),
-      { title: payload.title, category: payload.category },
+      {
+        context: {
+          category: payload.category,
+          titleLength: payload.title.trim().length,
+          hasDescription: Boolean(payload.description?.trim()),
+          hasEndsAt: Boolean(payload.endsAt),
+        },
+      },
     ),
   detail: async (id: string) =>
     withErrorLogging('events', 'detail', () =>
       client.get<EventDetail>(`/events/${id}`),
-      { id },
+      { context: { eventId: id } },
     ),
   rsvp: async (id: string) =>
     withErrorLogging('events', 'rsvp', () =>
       client.post<EventRsvpResponse>(`/events/${id}/rsvp`),
-      { id },
+      { context: { eventId: id } },
     ),
   mine: async () =>
     withErrorLogging('events', 'mine', () =>
@@ -39,11 +46,17 @@ export const eventsApi = {
         matchId,
         ...(message ? { message } : {}),
       }),
-      { eventId, matchId },
+      {
+        context: {
+          eventId,
+          matchId,
+          hasMessage: Boolean(message?.trim()),
+        },
+      },
     ),
   getInvites: async (eventId: string) =>
     withErrorLogging('events', 'getInvites', () =>
       client.get<EventInviteListItem[]>(`/events/${eventId}/invites`),
-      { eventId },
+      { context: { eventId } },
     ),
 };

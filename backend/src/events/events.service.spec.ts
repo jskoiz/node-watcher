@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
 import { EventCategory } from '@prisma/client';
 import { EventsService } from './events.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -74,11 +74,20 @@ const baseEvent = {
 
 describe('EventsService', () => {
   let service: EventsService;
+  let debugSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
     userFindFirst.mockResolvedValue({ id: 'host-1', firstName: 'Alice' });
+    debugSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
+    errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
     service = new EventsService(prisma, notifications, blockServiceMock);
+  });
+
+  afterEach(() => {
+    debugSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   describe('list', () => {
@@ -285,6 +294,9 @@ describe('EventsService', () => {
       const result = await service.rsvp('event-1', 'user-2');
 
       expect(result).toEqual({ status: 'joined', attendeesCount: 6 });
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.stringContaining('"event":"events.rsvp.completed"'),
+      );
     });
 
     it('sends notification to host when a non-host RSVPs', async () => {
@@ -327,6 +339,25 @@ describe('EventsService', () => {
       expect(notificationsCreate).toHaveBeenCalledWith(
         'user-2',
         expect.objectContaining({ type: 'event_reminder' }),
+      );
+    });
+
+    it('logs RSVP notification failures with operation context', async () => {
+      eventFindUnique.mockResolvedValue(baseEvent);
+      eventRsvpCount.mockResolvedValueOnce(0).mockResolvedValueOnce(6);
+      eventRsvpUpsert.mockResolvedValue({});
+      notificationsCreate.mockRejectedValueOnce(new Error('notify down'));
+
+      await service.rsvp('event-1', 'user-2');
+      await new Promise(setImmediate);
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('"event":"events.notification_failed"'),
+        expect.anything(),
+      );
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('"operation":"event_rsvp_host"'),
+        expect.anything(),
       );
     });
 
@@ -482,6 +513,9 @@ describe('EventsService', () => {
           attendeesCount: 5,
         },
       });
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.stringContaining('"event":"events.invite.completed"'),
+      );
     });
 
     it('rejects invites when the requester is not the host or RSVP attendee', async () => {

@@ -1,12 +1,19 @@
+import { Logger } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { MatchesRealtimeService } from './matches-realtime.service';
 import type { MatchMessagePayload } from './matches-realtime.service';
 
 describe('MatchesRealtimeService', () => {
   let service: MatchesRealtimeService;
+  let debugSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    debugSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
     service = new MatchesRealtimeService();
+  });
+
+  afterEach(() => {
+    debugSpy.mockRestore();
   });
 
   it('creates a stream on first access and returns an observable', (done) => {
@@ -96,6 +103,9 @@ describe('MatchesRealtimeService', () => {
 
     expect(emitMessageToRoom).toHaveBeenCalledTimes(1);
     expect(emitMessageToRoom).toHaveBeenCalledWith('match-bridge', msg);
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"realtime.message.published"'),
+    );
   });
 
   describe('stream cleanup', () => {
@@ -112,6 +122,9 @@ describe('MatchesRealtimeService', () => {
       sub2.unsubscribe();
       // Last subscriber gone — stream should be cleaned up
       expect(service.activeStreamCount).toBe(0);
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.stringContaining('"event":"realtime.stream.closed"'),
+      );
     });
 
     it('recreates a stream after cleanup when a new subscriber arrives', () => {

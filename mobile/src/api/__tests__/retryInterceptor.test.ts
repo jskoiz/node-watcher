@@ -151,4 +151,12 @@ describe('429 auto-retry interceptor logic', () => {
         });
         expect(third.shouldRetry).toBe(false);
     });
+
+    it('does not retry when the method is missing', () => {
+        const result = evaluateRetry({
+            response: { status: 429 },
+            config: { method: '' },
+        });
+        expect(result.shouldRetry).toBe(false);
+    });
 });

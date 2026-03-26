@@ -19,15 +19,25 @@ export interface NormalizedApiError {
     isNetworkError: boolean;
     isUnauthorized: boolean;
     retryable: boolean;
+    transient: boolean;
+    transport: 'http' | 'network' | 'timeout' | 'cancelled' | 'unknown';
+    debugMessage?: string;
+    serverMessage?: string;
+    fingerprint: string;
     /** Seconds to wait before retrying (parsed from Retry-After header). */
     retryAfterSeconds?: number;
 }
 
 const STATUS_MESSAGES: Record<number, string> = {
+    400: 'Please review your input and try again.',
+    401: 'Your session expired. Please sign in again.',
     403: 'You don\u2019t have permission to do that.',
-    404: 'The requested resource was not found.',
+    404: 'That item was not found or is no longer available.',
+    409: 'This request conflicts with the current state. Refresh and try again.',
     429: 'Too many requests. Please wait a moment and try again.',
+    500: 'BRDG hit a server error. Please try again in a moment.',
     503: 'Service is temporarily unavailable. Please try again shortly.',
+    504: 'The server took too long to respond. Please try again.',
 };
 
 function classifyStatus(status: number | undefined): { kind: ApiErrorKind; retryable: boolean } {
@@ -47,6 +57,63 @@ function classifyStatus(status: number | undefined): { kind: ApiErrorKind; retry
             if (status >= 500) return { kind: 'server_error', retryable: true };
             return { kind: 'unknown', retryable: false };
     }
+}
+
+function extractPayloadMessage(data: ApiErrorPayload | undefined): string | undefined {
+    if (!data) return undefined;
+
+    const candidates = [data.message, data.error] as unknown[];
+
+    for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+            return candidate.trim();
+        }
+
+        if (Array.isArray(candidate)) {
+            const joined = candidate
+                .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+                .join(', ');
+
+            if (joined) {
+                return joined;
+            }
+        }
+    }
+
+    return undefined;
+}
+
+function getTransport(
+    isAxiosError: boolean,
+    code: string | undefined,
+    hasResponse: boolean,
+): NormalizedApiError['transport'] {
+    if (!isAxiosError) {
+        return 'unknown';
+    }
+
+    if (code === 'ERR_CANCELED') {
+        return 'cancelled';
+    }
+
+    if (code === 'ECONNABORTED') {
+        return 'timeout';
+    }
+
+    if (!hasResponse) {
+        return 'network';
+    }
+
+    return 'http';
+}
+
+function buildFingerprint(
+    kind: ApiErrorKind,
+    status: number | undefined,
+    code: string | undefined,
+    transport: NormalizedApiError['transport'],
+): string {
+    return [kind, status ?? 'none', code ?? 'none', transport].join(':');
 }
 
 /**
@@ -79,27 +146,45 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
     if (axios.isAxiosError<ApiErrorPayload>(error)) {
         const status = error.response?.status;
         const data = error.response?.data;
-        const { kind, retryable } = classifyStatus(status);
-
-        const message =
-            data?.message ||
-            data?.error ||
-            (status && STATUS_MESSAGES[status]) ||
-            error.message ||
-            'Something went wrong. Please try again.';
+        const transport = getTransport(true, error.code, Boolean(error.response));
+        const baseClassification = classifyStatus(status);
+        const kind = transport === 'cancelled' ? 'unknown' : baseClassification.kind;
+        const retryable = transport === 'cancelled' ? false : baseClassification.retryable;
+        const serverMessage = extractPayloadMessage(data);
+        const fallbackMessage =
+            transport === 'cancelled'
+                ? 'This request was cancelled.'
+                : transport === 'timeout'
+                  ? 'The request timed out. Check your connection and try again.'
+                  : transport === 'network'
+                    ? 'Unable to reach BRDG. Check your connection and try again.'
+                    : (status && STATUS_MESSAGES[status]) ||
+                      (status && status >= 500
+                          ? 'BRDG hit a server error. Please try again soon.'
+                          : undefined) ||
+                      'Something went wrong. Please try again.';
+        const message = serverMessage || fallbackMessage;
 
         const retryAfterHeader = error.response?.headers?.['retry-after'] as
             | string
             | undefined;
+        const transient =
+            transport !== 'cancelled' &&
+            (retryable || transport === 'network' || transport === 'timeout');
 
         return {
             message,
             status,
             code: data?.code,
             kind,
-            isNetworkError: !error.response,
+            isNetworkError: !error.response && transport !== 'cancelled',
             isUnauthorized: status === 401,
             retryable,
+            transient,
+            transport,
+            debugMessage: error.message,
+            serverMessage,
+            fingerprint: buildFingerprint(kind, status, data?.code, transport),
             retryAfterSeconds: parseRetryAfter(retryAfterHeader),
         };
     }
@@ -111,6 +196,10 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
             isNetworkError: false,
             isUnauthorized: false,
             retryable: false,
+            transient: false,
+            transport: 'unknown',
+            debugMessage: error.message,
+            fingerprint: buildFingerprint('unknown', undefined, undefined, 'unknown'),
         };
     }
 
@@ -120,5 +209,8 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
         isNetworkError: false,
         isUnauthorized: false,
         retryable: false,
+        transient: false,
+        transport: 'unknown',
+        fingerprint: buildFingerprint('unknown', undefined, undefined, 'unknown'),
     };
 }

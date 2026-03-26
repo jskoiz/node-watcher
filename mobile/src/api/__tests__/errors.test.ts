@@ -5,8 +5,10 @@ function makeAxiosError(
     status: number | undefined,
     data?: Record<string, unknown>,
     headers?: Record<string, string>,
+    code?: string,
 ): AxiosError {
     const error = new AxiosError('Request failed');
+    error.code = code;
     if (status !== undefined) {
         error.response = {
             status,
@@ -57,6 +59,7 @@ describe('normalizeApiError', () => {
         expect(err.kind).toBe('unauthorized');
         expect(err.isUnauthorized).toBe(true);
         expect(err.retryable).toBe(false);
+        expect(err.message).toContain('session expired');
     });
 
     it('classifies 403 as forbidden', () => {
@@ -103,6 +106,32 @@ describe('normalizeApiError', () => {
         expect(err.kind).toBe('network');
         expect(err.isNetworkError).toBe(true);
         expect(err.retryable).toBe(true);
+        expect(err.transient).toBe(true);
+        expect(err.transport).toBe('network');
+        expect(err.message).toContain('Unable to reach BRDG');
+    });
+
+    it('treats request timeouts as transient network failures', () => {
+        const err = normalizeApiError(
+            makeAxiosError(undefined, undefined, undefined, 'ECONNABORTED'),
+        );
+
+        expect(err.kind).toBe('network');
+        expect(err.transport).toBe('timeout');
+        expect(err.transient).toBe(true);
+        expect(err.message).toContain('timed out');
+    });
+
+    it('treats cancelled requests as non-retryable noise', () => {
+        const err = normalizeApiError(
+            makeAxiosError(undefined, undefined, undefined, 'ERR_CANCELED'),
+        );
+
+        expect(err.kind).toBe('unknown');
+        expect(err.transport).toBe('cancelled');
+        expect(err.retryable).toBe(false);
+        expect(err.transient).toBe(false);
+        expect(err.message).toContain('cancelled');
     });
 
     it('parses Retry-After header from 429 response', () => {
@@ -122,6 +151,16 @@ describe('normalizeApiError', () => {
             makeAxiosError(429, { message: 'Slow down, cowboy' }),
         );
         expect(err.message).toBe('Slow down, cowboy');
+        expect(err.serverMessage).toBe('Slow down, cowboy');
+    });
+
+    it('uses backend error text when message is absent', () => {
+        const err = normalizeApiError(
+            makeAxiosError(409, { error: 'Event already started' }),
+        );
+
+        expect(err.message).toBe('Event already started');
+        expect(err.serverMessage).toBe('Event already started');
     });
 
     it('handles plain Error instances', () => {
@@ -129,6 +168,7 @@ describe('normalizeApiError', () => {
         expect(err.kind).toBe('unknown');
         expect(err.message).toBe('boom');
         expect(err.retryable).toBe(false);
+        expect(err.fingerprint).toBe('unknown:none:none:unknown');
     });
 
     it('handles unknown thrown values', () => {

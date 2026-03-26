@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { PushService } from './push.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -17,11 +18,23 @@ function makeMockPrisma() {
 describe('PushService', () => {
   let service: PushService;
   let prisma: ReturnType<typeof makeMockPrisma>;
+  let debugSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    debugSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
+    warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
     prisma = makeMockPrisma();
     service = new PushService(prisma);
+  });
+
+  afterEach(() => {
+    debugSpy.mockRestore();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('sends a push notification for a valid token', async () => {
@@ -61,6 +74,9 @@ describe('PushService', () => {
 
     expect(result.outcome).toBe('token_invalid');
     expect(mockSendPushNotificationsAsync).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"push.send.rejected_invalid_token"'),
+    );
   });
 
   it('clears the push token on DeviceNotRegistered error', async () => {
@@ -139,6 +155,10 @@ describe('PushService', () => {
     expect(result.attempt).toBe(3);
     expect(result.error).toBe('Persistent network error');
     expect(mockSendPushNotificationsAsync).toHaveBeenCalledTimes(3);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"push.send.failed"'),
+      expect.any(String),
+    );
   });
 
   it('sends empty data object when data is not provided', async () => {
@@ -156,5 +176,8 @@ describe('PushService', () => {
     expect(mockSendPushNotificationsAsync).toHaveBeenCalledWith([
       expect.objectContaining({ data: {} }),
     ]);
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"push.send.completed"'),
+    );
   });
 });

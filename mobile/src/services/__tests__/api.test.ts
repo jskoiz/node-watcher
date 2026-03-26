@@ -18,6 +18,15 @@ const mockLogApiFailure = observability.logApiFailure as jest.Mock;
 
 const networkError = new Error('Network Error');
 
+function expectLatestLog(
+  domain: string,
+  action: string,
+  error: Error,
+  options: Record<string, unknown> = {},
+) {
+  expect(mockLogApiFailure).toHaveBeenLastCalledWith(domain, action, error, options);
+}
+
 describe('matchesApi', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -39,7 +48,7 @@ describe('matchesApi', () => {
       mockClient.get.mockRejectedValueOnce(networkError);
 
       await expect(matchesApi.list()).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith('matches', 'list', networkError, undefined);
+      expectLatestLog('matches', 'list', networkError, {});
     });
   });
 
@@ -59,11 +68,11 @@ describe('matchesApi', () => {
       mockClient.get.mockRejectedValueOnce(networkError);
 
       await expect(matchesApi.getMessages('match-1')).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith(
+      expectLatestLog(
         'matches',
         'getMessages',
         networkError,
-        { matchId: 'match-1' },
+        { context: { matchId: 'match-1' } },
       );
     });
   });
@@ -91,11 +100,16 @@ describe('matchesApi', () => {
       mockClient.post.mockRejectedValueOnce(networkError);
 
       await expect(matchesApi.sendMessage('match-1', 'hello')).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith(
+      expectLatestLog(
         'matches',
         'sendMessage',
         networkError,
-        { matchId: 'match-1' },
+        {
+          context: {
+            matchId: 'match-1',
+            contentLength: 5,
+          },
+        },
       );
     });
   });
@@ -121,11 +135,11 @@ describe('discoveryApi', () => {
       mockClient.post.mockRejectedValueOnce(networkError);
 
       await expect(discoveryApi.pass('user-2')).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith(
+      expectLatestLog(
         'discovery',
         'pass',
         networkError,
-        { targetUserId: 'user-2' },
+        { context: { targetUserId: 'user-2' } },
       );
     });
   });
@@ -170,7 +184,7 @@ describe('notificationsApi', () => {
       mockClient.get.mockRejectedValueOnce(networkError);
 
       await expect(notificationsApi.list()).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith('notifications', 'list', networkError, undefined);
+      expectLatestLog('notifications', 'list', networkError, {});
     });
   });
 
@@ -190,11 +204,11 @@ describe('notificationsApi', () => {
       mockClient.patch.mockRejectedValueOnce(networkError);
 
       await expect(notificationsApi.markRead('notif-1')).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith(
+      expectLatestLog(
         'notifications',
         'markRead',
         networkError,
-        { id: 'notif-1' },
+        { context: { notificationId: 'notif-1' } },
       );
     });
   });
@@ -214,7 +228,7 @@ describe('notificationsApi', () => {
       mockClient.post.mockRejectedValueOnce(networkError);
 
       await expect(notificationsApi.markAllRead()).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith('notifications', 'markAllRead', networkError, undefined);
+      expectLatestLog('notifications', 'markAllRead', networkError, {});
     });
   });
 });
@@ -241,7 +255,9 @@ describe('profileApi', () => {
       mockClient.patch.mockRejectedValueOnce(networkError);
 
       await expect(profileApi.updateProfile(payload)).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith('profile', 'updateProfile', networkError, undefined);
+      expectLatestLog('profile', 'updateProfile', networkError, {
+        context: { changedFields: ['bio'] },
+      });
     });
   });
 
@@ -278,7 +294,17 @@ describe('profileApi', () => {
       mockClient.patch.mockRejectedValueOnce(networkError);
 
       await expect(profileApi.updateFitness(payload)).rejects.toThrow('Network Error');
-      expect(mockLogApiFailure).toHaveBeenCalledWith('profile', 'updateFitness', networkError, undefined);
+      expectLatestLog('profile', 'updateFitness', networkError, {
+        context: {
+          changedFields: [
+            'favoriteActivities',
+            'intensityLevel',
+            'primaryGoal',
+            'weeklyFrequencyBand',
+          ],
+          intensityLevel: 'INTERMEDIATE',
+        },
+      });
     });
   });
 
@@ -307,6 +333,18 @@ describe('profileApi', () => {
       );
       expect(onProgress).toHaveBeenCalledWith(50);
       expect(mockLogApiFailure).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deletePhoto', () => {
+    it('logs photo id context when deletion fails', async () => {
+      mockClient.delete.mockRejectedValueOnce(networkError);
+
+      await expect(profileApi.deletePhoto('photo-1')).rejects.toThrow('Network Error');
+
+      expectLatestLog('profile', 'deletePhoto', networkError, {
+        context: { photoId: 'photo-1' },
+      });
     });
   });
 });

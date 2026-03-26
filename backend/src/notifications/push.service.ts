@@ -24,6 +24,19 @@ export interface PushDeliveryResult {
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
 
+function asLogMessage(event: string, context: Record<string, unknown>) {
+  return JSON.stringify({ event, ...context });
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function redactPushToken(pushToken: string) {
+  if (pushToken.length <= 10) return pushToken;
+  return `${pushToken.slice(0, 8)}...${pushToken.slice(-6)}`;
+}
+
 @Injectable()
 export class PushService {
   private readonly logger = new Logger(PushService.name);
@@ -39,9 +52,14 @@ export class PushService {
     body: string,
     data?: Record<string, unknown>,
   ): Promise<PushDeliveryResult> {
+    const tokenPreview = redactPushToken(pushToken);
+
     if (!Expo.isExpoPushToken(pushToken)) {
       this.logger.warn(
-        `Invalid Expo push token — outcome=token_invalid token=${pushToken}`,
+        asLogMessage('push.send.rejected_invalid_token', {
+          outcome: 'token_invalid',
+          pushToken: tokenPreview,
+        }),
       );
       return { outcome: 'token_invalid', pushToken };
     }
@@ -54,38 +72,61 @@ export class PushService {
       data: data ?? {},
     };
 
-    return this.sendWithRetry(message, pushToken);
+    return this.sendWithRetry(message, pushToken, tokenPreview);
   }
 
   private async sendWithRetry(
     message: ExpoPushMessage,
     pushToken: string,
+    tokenPreview: string,
   ): Promise<PushDeliveryResult> {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const tickets = await this.expo.sendPushNotificationsAsync([message]);
-        const result = await this.handleTickets(tickets, pushToken, attempt);
+        const result = await this.handleTickets(
+          tickets,
+          pushToken,
+          attempt,
+          tokenPreview,
+        );
         if (result) return result;
 
         // Ticket had status 'ok'
         this.logger.debug(
-          `Push delivered — outcome=delivered token=${pushToken} attempt=${attempt}`,
+          asLogMessage('push.send.completed', {
+            outcome: 'delivered',
+            pushToken: tokenPreview,
+            attempt,
+          }),
         );
         return { outcome: 'delivered', pushToken, attempt };
       } catch (error) {
-        const errMsg = error instanceof Error ? error.message : String(error);
+        const errMsg = errorMessage(error);
 
         if (attempt < MAX_RETRIES) {
           const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
           this.logger.warn(
-            `Push send failed, retrying — attempt=${attempt}/${MAX_RETRIES} token=${pushToken} delay=${delay}ms error="${errMsg}"`,
+            asLogMessage('push.send.retrying', {
+              outcome: 'retrying',
+              pushToken: tokenPreview,
+              attempt,
+              maxRetries: MAX_RETRIES,
+              delayMs: delay,
+              error: errMsg,
+            }),
           );
           await this.sleep(delay);
           continue;
         }
 
         this.logger.error(
-          `Push send failed after ${MAX_RETRIES} attempts — outcome=send_error token=${pushToken} error="${errMsg}"`,
+          asLogMessage('push.send.failed', {
+            outcome: 'send_error',
+            pushToken: tokenPreview,
+            attempt,
+            maxRetries: MAX_RETRIES,
+            error: errMsg,
+          }),
           error instanceof Error ? error.stack : undefined,
         );
         return { outcome: 'send_error', pushToken, error: errMsg, attempt };
@@ -105,6 +146,7 @@ export class PushService {
     tickets: ExpoPushTicket[],
     pushToken: string,
     attempt: number,
+    tokenPreview: string,
   ): Promise<PushDeliveryResult | null> {
     const receiptIds: ExpoPushReceiptId[] = [];
 
@@ -113,7 +155,13 @@ export class PushService {
         receiptIds.push(ticket.id);
       } else if (ticket.status === 'error') {
         this.logger.error(
-          `Push ticket error — token=${pushToken} message="${ticket.message}" attempt=${attempt}`,
+          asLogMessage('push.ticket.failed', {
+            pushToken: tokenPreview,
+            attempt,
+            message: ticket.message,
+            expoError:
+              'details' in ticket ? ticket.details?.error : undefined,
+          }),
         );
 
         if (
@@ -139,15 +187,25 @@ export class PushService {
     }
 
     if (receiptIds.length > 0) {
-      this.logger.debug(`Push receipt IDs: ${receiptIds.join(', ')}`);
+      this.logger.debug(
+        asLogMessage('push.receipts.received', {
+          pushToken: tokenPreview,
+          receiptIds,
+        }),
+      );
     }
 
     return null;
   }
 
   private async clearPushToken(pushToken: string): Promise<void> {
+    const tokenPreview = redactPushToken(pushToken);
+
     this.logger.warn(
-      `Clearing invalid push token — outcome=device_not_registered token=${pushToken}`,
+      asLogMessage('push.token.clearing', {
+        outcome: 'device_not_registered',
+        pushToken: tokenPreview,
+      }),
     );
 
     try {
@@ -157,7 +215,10 @@ export class PushService {
       });
     } catch (error) {
       this.logger.error(
-        'Failed to clear push token',
+        asLogMessage('push.token.clear_failed', {
+          pushToken: tokenPreview,
+          error: errorMessage(error),
+        }),
         error instanceof Error ? error.stack : String(error),
       );
     }

@@ -16,6 +16,12 @@ const getErrorUtils = (): ErrorUtilsLike | undefined => {
   return globalScope.ErrorUtils;
 };
 
+let installed = false;
+
+export function resetGlobalErrorHandlerForTests(): void {
+  installed = false;
+}
+
 /**
  * Installs a global handler for uncaught JS errors so they are logged to
  * Sentry and surfaced as a toast instead of crashing silently.
@@ -23,6 +29,10 @@ const getErrorUtils = (): ErrorUtilsLike | undefined => {
  * Call once during app bootstrap (e.g. inside AppProviders).
  */
 export function installGlobalErrorHandler() {
+  if (installed) {
+    return;
+  }
+
   const errorUtils = getErrorUtils();
   const previousHandler = errorUtils?.getGlobalHandler?.();
 
@@ -34,18 +44,25 @@ export function installGlobalErrorHandler() {
   errorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
     captureException(error, {
       tags: { source: 'global-error-handler', fatal: String(Boolean(isFatal)) },
+      extra: {
+        name: error.name,
+        message: error.message,
+      },
     });
 
     logDevOnly('error', '[global-error-handler]', { error, isFatal });
 
     showToast(
       isFatal
-        ? 'An unexpected error occurred. Please restart the app.'
-        : 'Something went wrong.',
+        ? 'BRDG hit a fatal error. Close and reopen the app to continue.'
+        : 'Something went wrong. Please try that again.',
       'error',
+      undefined,
+      { dedupeKey: isFatal ? 'global-error:fatal' : 'global-error:nonfatal' },
     );
 
     // Invoke the previous handler so Sentry/LogBox still work as expected.
     previousHandler?.(error, isFatal);
   });
+  installed = true;
 }

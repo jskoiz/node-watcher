@@ -6,11 +6,23 @@ export const moderationApi = {
   report: async (payload: ReportPayload) =>
     withErrorLogging('moderation', 'report', () =>
       client.post<ReportResponse>('/moderation/report', payload),
-      { reportedUserId: payload.reportedUserId, category: payload.category },
+      {
+        context: {
+          reportedUserId: payload.reportedUserId,
+          category: payload.category,
+          hasDescription: Boolean(payload.description?.trim()),
+          hasMatchId: Boolean(payload.matchId),
+        },
+      },
     ),
   block: async (payload: BlockPayload) =>
     withErrorLogging('moderation', 'block', () =>
       client.post<BlockResponse>('/moderation/block', payload),
-      { blockedUserId: payload.blockedUserId },
+      {
+        context: {
+          blockedUserId: payload.blockedUserId,
+          hasMatchId: Boolean(payload.matchId),
+        },
+      },
     ),
 };

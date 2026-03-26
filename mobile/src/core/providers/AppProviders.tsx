@@ -9,7 +9,7 @@ import { lightTheme } from '../../theme/tokens';
 import { queryClient } from '../../lib/query/queryClient';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { ToastOverlay } from '../../components/ui/ToastOverlay';
-import { initSentry } from '../observability/sentry';
+import { initSentry, logDevOnly } from '../observability/sentry';
 import { installGlobalErrorHandler } from '../observability/globalErrorHandler';
 import {
   configureNotificationHandler,
@@ -35,7 +35,7 @@ export function AppProviders({ children }: PropsWithChildren) {
 
     const bootstrapTask = InteractionManager.runAfterInteractions(() => {
       registerForPushNotifications().catch((error) => {
-        console.warn('Push notification bootstrap failed:', error);
+        logDevOnly('warn', 'Push notification bootstrap failed', error);
       });
       loadHapticsPreference().catch(() => {
         // Non-critical — defaults to enabled.

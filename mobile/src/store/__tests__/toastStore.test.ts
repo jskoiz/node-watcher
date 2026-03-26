@@ -1,9 +1,9 @@
-import { useToastStore, showToast } from '../toastStore';
+import { resetToastStateForTests, useToastStore, showToast } from '../toastStore';
 import { act } from '@testing-library/react-native';
 
 beforeEach(() => {
-  // Reset store between tests
-  useToastStore.setState({ toasts: [] });
+  resetToastStateForTests();
+  jest.restoreAllMocks();
 });
 
 describe('toastStore', () => {
@@ -69,5 +69,31 @@ describe('toastStore', () => {
     const toasts = useToastStore.getState().toasts;
     expect(toasts).toHaveLength(1);
     expect(toasts[0]).toMatchObject({ message: 'standalone', variant: 'warning' });
+  });
+
+  it('dedupes repeated toasts within the default window', () => {
+    jest.spyOn(Date, 'now').mockReturnValue(1000);
+
+    act(() => {
+      showToast('offline', 'error', undefined, { dedupeKey: 'network' });
+      showToast('offline', 'error', undefined, { dedupeKey: 'network' });
+    });
+
+    expect(useToastStore.getState().toasts).toHaveLength(1);
+  });
+
+  it('allows a deduped toast after the window expires', () => {
+    const nowSpy = jest.spyOn(Date, 'now');
+    nowSpy.mockReturnValue(1000);
+    act(() => {
+      showToast('offline', 'error', undefined, { dedupeKey: 'network' });
+    });
+
+    nowSpy.mockReturnValue(6000);
+    act(() => {
+      showToast('offline', 'error', undefined, { dedupeKey: 'network' });
+    });
+
+    expect(useToastStore.getState().toasts).toHaveLength(2);
   });
 });

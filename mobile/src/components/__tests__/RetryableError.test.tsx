@@ -17,6 +17,9 @@ function makeError(overrides: Partial<NormalizedApiError> = {}): NormalizedApiEr
     isNetworkError: false,
     isUnauthorized: false,
     retryable: true,
+    transient: true,
+    transport: 'http',
+    fingerprint: 'rate_limited:429:none:http',
     ...overrides,
   };
 }
@@ -40,6 +43,7 @@ describe('RetryableError', () => {
       />,
     );
 
+    expect(getByText('Too many attempts')).toBeTruthy();
     expect(getByText('Retry available in 2s')).toBeTruthy();
     expect(getByLabelText('Retry').props.accessibilityState).toEqual(
       expect.objectContaining({
@@ -74,7 +78,23 @@ describe('RetryableError', () => {
     );
 
     expect(getByText('Too many requests')).toBeTruthy();
+    expect(getByText('Wait a moment before trying again.')).toBeTruthy();
     expect(queryByLabelText('Retry')).toBeNull();
     expect(queryByText('Try again')).toBeNull();
+  });
+
+  it('shows network-specific guidance', () => {
+    const { getByText } = render(
+      <RetryableError
+        error={makeError({
+          kind: 'network',
+          message: 'BRDG could not reach the server.',
+        })}
+        onRetry={jest.fn()}
+      />,
+    );
+
+    expect(getByText('Connection problem')).toBeTruthy();
+    expect(getByText('Check your connection, then retry.')).toBeTruthy();
   });
 });
