@@ -4,6 +4,7 @@ import {
   collectRepoPolicyViolations,
   collectCoverageAudit,
   collectStorybookCoverageViolations,
+  matchesStorybookRequiredPath,
 } from '../check-repo-policies.mjs';
 import { ACTIVE_DOCS, isActiveDocFile } from '../doc-policy.mjs';
 
@@ -163,6 +164,13 @@ test('coverage audit recognizes existing test aliases', () => {
 
   assert.deepEqual(storybookGaps, ['mobile/src/features/moderation/components/ReportSheet.tsx']);
   assert.deepEqual(testGaps, []);
+});
+
+test('matchesStorybookRequiredPath keeps non-reusable and ancillary files out of coverage audit', () => {
+  assert.equal(matchesStorybookRequiredPath('mobile/src/design/theme.tsx'), false);
+  assert.equal(matchesStorybookRequiredPath('mobile/src/features/onboarding/components/Onboarding.styles.ts'), false);
+  assert.equal(matchesStorybookRequiredPath('mobile/src/features/profile/components/ProfileScreenContent.tsx'), true);
+  assert.equal(matchesStorybookRequiredPath('mobile/src/features/onboarding/components/ActivitiesStep.test.tsx'), false);
 });
 
 test('flags backend layer violations when domain code imports transport code', () => {

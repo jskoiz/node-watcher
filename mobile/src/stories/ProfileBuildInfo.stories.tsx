@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
 import { ProfileScreenContent } from '../features/profile/components/ProfileScreenContent';
-import { makeUser } from './support';
 
 const meta = {
   title: 'Profile/BuildInfo',
@@ -13,18 +12,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const profile = makeUser({
-  firstName: 'Jordan',
-  age: 29,
-});
-
 export const Expanded: Story = {
   args: {
-    deletingAccount: false,
-    onConfirmDeleteAccount: () => undefined,
-    onLogout: () => undefined,
     completenessScore: 75,
     completenessMissing: [],
+    deletingAccount: false,
+    editingPhotos: false,
     bio: 'Early starts, surf checks, and low-pressure plans.',
     city: 'Honolulu',
     editMode: false,
@@ -33,14 +26,23 @@ export const Expanded: Story = {
     intentDating: true,
     intentFriends: false,
     intentWorkout: true,
+    isRefetching: false,
     isSavingProfile: false,
     isSavingFitness: false,
     knownLocationSuggestions: [],
+    navigation: { navigate: () => undefined },
     onCancelEdit: () => undefined,
+    onConfirmDeleteAccount: () => undefined,
+    onDeletePhoto: () => undefined,
+    onMakePrimaryPhoto: () => undefined,
+    onMovePhotoLeft: () => undefined,
+    onMovePhotoRight: () => undefined,
+    onLogout: () => undefined,
+    onRefresh: () => undefined,
     onSave: () => undefined,
-    onSelectCitySuggestion: () => undefined,
     onSetBio: () => undefined,
     onSetCity: () => undefined,
+    onSelectCitySuggestion: () => undefined,
     onSetIntensityLevel: () => undefined,
     onSetIntentDating: () => undefined,
     onSetIntentFriends: () => undefined,
@@ -49,22 +51,28 @@ export const Expanded: Story = {
     onSetSelectedActivities: () => undefined,
     onSetSelectedSchedule: () => undefined,
     onSetWeeklyFrequencyBand: () => undefined,
-    primaryGoal: 'connection',
-    selectedActivities: ['Running', 'Surfing'],
-    selectedSchedule: ['Morning'],
-    weeklyFrequencyBand: '3-4',
-    isRefetching: false,
-    onRefresh: () => undefined,
-    editingPhotos: false,
-    onDeletePhoto: () => undefined,
-    onMakePrimaryPhoto: () => undefined,
-    onMovePhotoLeft: () => undefined,
-    onMovePhotoRight: () => undefined,
+    onToggleBuildInfo: () => undefined,
     onUploadPhoto: () => undefined,
     photoOperation: null,
-    navigation: { navigate: () => undefined },
-    profile,
-    onToggleBuildInfo: () => undefined,
+    primaryGoal: 'connection',
+    profile: {
+      id: 'user-1',
+      firstName: 'Jordan',
+      age: 29,
+      profile: { city: 'Honolulu' },
+      fitnessProfile: {
+        intensityLevel: 'moderate',
+        weeklyFrequencyBand: '3-4',
+        primaryGoal: 'connection',
+        favoriteActivities: 'Running, Surfing',
+        prefersMorning: true,
+        prefersEvening: false,
+      },
+      photos: [],
+    } as any,
+    selectedActivities: ['Running', 'Surfing'],
+    selectedSchedule: ['Morning'],
     showBuildInfo: true,
+    weeklyFrequencyBand: '3-4',
   },
 };

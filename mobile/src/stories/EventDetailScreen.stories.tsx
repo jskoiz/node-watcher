@@ -6,9 +6,6 @@ import { makeEventDetail, withStoryScreenFrame } from './support';
 const baseArgs: EventDetailViewProps = {
   errorMessage: null,
   event: makeEventDetail(),
-  hostInviteSummary: null,
-  isHost: false,
-  isLoadingInvites: false,
   isJoining: false,
   isLoading: false,
   onBack: () => undefined,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Alert, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { buildInfo } from '../../../config/buildInfo';
 import { Card } from '../../../design/primitives';
 import { profileStyles as styles } from './profile.styles';
 
@@ -25,9 +26,13 @@ function SettingsRow({
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Text style={styles.settingsIcon} importantForAccessibility="no">{icon}</Text>
+      <Text style={styles.settingsIcon} importantForAccessibility="no">
+        {icon}
+      </Text>
       <Text style={styles.settingsLabel}>{label}</Text>
-      <Text style={styles.settingsArrow} importantForAccessibility="no">{accessory}</Text>
+      <Text style={styles.settingsArrow} importantForAccessibility="no">
+        {accessory}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -51,7 +56,9 @@ function SettingsToggleRow({
       style={[styles.settingsRow, { minHeight: 48 }]}
       accessibilityLabel={label}
     >
-      <Text style={styles.settingsIcon} importantForAccessibility="no">{icon}</Text>
+      <Text style={styles.settingsIcon} importantForAccessibility="no">
+        {icon}
+      </Text>
       <Text style={styles.settingsLabel}>{label}</Text>
       <Switch
         testID={testID ? `${testID}-switch` : undefined}
@@ -68,50 +75,100 @@ function BuildInfoRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.buildInfoRow}>
       <Text style={styles.buildInfoLabel}>{label}</Text>
-      <Text selectable style={styles.buildInfoValue}>{value}</Text>
+      <Text selectable style={styles.buildInfoValue}>
+        {value}
+      </Text>
     </View>
   );
 }
 
+function BuildProvenancePanel() {
+  const buildRows = [
+    { label: 'App env', value: buildInfo.appEnv },
+    { label: 'Version', value: `${buildInfo.version} (${buildInfo.iosBuildNumber})` },
+    { label: 'Branch', value: buildInfo.gitBranch },
+    { label: 'Git SHA', value: buildInfo.gitSha },
+    { label: 'API URL', value: buildInfo.apiBaseUrl || 'not set' },
+    { label: 'Built at', value: buildInfo.buildDate },
+    { label: 'Release path', value: buildInfo.releaseMode },
+  ];
+
+  return (
+    <Card testID="build-provenance-panel" style={styles.buildInfoCard}>
+      {buildRows.map((row, index) => (
+        <View key={row.label}>
+          <BuildInfoRow label={row.label} value={row.value} />
+          {index < buildRows.length - 1 ? (
+            <View style={styles.buildInfoDivider} />
+          ) : null}
+        </View>
+      ))}
+    </Card>
+  );
+}
+
 export function ProfileSettingsSection({
-  buildRows,
   hapticsOn,
-  onOpenNotifications,
+  navigation,
   onToggleBuildInfo,
   onToggleHaptics,
   showBuildInfo,
 }: {
-  buildRows: Array<{ label: string; value: string }>;
   hapticsOn: boolean;
-  onOpenNotifications: () => void;
+  navigation: { navigate: (screen: string, params?: Record<string, unknown>) => void };
   onToggleBuildInfo: () => void;
-  onToggleHaptics: (value: boolean) => void;
+  onToggleHaptics: (enabled: boolean) => void;
   showBuildInfo: boolean;
 }) {
   return (
-    <Card style={styles.settingsCard}>
-      <SettingsRow icon="👤" label="Account" onPress={() => Alert.alert('Coming Soon', 'This feature is not yet available.')} />
-      <View style={styles.fieldDivider} />
-      <SettingsRow icon="🔒" label="Privacy" onPress={() => Alert.alert('Coming Soon', 'This feature is not yet available.')} />
-      <View style={styles.fieldDivider} />
-      <SettingsRow icon="🔔" label="Notifications" onPress={onOpenNotifications} />
-      <View style={styles.fieldDivider} />
-      <SettingsToggleRow testID="haptic-feedback-toggle" icon="📳" label="Haptic Feedback" value={hapticsOn} onValueChange={onToggleHaptics} />
-      <View style={styles.fieldDivider} />
-      <SettingsRow testID="build-provenance-toggle" icon="🧾" label="Build provenance" accessory={showBuildInfo ? '⌄' : '›'} onPress={onToggleBuildInfo} />
-      {showBuildInfo ? (
-        <>
-          <View style={styles.fieldDivider} />
-          <Card testID="build-provenance-panel" style={styles.buildInfoCard}>
-            {buildRows.map((row, index) => (
-              <View key={row.label}>
-                <BuildInfoRow label={row.label} value={row.value} />
-                {index < buildRows.length - 1 ? <View style={styles.buildInfoDivider} /> : null}
-              </View>
-            ))}
-          </Card>
-        </>
-      ) : null}
-    </Card>
+    <View style={styles.section}>
+      <Text style={styles.sectionEyebrow}>Settings</Text>
+      <Card style={styles.settingsCard}>
+        <SettingsRow
+          icon="👤"
+          label="Account"
+          onPress={() =>
+            Alert.alert('Coming Soon', 'This feature is not yet available.')
+          }
+        />
+        <View style={styles.fieldDivider} />
+        <SettingsRow
+          icon="🔒"
+          label="Privacy"
+          onPress={() =>
+            Alert.alert('Coming Soon', 'This feature is not yet available.')
+          }
+        />
+        <View style={styles.fieldDivider} />
+        <SettingsRow
+          icon="🔔"
+          label="Notifications"
+          onPress={() => navigation.navigate('Notifications')}
+        />
+        <View style={styles.fieldDivider} />
+        <SettingsToggleRow
+          testID="haptic-feedback-toggle"
+          icon="📳"
+          label="Haptic Feedback"
+          value={hapticsOn}
+          onValueChange={onToggleHaptics}
+        />
+        <View style={styles.fieldDivider} />
+        <SettingsRow
+          testID="build-provenance-toggle"
+          icon="🧾"
+          label="Build provenance"
+          accessory={showBuildInfo ? '⌄' : '›'}
+          onPress={onToggleBuildInfo}
+        />
+        {showBuildInfo ? (
+          <>
+            <View style={styles.fieldDivider} />
+            <BuildProvenancePanel />
+          </>
+        ) : null}
+      </Card>
+    </View>
   );
 }
+

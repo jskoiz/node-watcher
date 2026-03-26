@@ -172,12 +172,7 @@ describe('NotificationsScreen', () => {
   it('loads notifications and marks an item as read', async () => {
     renderScreen();
 
-    const row = await screen.findByText('New message');
-    const accessibleRow = screen.UNSAFE_getByProps({
-      accessibilityLabel: 'New message. Meet me for coffee after?',
-    });
-    expect(accessibleRow.props.accessibilityHint).toBe('Opens the notification and marks it as read');
-    expect(accessibleRow.props.accessibilityValue).toEqual({ text: 'Unread' });
+    const row = await screen.findByLabelText('New message. Meet me for coffee after?');
     fireEvent.press(row);
 
     await waitFor(() => {
@@ -214,8 +209,8 @@ describe('NotificationsScreen', () => {
   it('navigates match notifications to chat', async () => {
     renderScreen();
 
-    const title = screen.getByText('New message');
-    fireEvent.press(title);
+    const row = await screen.findByLabelText('New message. Meet me for coffee after?');
+    fireEvent.press(row);
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('Chat', {
@@ -238,8 +233,8 @@ describe('NotificationsScreen', () => {
 
     renderScreen();
 
-    const title = screen.getByText('New message');
-    fireEvent.press(title);
+    const row = await screen.findByLabelText('New message. Meet me for coffee after?');
+    fireEvent.press(row);
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('Chat', {
@@ -264,8 +259,8 @@ describe('NotificationsScreen', () => {
 
     renderScreen();
 
-    const title = screen.getByText('Event RSVP');
-    fireEvent.press(title);
+    const row = await screen.findByLabelText('Event RSVP. Someone joined');
+    fireEvent.press(row);
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('EventDetail', { eventId: 'event-1' });
@@ -287,7 +282,7 @@ describe('NotificationsScreen', () => {
 
     renderScreen();
 
-    fireEvent.press(await screen.findByText('Event reminder'));
+    fireEvent.press(await screen.findByLabelText('Event reminder. Your event starts soon'));
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('EventDetail', { eventId: 'event-2' });
@@ -309,7 +304,7 @@ describe('NotificationsScreen', () => {
 
     renderScreen();
 
-    fireEvent.press(await screen.findByText('Event invite'));
+    fireEvent.press(await screen.findByLabelText('Event invite. Someone invited you out'));
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('Chat', {
@@ -339,11 +334,8 @@ describe('NotificationsScreen', () => {
 
     render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
 
-    const accessibleRow = screen.UNSAFE_getByProps({
-      accessibilityLabel: 'Already read. You matched earlier',
-    });
-    expect(accessibleRow.props.accessibilityHint).toBe('Opens the notification');
-    expect(accessibleRow.props.accessibilityValue).toEqual({ text: 'Read' });
+    const row = screen.getByLabelText('Already read. You matched earlier');
+    expect(row.props.accessibilityHint).toBe('Already read');
   });
 
   it('navigates like notifications to profile detail', async () => {
@@ -361,8 +353,8 @@ describe('NotificationsScreen', () => {
 
     renderScreen();
 
-    const title = screen.getByText('Someone likes you');
-    fireEvent.press(title);
+    const row = await screen.findByLabelText('Someone likes you. You received a like');
+    fireEvent.press(row);
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('ProfileDetail', {
@@ -382,7 +374,7 @@ describe('NotificationsScreen', () => {
 
       renderScreen();
 
-      fireEvent.press(await screen.findByText(notification.title));
+      fireEvent.press(await screen.findByLabelText(`${notification.title}. ${notification.body}`));
 
       await waitFor(() => {
         expect(screen.getByText(errorMessage)).toBeTruthy();
@@ -403,7 +395,7 @@ describe('NotificationsScreen', () => {
 
     renderScreen();
 
-    fireEvent.press(await screen.findByText('New message'));
+    fireEvent.press(await screen.findByLabelText('New message. Meet me for coffee after?'));
 
     await waitFor(() => {
       expect(mockMarkRead).not.toHaveBeenCalled();
@@ -489,7 +481,7 @@ describe('NotificationsScreen', () => {
 
     renderScreen();
 
-    fireEvent.press(await screen.findByText('System update'));
+    fireEvent.press(await screen.findByLabelText('System update. No direct navigation'));
 
     await waitFor(() => {
       expect(screen.getByText('This notification does not support direct navigation.')).toBeTruthy();
@@ -506,5 +498,42 @@ describe('NotificationsScreen', () => {
     await waitFor(() => {
       expect(mockMarkAllRead).toHaveBeenCalled();
     });
+  });
+
+  it('shows an action error when clearing all notifications fails', async () => {
+    mockMarkAllRead.mockRejectedValueOnce(new Error('Could not clear notifications.'));
+
+    render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
+
+    fireEvent.press(await screen.findByText('Clear all'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Could not clear notifications.')).toBeTruthy();
+    });
+  });
+
+  it('hides the clear-all action when there are no unread notifications', async () => {
+    mockUseNotifications.mockReturnValue(
+      createNotificationsState({
+        notifications: [
+          {
+            id: 'notif-1',
+            userId: 'user-1',
+            type: 'match_created',
+            title: 'Read notification',
+            body: 'Already handled',
+            readAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            data: { matchId: 'match-1', withUserId: 'user-2' },
+          },
+        ],
+        unreadCount: 0,
+      }),
+    );
+
+    render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
+
+    expect(await screen.findByText('Read notification')).toBeTruthy();
+    expect(screen.queryByText('Clear all')).toBeNull();
   });
 });

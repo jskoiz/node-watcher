@@ -68,9 +68,11 @@ function SignupScreenStory({
 
   return (
     <SignupScreenView
+      birthdate={birthdate}
       canProceed={canProceed}
       control={form.control}
       errors={form.formState.errors}
+      gender={gender}
       isSubmitting={isSubmitting}
       onBack={() => undefined}
       onNavigateLogin={() => undefined}

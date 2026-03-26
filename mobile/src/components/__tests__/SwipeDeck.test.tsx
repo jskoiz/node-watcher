@@ -1,6 +1,10 @@
 import React from 'react';
 import { act, render } from '@testing-library/react-native';
 import SwipeDeck from '../SwipeDeck';
+import {
+  buildSwipeDeckCardViewModel,
+  clampCardHeight,
+} from '../swipeDeck/swipeDeck.presentation';
 
 let onSwipedAllCallback: (() => void) | null = null;
 let latestSwiperProps: Record<string, unknown> | null = null;
@@ -235,7 +239,6 @@ describe('SwipeDeck', () => {
     render(
       <SwipeDeck
         data={[{ id: 'u9', firstName: 'Noa' }]}
-        interactionDisabled
         onSwipeLeft={noop}
         onSwipeRight={noop}
       />,
@@ -247,5 +250,37 @@ describe('SwipeDeck', () => {
         disableRightSwipe: true,
       }),
     );
+  });
+});
+
+describe('swipe deck presentation helpers', () => {
+  it('clamps card height to allowed range with a sane default', () => {
+    expect(clampCardHeight()).toBe(520);
+    expect(clampCardHeight(Number.NaN)).toBe(520);
+    expect(clampCardHeight(100)).toBe(360);
+    expect(clampCardHeight(900)).toBe(680);
+  });
+
+  it('builds compact view model labels and fallbacks', () => {
+    const user = {
+      id: 'u8',
+      firstName: 'Noa',
+      age: 26,
+      distanceKm: 4.2,
+      recommendationScore: 0.82,
+      profile: {
+        city: 'Kailua',
+      },
+      fitnessProfile: {
+        favoriteActivities: 'trail_run',
+      },
+    } as Parameters<typeof buildSwipeDeckCardViewModel>[0];
+    const viewModel = buildSwipeDeckCardViewModel(user, 380);
+
+    expect(viewModel.nameLine).toBe('Noa, 26');
+    expect(viewModel.locationLine).toBe('Kailua · 4 km away');
+    expect(viewModel.alignmentLabel).toBe('82% aligned');
+    expect(viewModel.compact).toBe(true);
+    expect(viewModel.chips).toHaveLength(1);
   });
 });

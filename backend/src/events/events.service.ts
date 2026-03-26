@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, EventCategory } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BlockService } from '../moderation/block.service';
@@ -15,10 +15,18 @@ import {
   buildEventRsvpNotification,
 } from '../notifications/notification.templates';
 import type { CreateEventDto } from './create-event.dto';
-
-interface EventWithRsvps {
-  rsvps?: { id: string }[];
-}
+import { normalizeCreateEventInput } from './events.create';
+import {
+  assertCanInviteToEvent,
+  assertInvitableMatch,
+  resolveInviteeId,
+} from './events.invite';
+import {
+  buildEventSummaryInclude,
+  type EventWithRsvps,
+  mapEventInvite,
+  mapEventSummary,
+} from './events.summary';
 
 interface ActiveUser {
   id: string;
@@ -42,21 +50,6 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
-function buildEventSummaryInclude(userId?: string) {
-  return {
-    host: { select: { id: true, firstName: true } },
-    _count: { select: { rsvps: true } },
-    ...(userId
-      ? {
-          rsvps: {
-            where: { userId },
-            select: { id: true },
-          },
-        }
-      : {}),
-  };
-}
-
 function buildInviteEventInclude() {
   return {
     event: {
@@ -78,35 +71,6 @@ function buildEventInviteMessageBody(eventId: string, message?: string) {
   const inviteMarker = `[EVENT_INVITE:${eventId}]`;
   const trimmedMessage = message?.trim();
   return trimmedMessage ? `${trimmedMessage}\n${inviteMarker}` : inviteMarker;
-}
-
-function mapEventSummary(
-  event: {
-    id: string;
-    title: string;
-    description: string | null;
-    location: string;
-    imageUrl: string | null;
-    category: EventCategory | null;
-    startsAt: Date;
-    endsAt: Date | null;
-    host: { id: string; firstName: string };
-    _count: { rsvps: number };
-  } & EventWithRsvps,
-) {
-  return {
-    id: event.id,
-    title: event.title,
-    description: event.description,
-    location: event.location,
-    imageUrl: event.imageUrl,
-    category: event.category,
-    startsAt: event.startsAt,
-    endsAt: event.endsAt,
-    host: event.host,
-    attendeesCount: event._count.rsvps,
-    joined: (event.rsvps?.length ?? 0) > 0,
-  };
 }
 
 @Injectable()
@@ -204,45 +168,16 @@ export class EventsService {
   }
 
   async create(payload: CreateEventDto, userId: string) {
-    const title = payload.title?.trim();
-    const location = payload.location?.trim();
-    const description = payload.description?.trim();
-    const category = payload.category ?? null;
-    const startsAt = new Date(payload.startsAt);
-    const endsAt = payload.endsAt ? new Date(payload.endsAt) : null;
-
-    if (!title) {
-      throw new BadRequestException('Title is required');
-    }
-
-    if (!location) {
-      throw new BadRequestException('Location is required');
-    }
-
-    if (Number.isNaN(startsAt.getTime())) {
-      throw new BadRequestException('A valid start time is required');
-    }
-
-    if (startsAt <= new Date()) {
-      throw new BadRequestException('Start time must be in the future');
-    }
-
-    if (endsAt && Number.isNaN(endsAt.getTime())) {
-      throw new BadRequestException('End time must be a valid date');
-    }
-
-    if (endsAt && endsAt <= startsAt) {
-      throw new BadRequestException('End time must be after the start time');
-    }
+    const normalized = normalizeCreateEventInput(payload);
 
     const event = await this.prisma.event.create({
       data: {
-        title,
-        description: description || null,
-        location,
-        category: category || null,
-        startsAt,
-        endsAt,
+        title: normalized.title,
+        description: normalized.description,
+        location: normalized.location,
+        category: normalized.category,
+        startsAt: normalized.startsAt,
+        endsAt: normalized.endsAt,
         hostId: userId,
         rsvps: {
           create: {
@@ -255,20 +190,11 @@ export class EventsService {
       },
     });
 
-    this.logger.debug(
-      asLogMessage('events.create.completed', {
-        userId,
-        eventId: event.id,
-        category: event.category,
-        hasEndsAt: Boolean(event.endsAt),
-      }),
-    );
-
     return mapEventSummary(event);
   }
 
   async rsvp(eventId: string, userId: string) {
-const currentUser = await this.getActiveUser(userId);
+    const currentUser = await this.getActiveUser(userId);
     const event = await this.detail(eventId, userId, currentUser);
 
     let created = false;
@@ -306,6 +232,7 @@ const currentUser = await this.getActiveUser(userId);
           hostId: event.host.id,
         }),
       );
+
       if (event.host.id !== userId) {
         void this.notifications
           .create(
@@ -315,10 +242,9 @@ const currentUser = await this.getActiveUser(userId);
           .catch((err) =>
             this.logger.error(
               asLogMessage('events.notification_failed', {
-                operation: 'event_rsvp_host',
+                operation: 'event_rsvp',
                 eventId,
-                userId,
-                recipientUserId: event.host.id,
+                recipientUserId: userId,
                 error: errorMessage(err),
               }),
               err instanceof Error ? err.stack : undefined,
@@ -334,9 +260,8 @@ const currentUser = await this.getActiveUser(userId);
         .catch((err) =>
           this.logger.error(
             asLogMessage('events.notification_failed', {
-              operation: 'event_reminder_attendee',
+              operation: 'event_reminder',
               eventId,
-              userId,
               recipientUserId: userId,
               error: errorMessage(err),
             }),
@@ -368,13 +293,7 @@ const currentUser = await this.getActiveUser(userId);
   ) {
     const currentUser = await this.getActiveUser(userId);
     const event = await this.detail(eventId, userId, currentUser);
-
-    const isHost = event.host.id === userId;
-    if (!isHost && !event.joined) {
-      throw new ForbiddenException(
-        "You must be the host or have RSVP'd to invite others",
-      );
-    }
+    assertCanInviteToEvent(event, userId);
 
     // Validate match exists and user is a participant
     const match = await this.prisma.match.findUnique({
@@ -414,8 +333,7 @@ const currentUser = await this.getActiveUser(userId);
       throw new ForbiddenException('This conversation is no longer available');
     }
 
-    const inviteeId =
-      match.userAId === userId ? match.userBId : match.userAId;
+    const inviteeId = resolveInviteeId(match, userId);
 
     if (inviteeId === event.host.id) {
       throw new BadRequestException('The event host cannot be invited');
@@ -510,11 +428,6 @@ const currentUser = await this.getActiveUser(userId);
     });
 
     if (shouldFanOut) {
-      const inviter = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { firstName: true },
-      });
-
       void this.notifications
         .create(
           inviteeId,
@@ -551,20 +464,7 @@ const currentUser = await this.getActiveUser(userId);
       }),
     );
 
-    return {
-      id: invite.id,
-      status: invite.status,
-      event: {
-        id: invite.event.id,
-        title: invite.event.title,
-        location: invite.event.location,
-        startsAt: invite.event.startsAt,
-        endsAt: invite.event.endsAt,
-        category: invite.event.category,
-        host: invite.event.host,
-        attendeesCount: invite.event._count.rsvps,
-      },
-    };
+    return mapEventInvite(invite);
   }
 
   async getInvites(eventId: string, userId: string) {

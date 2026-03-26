@@ -37,28 +37,6 @@ describe('EventDetailView', () => {
     joined: false,
   };
 
-  it('shows a host-only invite summary for hosts', () => {
-    renderWithProviders(
-      <EventDetailView
-        errorMessage={null}
-        event={baseEvent}
-        hostInviteSummary={{ totalCount: 4, pendingCount: 2, acceptedCount: 2 }}
-        isHost
-        isLoadingInvites={false}
-        isJoining={false}
-        isLoading={false}
-        onBack={jest.fn()}
-        onJoin={jest.fn()}
-        onRefresh={jest.fn()}
-      />,
-    );
-
-    expect(screen.getByText('HOST-ONLY VIEW')).toBeTruthy();
-    expect(screen.getByText('Invite activity')).toBeTruthy();
-    expect(screen.getByText('4 sent / 2 pending / 2 accepted')).toBeTruthy();
-    expect(screen.queryByText('Join event')).toBeNull();
-  });
-
   it('renders the join button for guests', () => {
     const onJoin = jest.fn();
 
@@ -66,9 +44,6 @@ describe('EventDetailView', () => {
       <EventDetailView
         errorMessage={null}
         event={baseEvent}
-        hostInviteSummary={null}
-        isHost={false}
-        isLoadingInvites={false}
         isJoining={false}
         isLoading={false}
         onBack={jest.fn()}

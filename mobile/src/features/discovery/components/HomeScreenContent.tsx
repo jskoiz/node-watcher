@@ -129,7 +129,6 @@ export function HomeScreenContent({
             <SwipeDeck
               cardHeight={cardHeight}
               data={feed}
-              interactionDisabled={isActing}
               onSwipeLeft={onSwipeLeft}
               onSwipeRight={onSwipeRight}
               onPress={onPressProfile}

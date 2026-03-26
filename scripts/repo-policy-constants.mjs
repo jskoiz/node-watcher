@@ -1,0 +1,106 @@
+export const MOBILE_SCREEN_LIMITS = new Map([
+  ['ChatScreen.tsx', 220],
+  ['CreateScreen.tsx', 220],
+  ['ExploreScreen.tsx', 220],
+  ['HomeScreen.tsx', 220],
+  ['ProfileScreen.tsx', 220],
+]);
+
+export const ALLOWED_ENV_FILES = new Set([
+  'backend/src/config/app.config.ts',
+  'backend/src/config/app.config.spec.ts',
+  'mobile/src/config/env.ts',
+]);
+
+export const BANNED_PREVIEW_PATTERNS = [
+  /open the preview (tab|screen)/i,
+  /navigate to (the )?preview/i,
+  /preview navigator/i,
+  /preview stack/i,
+];
+
+export const STORYBOOK_REQUIRED_PATTERNS = [
+  /^mobile\/src\/components\/.+\.tsx$/,
+  /^mobile\/src\/design\/.+\.tsx$/,
+  /^mobile\/src\/features\/.+\/components\/.+\.tsx$/,
+];
+
+export const STORY_COVERAGE_ALIASES = {
+  'mobile/src/components/ErrorBoundary.tsx': ['Feedback.stories.tsx'],
+  'mobile/src/components/LoadingState.tsx': ['Feedback.stories.tsx'],
+  'mobile/src/components/MatchAnimation.tsx': ['Feedback.stories.tsx'],
+  'mobile/src/components/SwipeDeck.tsx': ['DiscoverySwipeDeck.stories.tsx'],
+  'mobile/src/components/withBoundary.tsx': ['Feedback.stories.tsx'],
+  'mobile/src/components/form/DateField.tsx': ['FormFields.stories.tsx'],
+  'mobile/src/components/form/LocationField.tsx': ['FormFields.stories.tsx'],
+  'mobile/src/components/form/SheetSelectField.tsx': ['FormFields.stories.tsx'],
+  'mobile/src/components/form/StepperField.tsx': ['FormFields.stories.tsx'],
+  'mobile/src/components/ui/AppBackdrop.tsx': ['AppUi.stories.tsx'],
+  'mobile/src/components/ui/AppBackButton.tsx': ['AppUi.stories.tsx'],
+  'mobile/src/components/ui/AppIcon.tsx': ['AppUi.stories.tsx'],
+  'mobile/src/components/ui/AppNotificationButton.tsx': ['AppUi.stories.tsx'],
+  'mobile/src/components/ui/AppSelect.tsx': ['AppUi.stories.tsx'],
+  'mobile/src/components/ui/RetryableError.tsx': ['RetryableError.stories.tsx'],
+  'mobile/src/components/ui/ToastOverlay.tsx': ['Toast.stories.tsx'],
+  'mobile/src/design/primitives/index.tsx': [
+    'Primitives.stories.tsx',
+    'Button.stories.tsx',
+    'Input.stories.tsx',
+    'Card.stories.tsx',
+    'StatePanel.stories.tsx',
+    'Chip.stories.tsx',
+  ],
+  'mobile/src/design/sheets/AppBottomSheet.tsx': ['BottomSheet.stories.tsx'],
+  'mobile/src/components/skeletons/ChatListSkeleton.tsx': ['Skeleton.stories.tsx'],
+  'mobile/src/components/skeletons/DiscoverySkeleton.tsx': ['Skeleton.stories.tsx'],
+  'mobile/src/components/skeletons/EventsSkeleton.tsx': ['Skeleton.stories.tsx'],
+  'mobile/src/components/skeletons/ProfileDetailSkeleton.tsx': ['Skeleton.stories.tsx'],
+  'mobile/src/features/discovery/components/DiscoveryNudgeCard.tsx': ['HomeScreenContent.stories.tsx'],
+  'mobile/src/features/discovery/components/HomeHero.tsx': ['DiscoveryHero.stories.tsx'],
+  'mobile/src/features/discovery/components/HomeQuickFilters.tsx': ['HomeScreenContent.stories.tsx'],
+  'mobile/src/features/chat/components/ChatHeader.tsx': ['ChatThread.stories.tsx'],
+  'mobile/src/features/chat/components/ChatMessageList.tsx': ['ChatThread.stories.tsx'],
+  'mobile/src/features/events/explore/ExploreCards.tsx': ['ExploreEventCard.stories.tsx'],
+  'mobile/src/features/onboarding/components/ActivitiesStep.tsx': ['OnboardingSteps.stories.tsx'],
+  'mobile/src/features/onboarding/components/EnvironmentStep.tsx': ['OnboardingSteps.stories.tsx'],
+  'mobile/src/features/onboarding/components/FrequencyStep.tsx': ['OnboardingSteps.stories.tsx'],
+  'mobile/src/features/onboarding/components/IntentStep.tsx': ['OnboardingSteps.stories.tsx'],
+  'mobile/src/features/onboarding/components/ReadyStep.tsx': ['OnboardingSteps.stories.tsx'],
+  'mobile/src/features/onboarding/components/ScheduleStep.tsx': ['OnboardingSteps.stories.tsx'],
+  'mobile/src/features/onboarding/components/SocialStep.tsx': ['OnboardingSteps.stories.tsx'],
+  'mobile/src/features/onboarding/components/SummaryStep.tsx': ['OnboardingSteps.stories.tsx'],
+  'mobile/src/features/onboarding/components/WelcomeStep.tsx': ['OnboardingSteps.stories.tsx'],
+  'mobile/src/features/profile/components/CompletenessBar.tsx': ['ProfileScreenContent.stories.tsx'],
+};
+
+export const TEST_COVERAGE_ALIASES = {
+  'mobile/src/components/LoadingState.tsx': ['LoadingState.test.tsx'],
+  'mobile/src/components/SwipeDeck.tsx': ['SwipeDeck.test.tsx'],
+  'mobile/src/components/withBoundary.tsx': ['withBoundary.test.tsx'],
+  'mobile/src/components/skeletons/ChatListSkeleton.tsx': ['skeletons.test.tsx'],
+  'mobile/src/components/skeletons/DiscoverySkeleton.tsx': ['skeletons.test.tsx'],
+  'mobile/src/components/skeletons/EventsSkeleton.tsx': ['skeletons.test.tsx'],
+  'mobile/src/components/skeletons/ProfileDetailSkeleton.tsx': ['skeletons.test.tsx'],
+  'mobile/src/components/ui/RetryableError.tsx': ['RetryableError.test.tsx'],
+  'mobile/src/design/primitives/index.tsx': ['primitives.test.tsx'],
+  'mobile/src/design/primitives/Input.tsx': ['primitives.test.tsx'],
+  'mobile/src/design/primitives/Skeleton.tsx': ['skeletons.test.tsx'],
+  'mobile/src/design/primitives/StatePanel.tsx': ['primitives.test.tsx'],
+  'mobile/src/components/ui/ToastOverlay.tsx': ['ToastOverlay.test.tsx'],
+  'mobile/src/features/chat/components/ChatComposer.tsx': ['ChatComposer.test.tsx'],
+  'mobile/src/features/chat/components/ChatHeader.tsx': ['ChatHeader.test.tsx'],
+  'mobile/src/features/chat/components/ChatMessageList.tsx': ['ChatMessageList.accessibility.test.tsx'],
+  'mobile/src/features/moderation/components/ReportSheet.tsx': ['ReportSheet.test.tsx'],
+  'mobile/src/features/onboarding/components/ActivitiesStep.tsx': ['OnboardingScreen.test.tsx'],
+  'mobile/src/features/onboarding/components/EnvironmentStep.tsx': ['OnboardingScreen.test.tsx'],
+  'mobile/src/features/onboarding/components/FrequencyStep.tsx': ['OnboardingScreen.test.tsx'],
+  'mobile/src/features/onboarding/components/IntentStep.tsx': ['OnboardingScreen.test.tsx'],
+  'mobile/src/features/onboarding/components/ReadyStep.tsx': ['OnboardingScreen.test.tsx'],
+  'mobile/src/features/onboarding/components/ScheduleStep.tsx': ['OnboardingScreen.test.tsx'],
+  'mobile/src/features/onboarding/components/SocialStep.tsx': ['OnboardingScreen.test.tsx'],
+  'mobile/src/features/onboarding/components/SummaryStep.tsx': ['OnboardingScreen.test.tsx'],
+  'mobile/src/features/onboarding/components/WelcomeStep.tsx': ['OnboardingScreen.test.tsx'],
+  'mobile/src/features/profile/components/CompletenessBar.tsx': ['CompletenessBar.test.tsx'],
+};
+
+export const LOCAL_IMPORT_PATTERN = /^import\s.+?\sfrom\s+['"]([^'"]+)['"]/gm;

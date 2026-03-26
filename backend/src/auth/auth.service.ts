@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -11,48 +6,23 @@ import { AuthProvider, Gender, Prisma } from '@prisma/client';
 import { appConfig } from '../config/app.config';
 import { calculateAge } from '../common/age.util';
 import type { SignupDto, LoginDto } from './auth.dto';
+import type {
+  AuthenticatedUser,
+  AuthResult,
+  CurrentUserResult,
+  EmailAuthUser,
+} from './auth.types';
+import {
+  buildEmailLookup,
+  normalizeEmail,
+  normalizeGender,
+  parseBirthdate,
+  redactEmail,
+} from './auth.normalization';
+import { issueAuthToken } from './auth.token-factory';
 
 export type { SignupDto, LoginDto };
-
-export interface AuthResult {
-  access_token: string;
-  user: { id: string; email: string; firstName: string; isOnboarded: boolean };
-}
-
-type AuthenticatedUser = {
-  id: string;
-  email: string | null;
-  firstName: string;
-  isOnboarded: boolean;
-};
-
-type EmailAuthUser = AuthenticatedUser & {
-  passwordHash: string | null;
-};
-
-type CurrentUserResult = {
-  id: string;
-  email: string | null;
-  firstName: string;
-  birthdate: Date | null;
-  gender: Gender;
-  pronouns: string | null;
-  isOnboarded: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  age: number | null;
-  profile: unknown;
-  fitnessProfile: unknown;
-  photos: unknown[];
-};
-
-const GENDER_MAP: Record<string, Gender> = {
-  woman: Gender.FEMALE,
-  man: Gender.MALE,
-  'non-binary': Gender.NON_BINARY,
-};
-
-const ALLOWED_GENDERS = ['woman', 'man', 'non-binary'] as const;
+export type { AuthResult } from './auth.types';
 
 @Injectable()
 export class AuthService {
@@ -63,70 +33,12 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  private normalizeEmail(email?: string | null) {
-    return email?.trim().toLowerCase() ?? '';
-  }
-
-  private redactEmail(email: string) {
-    return email.replace(/(.{2}).*(@.*)/, '$1***$2');
-  }
-
-  private parseBirthdate(birthdate: string) {
-    const trimmedBirthdate = birthdate.trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedBirthdate)) {
-      throw new BadRequestException('Birthdate must use YYYY-MM-DD format');
-    }
-
-    const parsedBirthdate = new Date(`${trimmedBirthdate}T00:00:00.000Z`);
-    if (Number.isNaN(parsedBirthdate.getTime())) {
-      throw new BadRequestException('Birthdate must be a real date');
-    }
-
-    if (parsedBirthdate.toISOString().slice(0, 10) !== trimmedBirthdate) {
-      throw new BadRequestException('Birthdate must be a real date');
-    }
-
-    return parsedBirthdate;
-  }
-
-  private normalizeGender(gender: string): Gender {
-    const normalizedGender = gender.trim().toLowerCase();
-    if (
-      !ALLOWED_GENDERS.includes(
-        normalizedGender as (typeof ALLOWED_GENDERS)[number],
-      )
-    ) {
-      throw new BadRequestException(
-        'Gender must be one of: woman, man, non-binary',
-      );
-    }
-
-    const mapped = GENDER_MAP[normalizedGender];
-    if (!mapped) {
-      throw new BadRequestException(
-        'Gender must be one of: woman, man, non-binary',
-      );
-    }
-
-    return mapped;
-  }
-
-  private buildEmailLookup(email: string) {
-    return {
-      email: {
-        equals: email,
-        mode: 'insensitive' as const,
-      },
-      authProvider: AuthProvider.EMAIL,
-    };
-  }
-
   private async findEmailAuthUser(
     email: string,
   ): Promise<EmailAuthUser | null> {
     return this.prisma.user.findFirst({
       where: {
-        ...this.buildEmailLookup(email),
+        ...buildEmailLookup(email),
         isDeleted: false,
         isBanned: false,
       },
@@ -144,7 +56,7 @@ export class AuthService {
   }
 
   async signup(data: SignupDto): Promise<AuthResult> {
-    const normalizedEmail = this.normalizeEmail(data.email);
+    const normalizedEmail = normalizeEmail(data.email);
     const { password, firstName, birthdate, gender } = data;
 
     if (!normalizedEmail) {
@@ -155,14 +67,16 @@ export class AuthService {
       throw new BadRequestException('Password is required');
     }
 
-    const parsedBirthdate = this.parseBirthdate(birthdate);
-    const normalizedGender = this.normalizeGender(gender);
+    const parsedBirthdate = parseBirthdate(birthdate);
+    const normalizedGender = normalizeGender(gender);
 
     const existing = await this.prisma.user.findFirst({
-      where: { ...this.buildEmailLookup(normalizedEmail), isDeleted: false },
+      where: { ...buildEmailLookup(normalizedEmail), isDeleted: false },
     });
     if (existing) {
-      this.logger.warn(`Signup conflict for email=${this.redactEmail(normalizedEmail)}`);
+      this.logger.warn(
+        `Signup conflict for email=${redactEmail(normalizedEmail)}`,
+      );
       throw new BadRequestException('Unable to create account');
     }
 
@@ -180,13 +94,15 @@ export class AuthService {
         },
       });
 
-      return this.issueAuthToken(user);
+      return issueAuthToken(this.jwtService, user);
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        this.logger.warn(`Signup unique-constraint conflict for email=${this.redactEmail(normalizedEmail)}`);
+        this.logger.warn(
+          `Signup unique-constraint conflict for email=${redactEmail(normalizedEmail)}`,
+        );
         throw new BadRequestException('Unable to create account');
       }
       throw error;
@@ -194,7 +110,7 @@ export class AuthService {
   }
 
   async login(user: LoginDto): Promise<AuthResult> {
-    let userEmail = this.normalizeEmail(user.email);
+    let userEmail = normalizeEmail(user.email);
     const password = user.password ?? '';
 
     const hasCredentials = Boolean(userEmail && password);
@@ -206,18 +122,18 @@ export class AuthService {
 
     const foundUser = await this.findEmailAuthUser(userEmail);
     if (!foundUser || !foundUser.passwordHash) {
-      this.logger.warn(`Login rejected for email=${this.redactEmail(userEmail)}`);
+      this.logger.warn(`Login rejected for email=${redactEmail(userEmail)}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isMatch = await bcrypt.compare(password, foundUser.passwordHash);
     if (!isMatch) {
-      this.logger.warn(`Login rejected for email=${this.redactEmail(userEmail)}`);
+      this.logger.warn(`Login rejected for email=${redactEmail(userEmail)}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     userEmail = foundUser.email ?? '';
-    return this.issueAuthToken(foundUser);
+    return issueAuthToken(this.jwtService, foundUser);
   }
 
   async registerPushToken(userId: string, token: string): Promise<void> {
@@ -232,21 +148,6 @@ export class AuthService {
       where: { id: userId },
       data: { pushToken: null },
     });
-  }
-
-  private issueAuthToken(user: AuthenticatedUser): AuthResult {
-    const userEmail = user.email?.trim() ?? '';
-    const payload = { sub: user.id };
-
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        id: user.id,
-        email: userEmail,
-        firstName: user.firstName,
-        isOnboarded: user.isOnboarded,
-      },
-    };
   }
 
   async getCurrentUser(userId: string): Promise<CurrentUserResult> {
@@ -336,7 +237,9 @@ export class AuthService {
     }
 
     this.logger.log(
-      `Soft-deleted account for userId=${user.id}${user.email ? ` email=${this.redactEmail(user.email)}` : ''}`,
+      `Soft-deleted account for userId=${user.id}${
+        user.email ? ` email=${redactEmail(user.email)}` : ''
+      }`,
     );
   }
 }
