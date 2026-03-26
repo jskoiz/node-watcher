@@ -5,6 +5,13 @@ import AppIcon from '../../../components/ui/AppIcon';
 import { createStyles as styles } from './create.styles';
 import { ACTIVITY_TYPES } from './create.helpers';
 
+const UNSELECTED_ACTIVITY_TILE = {
+  backgroundColor: '#F7F4F0',
+  borderColor: 'rgba(92,84,76,0.10)',
+  iconColor: 'rgba(92,84,76,0.78)',
+  labelColor: 'rgba(92,84,76,0.86)',
+} as const;
+
 function ActivityTile({
   activity,
   selected,
@@ -21,16 +28,21 @@ function ActivityTile({
           styles.activityTile,
           selected
             ? { borderColor: activity.color, backgroundColor: activity.color + '20' }
-            : { borderColor: 'rgba(255,255,255,0.07)', backgroundColor: '#F7F4F0' },
+            : {
+                borderColor: UNSELECTED_ACTIVITY_TILE.borderColor,
+                backgroundColor: UNSELECTED_ACTIVITY_TILE.backgroundColor,
+              },
         ]}
       >
         <AppIcon
           name={activity.icon}
           size={20}
-          color={selected ? activity.color : 'rgba(240,246,252,0.38)'}
+          color={selected ? activity.color : UNSELECTED_ACTIVITY_TILE.iconColor}
         />
       </View>
-      <Text style={[styles.activityLabel, { color: selected ? activity.color : 'rgba(240,246,252,0.38)' }]}>
+      <Text
+        style={[styles.activityLabel, { color: selected ? activity.color : UNSELECTED_ACTIVITY_TILE.labelColor }]}
+      >
         {activity.label}
       </Text>
     </Pressable>
@@ -80,4 +92,3 @@ export function CreateActivityPicker({
     </View>
   );
 }
-
