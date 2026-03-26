@@ -84,7 +84,7 @@ const { eventId, noteText } = parseEventInviteContent(item.text);
     }
 
     return (
-<View style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', gap: 8 }}>
+      <View style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', gap: 8 }}>
         {noteText ? (
           <View
             style={[
@@ -204,7 +204,8 @@ const inviteEventIds = useMemo(
   return (
     <FlatList
       data={messages}
-renderItem={({ item }) => (
+      extraData={resolvedEventInvites}
+      renderItem={({ item }) => (
         <ChatBubble
           eventInvites={resolvedEventInvites}
           item={item}

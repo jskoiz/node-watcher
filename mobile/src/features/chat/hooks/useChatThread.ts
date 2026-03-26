@@ -5,11 +5,45 @@ import { matchesApi } from '../../../services/api';
 import { connectMatchMessageStream } from '../../../services/matchRealtime';
 import { beginOptimisticUpdate } from '../../../lib/query/optimisticUpdates';
 import { queryKeys } from '../../../lib/query/queryKeys';
-import { connectSocket, getSocket } from '../../../lib/socket';
+import { connectSocket, disconnectSocket, getSocket } from '../../../lib/socket';
 
 type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected';
 
 const TYPING_DEBOUNCE_MS = 2000;
+const REALTIME_MESSAGE_ID_WINDOW = 200;
+
+function dedupeChatMessages(messages: ChatMessage[]) {
+  const seenIds = new Set<string>();
+
+  return messages.filter((message) => {
+    if (seenIds.has(message.id)) {
+      return false;
+    }
+
+    seenIds.add(message.id);
+    return true;
+  });
+}
+
+function reconcileSentMessage(
+  current: ChatMessage[],
+  message: ChatMessage,
+  tempId?: string,
+) {
+  const next = current.filter(
+    (item) => item.id !== tempId && item.id !== message.id,
+  );
+  const optimisticIndex = tempId
+    ? current.findIndex((item) => item.id === tempId)
+    : -1;
+
+  if (optimisticIndex >= 0) {
+    next.splice(optimisticIndex, 0, message);
+    return dedupeChatMessages(next);
+  }
+
+  return dedupeChatMessages([message, ...next]);
+}
 
 function reconcileMessageList(
   current: ChatMessage[] | undefined,
@@ -44,10 +78,15 @@ export function useChatThread(matchId: string) {
   const messageKey = queryKeys.matches.messages(matchId);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeMatchRef = useRef<string | null>(null);
+  const joinedMatchRef = useRef<string | null>(null);
+  const joinPendingRef = useRef(false);
+  const seenRealtimeMessageIdsRef = useRef<string[]>([]);
   const socketHandlersRef = useRef<{
     connect?: () => void;
     disconnect?: () => void;
     reconnect?: () => void;
+    joined?: (data: { matchId: string }) => void;
     messageNew?: (data: { matchId: string; message: ChatMessage }) => void;
     typingStart?: (data: { matchId: string; userId: string }) => void;
     typingStop?: (data: { matchId: string; userId: string }) => void;
@@ -72,48 +111,67 @@ export function useChatThread(matchId: string) {
     await query.refetch();
   }, [query]);
 
+  const clearTypingSession = useCallback(
+    (emitStop: boolean) => {
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = null;
+      }
+
+      if (emitStop && isTypingEmittedRef.current) {
+        const socket = getSocket();
+        if (socket?.connected) {
+          socket.emit('typing:stop', { matchId });
+        }
+      }
+
+      isTypingEmittedRef.current = false;
+    },
+    [matchId],
+  );
+
   // Emit typing:start / typing:stop with debounce
+  // Guard: only emit if socket has joined the match room
   const emitTyping = useCallback(() => {
     const socket = getSocket();
     if (!socket?.connected || !matchId) return;
+    if (joinedMatchRef.current !== matchId) return;
 
     if (!isTypingEmittedRef.current) {
       socket.emit('typing:start', { matchId });
       isTypingEmittedRef.current = true;
     }
 
-    // Reset debounce timer
     if (typingTimerRef.current) {
       clearTimeout(typingTimerRef.current);
     }
+
     typingTimerRef.current = setTimeout(() => {
-      const s = getSocket();
-      if (s?.connected) {
-        s.emit('typing:stop', { matchId });
+      const currentSocket = getSocket();
+      if (currentSocket?.connected) {
+        currentSocket.emit('typing:stop', { matchId });
       }
       isTypingEmittedRef.current = false;
     }, TYPING_DEBOUNCE_MS);
   }, [matchId]);
 
   const stopTypingEmit = useCallback(() => {
-    if (typingTimerRef.current) {
-      clearTimeout(typingTimerRef.current);
-      typingTimerRef.current = null;
-    }
-    if (isTypingEmittedRef.current) {
-      const socket = getSocket();
-      if (socket?.connected) {
-        socket.emit('typing:stop', { matchId });
-      }
-      isTypingEmittedRef.current = false;
-    }
-  }, [matchId]);
+    clearTypingSession(true);
+  }, [clearTypingSession]);
 
   useEffect(() => {
     if (!matchId) return undefined;
 
     let cancelled = false;
+    let fallbackStarted = false;
     let sseDisconnect: (() => void) | null = null;
+
+    if (activeMatchRef.current !== matchId) {
+      activeMatchRef.current = matchId;
+      joinedMatchRef.current = null;
+      joinPendingRef.current = false;
+      seenRealtimeMessageIdsRef.current = [];
+    }
 
     const stopPolling = () => {
       if (pollTimerRef.current) {
@@ -130,38 +188,104 @@ export function useChatThread(matchId: string) {
       }
     };
 
-    const fallbackToSSE = async () => {
-      if (cancelled) return;
-      setConnectionStatus('disconnected');
+    const clearTypingStateWithoutEmit = () => {
+      clearTypingSession(false);
+      setIsTyping(false);
+    };
 
-      const nextDisconnect = await connectMatchMessageStream(matchId, {
-        onStatus: (status) => {
-          if (cancelled) return;
-          if (status === 'connected') {
-            setConnectionStatus('connected');
-            stopPolling();
-          } else if (status === 'connecting') {
-            setConnectionStatus('connecting');
-          } else {
-            setConnectionStatus('disconnected');
-            startPolling();
-          }
-        },
-        onMessage: () => {
-          void refetchRef.current();
-        },
-        onError: () => {
-          if (cancelled) return;
-          setConnectionStatus('disconnected');
-          startPolling();
-        },
-      });
-      if (cancelled) {
-        nextDisconnect();
-        return;
+    const cleanupSocketListeners = (socket: ReturnType<typeof getSocket>) => {
+      if (!socket) return;
+
+      const handlers = socketHandlersRef.current;
+      if (handlers.connect) socket.off('connect', handlers.connect);
+      if (handlers.disconnect) socket.off('disconnect', handlers.disconnect);
+      if (handlers.reconnect) socket.off('reconnect', handlers.reconnect);
+      if (handlers.joined) socket.off('joined:match', handlers.joined);
+      if (handlers.messageNew) socket.off('message:new', handlers.messageNew);
+      if (handlers.typingStart) socket.off('typing:start', handlers.typingStart);
+      if (handlers.typingStop) socket.off('typing:stop', handlers.typingStop);
+      if (handlers.connectError) socket.off('connect_error', handlers.connectError);
+    };
+
+    const rememberRealtimeMessage = (messageId?: string) => {
+      if (!messageId) return true;
+
+      const seenIds = seenRealtimeMessageIdsRef.current;
+      if (seenIds.includes(messageId)) {
+        return false;
       }
 
-      sseDisconnect = nextDisconnect;
+      seenIds.push(messageId);
+      if (seenIds.length > REALTIME_MESSAGE_ID_WINDOW) {
+        seenIds.splice(0, seenIds.length - REALTIME_MESSAGE_ID_WINDOW);
+      }
+
+      return true;
+    };
+
+    const handleIncomingMessage = (data: { type?: 'message'; matchId: string; message: ChatMessage }) => {
+      if (data.matchId !== matchId) return;
+      if (!rememberRealtimeMessage(data.message.id)) return;
+
+      setIsTyping(false);
+      void refetchRef.current();
+    };
+
+    const requestJoin = (socket: { emit: (event: string, payload: { matchId: string }) => void }) => {
+      if (joinedMatchRef.current === matchId || joinPendingRef.current) return;
+      joinPendingRef.current = true;
+      socket.emit('join:match', { matchId });
+    };
+
+    const handleJoinedMatch = (data: { matchId: string }) => {
+      if (data.matchId !== matchId) return;
+
+      joinedMatchRef.current = data.matchId;
+      joinPendingRef.current = false;
+      setConnectionStatus('connected');
+      stopPolling();
+      void refetchRef.current();
+    };
+
+    const fallbackToSSE = async () => {
+      if (cancelled || fallbackStarted) return;
+      fallbackStarted = true;
+      setConnectionStatus('disconnected');
+
+      try {
+        const disconnect = await connectMatchMessageStream(matchId, {
+          onStatus: (status) => {
+            if (cancelled) return;
+            if (status === 'connected') {
+              setConnectionStatus('connected');
+              stopPolling();
+            } else if (status === 'connecting') {
+              setConnectionStatus('connecting');
+            } else {
+              setConnectionStatus('disconnected');
+              startPolling();
+            }
+          },
+          onMessage: handleIncomingMessage,
+          onError: () => {
+            if (cancelled) return;
+            setConnectionStatus('disconnected');
+            startPolling();
+          },
+        });
+
+        if (cancelled) {
+          disconnect();
+          return;
+        }
+
+        sseDisconnect = disconnect;
+      } catch {
+        if (!cancelled) {
+          setConnectionStatus('disconnected');
+          startPolling();
+        }
+      }
     };
 
     const setupWebSocket = async () => {
@@ -176,31 +300,23 @@ export function useChatThread(matchId: string) {
         const handleConnect = () => {
           if (cancelled) return;
           setConnectionStatus('connected');
-          stopPolling();
-          socket.emit('join:match', { matchId });
+          requestJoin(socket);
         };
 
         const handleDisconnect = () => {
           if (cancelled) return;
+          joinedMatchRef.current = null;
+          joinPendingRef.current = false;
           setConnectionStatus('reconnecting');
           startPolling();
+          clearTypingStateWithoutEmit();
         };
 
         const handleReconnect = () => {
           if (cancelled) return;
-          setConnectionStatus('connected');
-          stopPolling();
-          socket.emit('join:match', { matchId });
-          void refetchRef.current();
-        };
-
-        const handleMessageNew = (data: { matchId: string; message: ChatMessage }) => {
-          if (data.matchId !== matchId) return;
-          setIsTyping(false);
-          queryClient.setQueryData<ChatMessage[]>(
-            messageKey,
-            (current) => reconcileMessageList(current, data.message),
-          );
+          setConnectionStatus('reconnecting');
+          startPolling();
+          requestJoin(socket);
         };
 
         const handleTypingStart = (data: { matchId: string; userId: string }) => {
@@ -215,14 +331,11 @@ export function useChatThread(matchId: string) {
 
         const handleConnectError = () => {
           if (cancelled) return;
-          // WebSocket failed to connect, fall back to SSE + polling
-          socket.off('connect', handleConnect);
-          socket.off('disconnect', handleDisconnect);
-          socket.off('reconnect', handleReconnect);
-          socket.off('message:new', handleMessageNew);
-          socket.off('typing:start', handleTypingStart);
-          socket.off('typing:stop', handleTypingStop);
-          socket.off('connect_error', handleConnectError);
+          joinedMatchRef.current = null;
+          joinPendingRef.current = false;
+          clearTypingStateWithoutEmit();
+          cleanupSocketListeners(socket);
+          disconnectSocket();
           void fallbackToSSE();
         };
 
@@ -230,7 +343,8 @@ export function useChatThread(matchId: string) {
           connect: handleConnect,
           disconnect: handleDisconnect,
           reconnect: handleReconnect,
-          messageNew: handleMessageNew,
+          joined: handleJoinedMatch,
+          messageNew: handleIncomingMessage,
           typingStart: handleTypingStart,
           typingStop: handleTypingStop,
           connectError: handleConnectError,
@@ -239,50 +353,45 @@ export function useChatThread(matchId: string) {
         socket.on('connect', handleConnect);
         socket.on('disconnect', handleDisconnect);
         socket.on('reconnect', handleReconnect);
-        socket.on('message:new', handleMessageNew);
+        socket.on('joined:match', handleJoinedMatch);
+        socket.on('message:new', handleIncomingMessage);
         socket.on('typing:start', handleTypingStart);
         socket.on('typing:stop', handleTypingStop);
         socket.on('connect_error', handleConnectError);
 
-        // If already connected, join immediately
         if (socket.connected) {
           setConnectionStatus('connected');
-          stopPolling();
-          socket.emit('join:match', { matchId });
+          requestJoin(socket);
         }
       } catch {
-        // WebSocket setup failed, fall back to SSE + polling
         if (!cancelled) {
           void fallbackToSSE();
         }
       }
     };
 
+    startPolling();
     void setupWebSocket();
 
     return () => {
       cancelled = true;
       stopPolling();
       stopTypingEmit();
+      joinedMatchRef.current = null;
+      joinPendingRef.current = false;
+      activeMatchRef.current = null;
 
-      // Leave room and clean up socket listeners
       const socket = getSocket();
       if (socket) {
         socket.emit('leave:match', { matchId });
-        const handlers = socketHandlersRef.current;
-        if (handlers.connect) socket.off('connect', handlers.connect);
-        if (handlers.disconnect) socket.off('disconnect', handlers.disconnect);
-        if (handlers.reconnect) socket.off('reconnect', handlers.reconnect);
-        if (handlers.messageNew) socket.off('message:new', handlers.messageNew);
-        if (handlers.typingStart) socket.off('typing:start', handlers.typingStart);
-        if (handlers.typingStop) socket.off('typing:stop', handlers.typingStop);
-        if (handlers.connectError) socket.off('connect_error', handlers.connectError);
+        cleanupSocketListeners(socket);
+        disconnectSocket();
       }
-      socketHandlersRef.current = {};
 
+      socketHandlersRef.current = {};
       sseDisconnect?.();
     };
-  }, [matchId, stopTypingEmit]);
+  }, [matchId, stopTypingEmit, clearTypingSession]);
 
   const sendMessage = useMutation({
     mutationFn: async (text: string) => {

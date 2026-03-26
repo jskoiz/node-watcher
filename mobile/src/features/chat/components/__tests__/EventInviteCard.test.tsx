@@ -68,6 +68,47 @@ describe('EventInviteCard', () => {
     expect(screen.queryByTestId('event-invite-rsvp-button')).toBeNull();
   });
 
+  it('keeps the going state after a remount during chat refresh', async () => {
+    const firstRender = renderWithProviders(
+      <EventInviteCard
+        eventId="event-4"
+        title="Sunset mobility class"
+        location="Ala Moana"
+        startsAt={toIsoFromNow(7)}
+        endsAt={toIsoFromNow(7)}
+        status="pending"
+        isMe={false}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId('event-invite-rsvp-button'));
+
+    await waitFor(() => {
+      expect(mockRsvp).toHaveBeenCalledWith('event-4');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Going')).toBeTruthy();
+    });
+
+    firstRender.unmount();
+
+    renderWithProviders(
+      <EventInviteCard
+        eventId="event-4"
+        title="Sunset mobility class"
+        location="Ala Moana"
+        startsAt={toIsoFromNow(7)}
+        endsAt={toIsoFromNow(7)}
+        status="pending"
+        isMe={false}
+      />,
+    );
+
+    expect(screen.getByText('Going')).toBeTruthy();
+    expect(screen.queryByTestId('event-invite-rsvp-button')).toBeNull();
+  });
+
   it('shows invite sent for invites authored by me', () => {
     renderWithProviders(
       <EventInviteCard

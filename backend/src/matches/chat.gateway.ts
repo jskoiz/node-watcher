@@ -46,6 +46,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server!: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
+  private readonly joinedMatchRooms = new WeakMap<Socket, Set<string>>();
 
   constructor(
     private readonly matchesService: MatchesService,
@@ -69,6 +70,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: AuthenticatedSocket) {
+    this.joinedMatchRooms.delete(client);
     this.logger.debug(`Client disconnected: ${client.id}`);
   }
 
@@ -88,13 +90,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
+    if (this.isMatchRoomJoined(client, matchId)) {
+      this.logger.debug(`Ignored duplicate join for match room ${matchId} from user ${userId}`);
+      return;
+    }
+
     try {
       // Validates that the user is part of this match
       await this.matchesService.getMessages(matchId, userId, 1);
-      await client.join(`match:${matchId}`);
+      await client.join(this.getMatchRoomName(matchId));
       client.data.joinedMatchIds = Array.from(
         new Set([...(client.data.joinedMatchIds ?? []), matchId]),
       );
+      this.getJoinedMatchRooms(client).add(matchId);
       client.emit('joined:match', { matchId });
       this.logger.debug(`User ${userId} joined match room ${matchId}`);
     } catch {
@@ -118,10 +126,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    await client.leave(`match:${matchId}`);
+    await client.leave(this.getMatchRoomName(matchId));
     client.data.joinedMatchIds = (client.data.joinedMatchIds ?? []).filter(
       (joinedMatchId) => joinedMatchId !== matchId,
     );
+    this.getJoinedMatchRooms(client).delete(matchId);
     client.emit('left:match', { matchId });
   }
 
@@ -173,7 +182,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    client.to(`match:${matchId}`).emit('typing:start', {
+    client.to(this.getMatchRoomName(matchId)).emit('typing:start', {
       matchId,
       userId,
     });
@@ -194,7 +203,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    client.to(`match:${matchId}`).emit('typing:stop', {
+    client.to(this.getMatchRoomName(matchId)).emit('typing:stop', {
       matchId,
       userId,
     });
@@ -208,7 +217,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     matchId: string,
     message: { id: string; text: string; sender: 'me' | 'them'; timestamp: Date },
   ) {
-    this.server?.to(`match:${matchId}`).emit('message:new', {
+    this.server?.to(this.getMatchRoomName(matchId)).emit('message:new', {
       matchId,
       message,
     });
@@ -245,5 +254,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.disconnect(true);
       return null;
     }
+  }
+
+  private getMatchRoomName(matchId: string) {
+    return `match:${matchId}`;
+  }
+
+  private getJoinedMatchRooms(client: Socket) {
+    let rooms = this.joinedMatchRooms.get(client);
+    if (!rooms) {
+      rooms = new Set<string>();
+      this.joinedMatchRooms.set(client, rooms);
+    }
+
+    return rooms;
+  }
+
+  private isMatchRoomJoined(client: Socket, matchId: string) {
+    return this.getJoinedMatchRooms(client).has(matchId) || client.rooms.has(this.getMatchRoomName(matchId));
   }
 }

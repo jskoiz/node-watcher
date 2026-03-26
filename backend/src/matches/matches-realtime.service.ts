@@ -49,33 +49,47 @@ export class MatchesRealtimeService {
   }
 
   stream(matchId: string): Observable<MatchMessageEvent> {
+    const stream = this.getOrCreateStream(matchId);
     this.incrementRef(matchId);
-    return this.getOrCreateStream(matchId).asObservable().pipe(
+    this.logger.debug(
+      `Opened SSE stream for match ${matchId} (active streams: ${this.streams.size}, subscribers: ${this.getRefCount(matchId)})`,
+    );
+
+    return stream.asObservable().pipe(
       finalize(() => this.decrementRef(matchId)),
     );
   }
 
   publishMessage(matchId: string, message: MatchMessagePayload) {
+    const subscriberCount = this.getRefCount(matchId);
     const stream = this.getOrCreateStream(matchId);
 
-    // Publish to SSE subscribers via RxJS Subject
+    // Publish to SSE subscribers via RxJS Subject.
     stream.next({
       type: 'message',
       matchId,
       message,
     });
 
-    // Also publish to WebSocket room via the gateway
+    // Also publish to WebSocket room via the gateway.
+    const bridgedToWebsocket = Boolean(this.chatGateway);
     this.chatGateway?.emitMessageToRoom(matchId, message);
 
     this.logger.debug(
       asLogMessage('realtime.message.published', {
         matchId,
         messageId: message.id,
-        subscriberCount: this.refCounts.get(matchId) ?? 0,
-        websocketEnabled: Boolean(this.chatGateway),
+        subscriberCount,
+        websocketEnabled: bridgedToWebsocket,
       }),
     );
+
+    if (subscriberCount === 0) {
+      this.logger.debug(
+        `Discarded idle SSE stream for match ${matchId} after publish`,
+      );
+      this.removeStream(matchId);
+    }
   }
 
   private getOrCreateStream(matchId: string): Subject<MatchMessageEvent> {
@@ -98,11 +112,25 @@ export class MatchesRealtimeService {
   }
 
   private decrementRef(matchId: string): void {
-    const count = (this.refCounts.get(matchId) ?? 1) - 1;
+    const currentCount = this.refCounts.get(matchId);
+
+    if (currentCount === undefined) {
+      this.logger.warn(
+        `Stream finalized without a matching subscriber count for match ${matchId}`,
+      );
+      this.removeStream(matchId);
+      return;
+    }
+
+    const count = currentCount - 1;
     if (count <= 0) {
+      this.logger.debug(`Closing SSE stream for match ${matchId}`);
       this.removeStream(matchId);
     } else {
       this.refCounts.set(matchId, count);
+      this.logger.debug(
+        `Detached SSE subscriber for match ${matchId} (subscribers: ${count})`,
+      );
     }
   }
 
@@ -119,5 +147,9 @@ export class MatchesRealtimeService {
       );
     }
     this.refCounts.delete(matchId);
+  }
+
+  private getRefCount(matchId: string): number {
+    return this.refCounts.get(matchId) ?? 0;
   }
 }

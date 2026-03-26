@@ -1,10 +1,10 @@
-import { renderHook, act, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useChatThread } from '../useChatThread';
 
-// ---- Mocks ----
-
 const mockGetMessages = jest.fn().mockResolvedValue({ data: [] });
-const mockSendMessage = jest.fn().mockResolvedValue({ data: { id: 'msg-1', text: 'hi', sender: 'me', timestamp: '2026-03-17T00:00:00Z' } });
+const mockSendMessage = jest.fn().mockResolvedValue({
+  data: { id: 'msg-1', text: 'hi', sender: 'me', timestamp: '2026-03-17T00:00:00Z' },
+});
 
 jest.mock('../../../../services/api', () => ({
   matchesApi: {
@@ -52,7 +52,6 @@ jest.mock('../../../../lib/query/queryKeys', () => ({
   },
 }));
 
-// Mock React Query
 const mockRefetch = jest.fn().mockResolvedValue({ data: [] });
 const mockCancelQueries = jest.fn().mockResolvedValue(undefined);
 const mockSetQueryData = jest.fn();
@@ -76,26 +75,39 @@ jest.mock('@tanstack/react-query', () => ({
     onMutate,
     onError,
     onSuccess,
+    onSettled,
   }: {
     mutationFn: (text: string) => Promise<unknown>;
     onMutate?: (text: string) => Promise<unknown>;
     onError?: (error: unknown, text: string, context: unknown) => void;
     onSuccess?: (result: unknown, text: string, context: unknown) => void;
+    onSettled?: (result: unknown, error: unknown, text: string, context: unknown) => void;
   }) => ({
     mutateAsync: async (text: string) => {
       const context = await onMutate?.(text);
+
       try {
         const result = await mutationFn(text);
         onSuccess?.(result, text, context);
+        onSettled?.(result, null, text, context);
         return result;
       } catch (error) {
         onError?.(error, text, context);
+        onSettled?.(undefined, error, text, context);
         throw error;
       }
     },
     isPending: false,
   }),
 }));
+
+function getSocketHandler(eventName: string) {
+  return mockSocketOn.mock.calls.find(([registered]) => registered === eventName)?.[1];
+}
+
+function countSocketEmits(eventName: string) {
+  return mockSocketEmit.mock.calls.filter(([registered]) => registered === eventName).length;
+}
 
 describe('useChatThread', () => {
   beforeEach(() => {
@@ -111,7 +123,11 @@ describe('useChatThread', () => {
       mockSocketHandlers.delete(event);
     });
     mockGetSocket.mockReturnValue(mockSocket);
+    mockDisconnectSocket.mockImplementation(() => {
+      mockGetSocket.mockReturnValue(null);
+    });
     mockConnectSocket.mockResolvedValue(mockSocket);
+    mockConnectMatchMessageStream.mockResolvedValue(() => {});
   });
 
   afterEach(() => {
@@ -135,7 +151,7 @@ describe('useChatThread', () => {
     });
   });
 
-  it('falls back to SSE when WebSocket connection fails', async () => {
+  it('falls back to SSE when WebSocket setup fails', async () => {
     mockConnectSocket.mockRejectedValueOnce(new Error('WS failed'));
 
     renderHook(() => useChatThread('match-1'));
@@ -152,11 +168,33 @@ describe('useChatThread', () => {
     });
   });
 
+  it('disconnects the websocket transport when connect_error triggers fallback', async () => {
+    renderHook(() => useChatThread('match-1'));
+
+    await waitFor(() => {
+      expect(getSocketHandler('connect_error')).toEqual(expect.any(Function));
+    });
+
+    act(() => {
+      getSocketHandler('connect_error')?.();
+    });
+
+    expect(mockDisconnectSocket).toHaveBeenCalled();
+    expect(mockConnectMatchMessageStream).toHaveBeenCalledWith(
+      'match-1',
+      expect.objectContaining({
+        onMessage: expect.any(Function),
+        onStatus: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+  });
+
   it('cleans up socket listeners on unmount', async () => {
     const { unmount } = renderHook(() => useChatThread('match-1'));
 
     await waitFor(() => {
-      expect(mockSocket.on).toHaveBeenCalledWith('connect', expect.any(Function));
+      expect(getSocketHandler('joined:match')).toEqual(expect.any(Function));
     });
 
     unmount();
@@ -165,35 +203,185 @@ describe('useChatThread', () => {
     expect(mockSocket.off).toHaveBeenCalledWith('connect', expect.any(Function));
     expect(mockSocket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(mockSocket.off).toHaveBeenCalledWith('reconnect', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith('joined:match', expect.any(Function));
     expect(mockSocket.off).toHaveBeenCalledWith('message:new', expect.any(Function));
     expect(mockSocket.off).toHaveBeenCalledWith('typing:start', expect.any(Function));
     expect(mockSocket.off).toHaveBeenCalledWith('typing:stop', expect.any(Function));
     expect(mockSocket.off).toHaveBeenCalledWith('connect_error', expect.any(Function));
-    expect(mockSocket.off).not.toHaveBeenCalledWith('connect');
-    expect(mockSocket.off).not.toHaveBeenCalledWith('disconnect');
-    expect(mockSocket.off).not.toHaveBeenCalledWith('reconnect');
-    expect(mockSocket.off).not.toHaveBeenCalledWith('message:new');
-    expect(mockSocket.off).not.toHaveBeenCalledWith('typing:start');
-    expect(mockSocket.off).not.toHaveBeenCalledWith('typing:stop');
-    expect(mockSocket.off).not.toHaveBeenCalledWith('connect_error');
+    expect(mockDisconnectSocket).toHaveBeenCalled();
   });
 
-  it('exposes emitTyping that emits to socket', async () => {
+  it('emits typing start once, debounces typing stop, and re-arms after disconnect', async () => {
     mockSocket.connected = true;
     mockGetSocket.mockReturnValue(mockSocket);
 
     const { result } = renderHook(() => useChatThread('match-1'));
 
-    // Wait for async WS setup to settle
     await waitFor(() => {
       expect(mockConnectSocket).toHaveBeenCalled();
     });
 
     act(() => {
       result.current.emitTyping();
+      result.current.emitTyping();
     });
 
-    expect(mockSocket.emit).toHaveBeenCalledWith('typing:start', { matchId: 'match-1' });
+    expect(countSocketEmits('typing:start')).toBe(1);
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(countSocketEmits('typing:stop')).toBe(1);
+
+    act(() => {
+      mockSocket.connected = false;
+      getSocketHandler('disconnect')?.();
+    });
+
+    act(() => {
+      mockSocket.connected = true;
+      result.current.emitTyping();
+    });
+
+    expect(countSocketEmits('typing:start')).toBe(2);
+  });
+
+  it('dedupes repeated realtime delivery for the same message id', async () => {
+    renderHook(() => useChatThread('match-1'));
+
+    await waitFor(() => {
+      expect(getSocketHandler('message:new')).toEqual(expect.any(Function));
+    });
+
+    const messageHandler = getSocketHandler('message:new');
+    if (!messageHandler) {
+      throw new Error('Expected message:new handler to be registered');
+    }
+
+    act(() => {
+      messageHandler({
+        matchId: 'match-1',
+        message: {
+          id: 'msg-1',
+          text: 'Hello',
+          sender: 'them',
+          timestamp: '2026-03-17T00:00:00Z',
+        },
+      });
+    });
+
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      messageHandler({
+        matchId: 'match-1',
+        message: {
+          id: 'msg-1',
+          text: 'Hello',
+          sender: 'them',
+          timestamp: '2026-03-17T00:00:00Z',
+        },
+      });
+    });
+
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      messageHandler({
+        matchId: 'match-1',
+        message: {
+          id: 'msg-2',
+          text: 'World',
+          sender: 'them',
+          timestamp: '2026-03-17T00:00:01Z',
+        },
+      });
+    });
+
+    expect(mockRefetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('reconciles a sent message after a refetch removes the optimistic temp row', async () => {
+    mockGetQueryData.mockReturnValueOnce([
+      {
+        id: 'existing-1',
+        text: 'Earlier',
+        sender: 'them',
+        timestamp: '2026-03-17T00:00:00Z',
+      },
+    ]);
+    mockSetQueryData.mockImplementation((_queryKey, updater) => {
+      if (typeof updater !== 'function') {
+        return updater;
+      }
+
+      return updater([
+        {
+          id: 'existing-1',
+          text: 'Earlier',
+          sender: 'them',
+          timestamp: '2026-03-17T00:00:00Z',
+        },
+      ]);
+    });
+
+    const { result } = renderHook(() => useChatThread('match-1'));
+
+    await act(async () => {
+      await result.current.sendMessage('hi');
+    });
+
+    const reconciliationCall = mockSetQueryData.mock.calls.at(-1);
+    expect(reconciliationCall).toBeDefined();
+
+    const reconciled = reconciliationCall?.[1]([
+      {
+        id: 'existing-1',
+        text: 'Earlier',
+        sender: 'them',
+        timestamp: '2026-03-17T00:00:00Z',
+      },
+    ]);
+
+    expect(reconciled).toEqual([
+      { id: 'msg-1', text: 'hi', sender: 'me', timestamp: '2026-03-17T00:00:00Z' },
+      {
+        id: 'existing-1',
+        text: 'Earlier',
+        sender: 'them',
+        timestamp: '2026-03-17T00:00:00Z',
+      },
+    ]);
+  });
+
+  it('joins match room when socket is already connected and re-joins after reconnects without duplicating requests', async () => {
+    mockSocket.connected = true;
+    mockConnectSocket.mockResolvedValue(mockSocket);
+
+    renderHook(() => useChatThread('match-1'));
+
+    await waitFor(() => {
+      expect(mockSocket.emit).toHaveBeenCalledWith('join:match', { matchId: 'match-1' });
+    });
+
+    const initialJoinCount = countSocketEmits('join:match');
+
+    act(() => {
+      getSocketHandler('connect')?.();
+    });
+
+    expect(countSocketEmits('join:match')).toBe(initialJoinCount);
+
+    act(() => {
+      getSocketHandler('joined:match')?.({ matchId: 'match-1' });
+      mockSocket.connected = false;
+      getSocketHandler('disconnect')?.();
+      mockSocket.connected = true;
+      getSocketHandler('reconnect')?.();
+    });
+
+    expect(countSocketEmits('join:match')).toBe(initialJoinCount + 1);
   });
 
   it('does not skip mount when matchId is empty', () => {
@@ -201,75 +389,6 @@ describe('useChatThread', () => {
 
     expect(result.current.messages).toEqual([]);
     expect(mockConnectSocket).not.toHaveBeenCalled();
-  });
-
-  it('joins match room when socket is already connected', async () => {
-    mockSocket.connected = true;
-    mockConnectSocket.mockResolvedValue(mockSocket);
-
-    renderHook(() => useChatThread('match-1'));
-
-    await waitFor(() => {
-      expect(mockSocket.emit).toHaveBeenCalledWith('join:match', { matchId: 'match-1' });
-    });
-  });
-
-  it('does not keep polling when the socket is already connected', async () => {
-    mockSocket.connected = true;
-    mockConnectSocket.mockResolvedValue(mockSocket);
-
-    renderHook(() => useChatThread('match-1'));
-
-    await waitFor(() => {
-      expect(mockSocket.emit).toHaveBeenCalledWith('join:match', { matchId: 'match-1' });
-    });
-
-    act(() => {
-      jest.advanceTimersByTime(5000);
-    });
-
-    expect(mockRefetch).not.toHaveBeenCalled();
-  });
-
-  it('writes incoming websocket messages into cache instead of refetching', async () => {
-    renderHook(() => useChatThread('match-1'));
-
-    await waitFor(() => {
-      expect(mockSocketHandlers.get('message:new')).toEqual(expect.any(Function));
-    });
-
-    act(() => {
-      mockSocketHandlers.get('message:new')?.({
-        matchId: 'match-1',
-        message: {
-          id: 'msg-2',
-          text: 'new message',
-          sender: 'them',
-          timestamp: '2026-03-17T00:01:00Z',
-        },
-      });
-    });
-
-    expect(mockSetQueryData).toHaveBeenCalledWith(
-      ['matches', 'messages', 'match-1'],
-      expect.any(Function),
-    );
-    expect(mockRefetch).not.toHaveBeenCalled();
-  });
-
-  it('replaces the optimistic message without refetching after send', async () => {
-    const { result } = renderHook(() => useChatThread('match-1'));
-
-    await act(async () => {
-      await result.current.sendMessage('hi');
-    });
-
-    expect(mockSendMessage).toHaveBeenCalledWith('match-1', 'hi');
-    expect(mockSetQueryData).toHaveBeenCalledWith(
-      ['matches', 'messages', 'match-1'],
-      expect.any(Function),
-    );
-    expect(mockRefetch).not.toHaveBeenCalled();
   });
 
   it('emits typing:stop on unmount when a typing session is active', async () => {

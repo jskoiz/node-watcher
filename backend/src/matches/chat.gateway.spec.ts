@@ -6,6 +6,8 @@ import { appConfig } from '../config/app.config';
 import { TokenAuthService } from '../auth/token-auth.service';
 
 function createMockSocket(overrides: Record<string, unknown> = {}) {
+  const rooms = new Set<string>(['socket-1']);
+
   return {
     id: 'socket-1',
     handshake: {
@@ -14,9 +16,14 @@ function createMockSocket(overrides: Record<string, unknown> = {}) {
       headers: {},
     },
     data: {},
+    rooms,
     emit: jest.fn(),
-    join: jest.fn().mockResolvedValue(undefined),
-    leave: jest.fn().mockResolvedValue(undefined),
+    join: jest.fn().mockImplementation(async (room: string) => {
+      rooms.add(room);
+    }),
+    leave: jest.fn().mockImplementation(async (room: string) => {
+      rooms.delete(room);
+    }),
     to: jest.fn().mockReturnThis(),
     disconnect: jest.fn(),
     ...overrides,
@@ -210,6 +217,19 @@ describe('ChatGateway', () => {
       });
     });
 
+    it('ignores duplicate join requests for the same room', async () => {
+      const socket = createMockSocket();
+      socket.data = { userId: 'user-1' };
+
+      await gateway.handleJoinMatch(socket, { matchId: 'match-1' });
+      await gateway.handleJoinMatch(socket, { matchId: 'match-1' });
+
+      expect(matchesService.getMessages).toHaveBeenCalledTimes(1);
+      expect(socket.join).toHaveBeenCalledTimes(1);
+      expect(socket.emit).toHaveBeenCalledWith('joined:match', { matchId: 'match-1' });
+      expect(socket.emit).not.toHaveBeenCalledWith('error', expect.anything());
+    });
+
     it('rejects join when user does not have match access', async () => {
       const socket = createMockSocket();
       socket.handshake.auth.token = validToken;
@@ -260,8 +280,10 @@ describe('ChatGateway', () => {
       socket.handshake.auth.token = validToken;
       socket.data = { userId: 'user-1', joinedMatchIds: ['match-1'] };
 
+      await gateway.handleJoinMatch(socket, { matchId: 'match-1' });
       await gateway.handleLeaveMatch(socket, { matchId: 'match-1' });
 
+      expect(socket.rooms.has('match:match-1')).toBe(false);
       expect(socket.leave).toHaveBeenCalledWith('match:match-1');
       expect(socket.emit).toHaveBeenCalledWith('left:match', { matchId: 'match-1' });
       expect(socket.data.joinedMatchIds).toEqual([]);
@@ -283,6 +305,19 @@ describe('ChatGateway', () => {
         message: 'Authentication failed',
       });
       expect(socket.disconnect).toHaveBeenCalledWith(true);
+    });
+
+    it('allows the same socket to rejoin after leaving', async () => {
+      const socket = createMockSocket();
+      socket.data = { userId: 'user-1' };
+
+      await gateway.handleJoinMatch(socket, { matchId: 'match-1' });
+      await gateway.handleLeaveMatch(socket, { matchId: 'match-1' });
+      await gateway.handleJoinMatch(socket, { matchId: 'match-1' });
+
+      expect(matchesService.getMessages).toHaveBeenCalledTimes(2);
+      expect(socket.join).toHaveBeenCalledTimes(2);
+      expect(socket.emit).toHaveBeenCalledWith('joined:match', { matchId: 'match-1' });
     });
   });
 
@@ -450,6 +485,37 @@ describe('ChatGateway', () => {
       expect(mockServer.emit).toHaveBeenCalledWith('message:new', {
         matchId: 'match-1',
         message,
+      });
+    });
+  });
+
+  describe('typing lifecycle', () => {
+    it('does not broadcast typing events before a room is joined', () => {
+      const socket = createMockSocket();
+      socket.data = { userId: 'user-1' };
+
+      gateway.handleTypingStart(socket, { matchId: 'match-1' });
+      gateway.handleTypingStop(socket, { matchId: 'match-1' });
+
+      expect(socket.emit).not.toHaveBeenCalledWith('typing:start', expect.anything());
+      expect(socket.emit).not.toHaveBeenCalledWith('typing:stop', expect.anything());
+    });
+
+    it('broadcasts typing events only after the room is joined', async () => {
+      const socket = createMockSocket();
+      socket.data = { userId: 'user-1' };
+
+      await gateway.handleJoinMatch(socket, { matchId: 'match-1' });
+      gateway.handleTypingStart(socket, { matchId: 'match-1' });
+      gateway.handleTypingStop(socket, { matchId: 'match-1' });
+
+      expect(socket.emit).toHaveBeenCalledWith('typing:start', {
+        matchId: 'match-1',
+        userId: 'user-1',
+      });
+      expect(socket.emit).toHaveBeenCalledWith('typing:stop', {
+        matchId: 'match-1',
+        userId: 'user-1',
       });
     });
   });

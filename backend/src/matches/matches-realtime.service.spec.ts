@@ -108,6 +108,63 @@ describe('MatchesRealtimeService', () => {
     );
   });
 
+  it('keeps a live stream attached until the last subscriber unsubscribes after publish', () => {
+    const emitMessageToRoom = jest.fn();
+    (service as any)._chatGateway = { emitMessageToRoom };
+
+    const sub = service.stream('match-live').subscribe();
+    expect(service.activeStreamCount).toBe(1);
+
+    service.publishMessage('match-live', {
+      id: 'msg-live',
+      text: 'live',
+      sender: 'me',
+      timestamp: new Date(),
+    });
+
+    expect(emitMessageToRoom).toHaveBeenCalledTimes(1);
+    expect(service.activeStreamCount).toBe(1);
+
+    sub.unsubscribe();
+    expect(service.activeStreamCount).toBe(0);
+  });
+
+  it('does not retain idle streams after publishing and recreates them for later messages', () => {
+    const emitMessageToRoom = jest.fn();
+    (service as any)._chatGateway = { emitMessageToRoom };
+
+    service.publishMessage('match-idle', {
+      id: 'msg-idle-1',
+      text: 'first idle publish',
+      sender: 'them',
+      timestamp: new Date(),
+    });
+
+    expect(service.activeStreamCount).toBe(0);
+
+    service.publishMessage('match-idle', {
+      id: 'msg-idle-2',
+      text: 'second idle publish',
+      sender: 'me',
+      timestamp: new Date(),
+    });
+
+    expect(service.activeStreamCount).toBe(0);
+    expect(emitMessageToRoom).toHaveBeenCalledTimes(2);
+    expect(emitMessageToRoom).toHaveBeenNthCalledWith(1, 'match-idle', {
+      id: 'msg-idle-1',
+      text: 'first idle publish',
+      sender: 'them',
+      timestamp: expect.any(Date),
+    });
+    expect(emitMessageToRoom).toHaveBeenNthCalledWith(2, 'match-idle', {
+      id: 'msg-idle-2',
+      text: 'second idle publish',
+      sender: 'me',
+      timestamp: expect.any(Date),
+    });
+  });
+
   describe('stream cleanup', () => {
     it('removes the stream when the last subscriber unsubscribes', () => {
       const sub1 = service.stream('match-cleanup').subscribe();
