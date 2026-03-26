@@ -74,7 +74,6 @@ const config: ExpoConfig = {
   userInterfaceStyle: "light",
   newArchEnabled: true,
   plugins: [
-    "expo-asset",
     "expo-font",
     ["expo-image-picker", { "photosPermission": "BRDG needs access to your photos to update your profile picture." }],
     "@sentry/react-native/expo",

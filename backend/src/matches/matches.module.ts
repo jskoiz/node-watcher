@@ -5,9 +5,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { MatchesRealtimeService } from './matches-realtime.service';
 import { ChatGateway } from './chat.gateway';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, AuthModule],
   controllers: [MatchesController],
   providers: [
     MatchesService,

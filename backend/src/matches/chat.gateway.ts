@@ -8,12 +8,11 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
-import * as jwt from 'jsonwebtoken';
-import { appConfig } from '../config/app.config';
 import { MatchesService } from './matches.service';
 
-type AuthTokenPayload = jwt.JwtPayload & {
+type AuthTokenPayload = {
   sub: string;
 };
 
@@ -40,8 +39,13 @@ function extractToken(client: Socket): string | undefined {
   return undefined;
 }
 
-function isAuthTokenPayload(payload: string | jwt.JwtPayload): payload is AuthTokenPayload {
-  return typeof payload !== 'string' && typeof payload.sub === 'string' && payload.sub.length > 0;
+function isAuthTokenPayload(payload: unknown): payload is AuthTokenPayload {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    typeof (payload as { sub?: unknown }).sub === 'string' &&
+    (payload as { sub: string }).sub.length > 0
+  );
 }
 
 @WebSocketGateway({ namespace: '/chat', cors: true })
@@ -51,7 +55,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(ChatGateway.name);
 
-  constructor(private readonly matchesService: MatchesService) {}
+  constructor(
+    private readonly matchesService: MatchesService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
@@ -61,7 +68,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new UnauthorizedException('Missing authentication token');
       }
 
-      const payload = jwt.verify(token, appConfig.jwt.secret);
+      const payload = await this.jwtService.verifyAsync(token);
       if (!isAuthTokenPayload(payload)) {
         throw new UnauthorizedException('Invalid authentication token');
       }

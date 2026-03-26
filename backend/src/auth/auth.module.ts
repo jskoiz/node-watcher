@@ -18,5 +18,6 @@ import { appConfig } from '../config/app.config';
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
+  exports: [JwtModule],
 })
 export class AuthModule {}

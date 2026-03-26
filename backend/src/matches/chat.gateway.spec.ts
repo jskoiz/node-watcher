@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import * as jwt from 'jsonwebtoken';
+import { JwtService } from '@nestjs/jwt';
 import { ChatGateway } from './chat.gateway';
 import { MatchesService } from './matches.service';
 import { appConfig } from '../config/app.config';
@@ -25,28 +25,30 @@ function createMockSocket(overrides: Record<string, unknown> = {}) {
 describe('ChatGateway', () => {
   let gateway: ChatGateway;
   let matchesService: jest.Mocked<MatchesService>;
+  let jwtService: JwtService;
   let mockServer: any;
+  let validToken: string;
 
   const createToken = (
     payload: Record<string, unknown>,
-    expiresIn: jwt.SignOptions['expiresIn'] = '1h',
+    expiresIn: '1h' | '0s' = '1h',
   ) =>
-    jwt.sign(payload, appConfig.jwt.secret, { expiresIn });
-
-  const validToken = createToken({ sub: 'user-1' });
+    jwtService.sign(payload, { expiresIn });
 
   beforeEach(() => {
     matchesService = {
       getMessages: jest.fn().mockResolvedValue([]),
       sendMessage: jest.fn(),
     } as any;
+    jwtService = new JwtService({ secret: appConfig.jwt.secret });
+    validToken = createToken({ sub: 'user-1' });
 
     mockServer = {
       to: jest.fn().mockReturnThis(),
       emit: jest.fn(),
     };
 
-    gateway = new ChatGateway(matchesService);
+    gateway = new ChatGateway(matchesService, jwtService);
     gateway.server = mockServer;
   });
 

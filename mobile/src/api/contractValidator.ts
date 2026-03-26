@@ -22,7 +22,7 @@ import {
   EventRsvpResponseSchema,
   EventInviteResponseSchema,
   EventInviteListSchema,
-} from "@contracts";
+} from "../../../shared/contracts";
 
 // ── Schema registry: maps URL patterns to Zod schemas ───────────────
 
