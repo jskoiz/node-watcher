@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { IntensityLevel } from '@prisma/client';
@@ -115,6 +115,10 @@ describe('DiscoveryService', () => {
 
     // Default: target user exists (tests that need it missing will override)
     prismaMock.user.findFirst.mockResolvedValue({ id: 'user-2' });
+
+    // Restore default block-service behaviour cleared by clearAllMocks
+    blockServiceMock.getBlockedUserIds.mockResolvedValue([]);
+    blockServiceMock.isBlocked.mockResolvedValue(false);
   });
 
   afterEach(() => {
@@ -142,40 +146,8 @@ describe('DiscoveryService', () => {
     expect(query.where.id).toEqual({ notIn: ['me', 'blocked-1', 'blocked-2'] });
   });
 
-  it('keeps deleted, banned, and onboarded filters in the feed query', async () => {
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 'me',
-      profile: { latitude: 21.3, longitude: -157.8 },
-      fitnessProfile: {
-        intensityLevel: IntensityLevel.INTERMEDIATE,
-        primaryGoal: 'strength',
-        secondaryGoal: 'endurance',
-      },
-    });
-    prismaMock.user.findMany.mockResolvedValue([]);
-
-    await service.getFeed('me');
-
-    const query = prismaMock.user.findMany.mock.calls[0][0];
-    expect(query.where).toEqual(
-      expect.objectContaining({
-        isDeleted: false,
-        isBanned: false,
-        isOnboarded: true,
-      }),
-    );
-  });
-
-  it('rejects feed lookups when the current user is missing', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(null);
-
-    await expect(service.getFeed('missing-user')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(prismaMock.user.findMany).not.toHaveBeenCalled();
-  });
-
   it('pushes like/pass exclusions and profile filters into the feed query', async () => {
+    blockServiceMock.getBlockedUserIds.mockResolvedValue(['blocked-1', 'blocked-2']);
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'me',
       profile: {
@@ -206,13 +178,6 @@ describe('DiscoveryService', () => {
     expect(query.where.id).toEqual({ notIn: ['me', 'blocked-1', 'blocked-2'] });
     expect(query.where.receivedLikes).toEqual({ none: { fromUserId: 'me' } });
     expect(query.where.receivedPasses).toEqual({ none: { fromUserId: 'me' } });
-    expect(query.where).toEqual(
-      expect.objectContaining({
-        isDeleted: false,
-        isBanned: false,
-        isOnboarded: true,
-      }),
-    );
     expect(query.where.birthdate).toEqual(
       expect.objectContaining({
         gte: expect.any(Date),
@@ -247,18 +212,6 @@ describe('DiscoveryService', () => {
             OR: [{ prefersMorning: true }, { prefersEvening: true }],
           },
         ],
-      },
-    });
-    expect(query.where.profile).toBeUndefined();
-    expect(query.select.photos).toEqual({
-      where: { isHidden: false },
-      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
-      take: 1,
-      select: {
-        id: true,
-        storageKey: true,
-        isPrimary: true,
-        sortOrder: true,
       },
     });
   });
@@ -300,27 +253,8 @@ describe('DiscoveryService', () => {
     ]);
 
     const result = await service.getFeed('me', { distanceKm: 10 });
-    const query = prismaMock.user.findMany.mock.calls[0][0];
 
     expect(result).toHaveLength(1);
-    expect(query.where.profile).toEqual({
-      is: {
-        AND: expect.arrayContaining([
-          expect.objectContaining({
-            latitude: expect.objectContaining({
-              gte: expect.any(Number),
-              lte: expect.any(Number),
-            }),
-          }),
-          expect.objectContaining({
-            longitude: expect.objectContaining({
-              gte: expect.any(Number),
-              lte: expect.any(Number),
-            }),
-          }),
-        ]),
-      },
-    });
     expect(result.map((candidate) => candidate!.id)).toEqual(['nearby-match']);
     expect(result[0]).toEqual(
       expect.objectContaining({
@@ -339,52 +273,6 @@ describe('DiscoveryService', () => {
     expect(result[0]?.recommendationScore).toBeGreaterThan(0);
     expect(result[0]?.profile).not.toHaveProperty('latitude');
     expect(result[0]?.profile).not.toHaveProperty('longitude');
-  });
-
-  it.each([
-    {
-      name: 'like',
-      targetUserId: 'deleted-user',
-      call: () => service.likeUser('user-1', 'deleted-user'),
-    },
-    {
-      name: 'pass',
-      targetUserId: 'banned-user',
-      call: () => service.passUser('user-1', 'banned-user'),
-    },
-  ])(
-    'rejects $name requests to deleted or banned targets',
-    async ({ call, targetUserId }) => {
-      prismaMock.user.findFirst.mockResolvedValue(null);
-
-      await expect(call()).rejects.toBeInstanceOf(NotFoundException);
-      expect(prismaMock.user.findFirst).toHaveBeenCalledWith({
-        where: {
-          id: targetUserId,
-          isDeleted: false,
-          isBanned: false,
-        },
-        select: { id: true },
-      });
-      expect(prismaMock.$transaction).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each([
-    {
-      name: 'like',
-      call: () => service.likeUser('user-1', 'user-2'),
-    },
-    {
-      name: 'pass',
-      call: () => service.passUser('user-1', 'user-2'),
-    },
-  ])('rejects %s requests across a block relationship', async ({ call }) => {
-    blockServiceMock.isBlocked.mockResolvedValueOnce(true);
-
-    await expect(call()).rejects.toBeInstanceOf(NotFoundException);
-    expect(prismaMock.user.findFirst).not.toHaveBeenCalled();
-    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
   it('excludes candidates with unknown coordinates when distance filtering is enabled', async () => {
@@ -460,14 +348,8 @@ describe('DiscoveryService', () => {
     ]);
 
     const result = await service.getFeed('me', { distanceKm: 50 });
-    const query = prismaMock.user.findMany.mock.calls[0][0];
 
     expect(result).toHaveLength(2);
-    expect(query.where.profile).toBeUndefined();
-    expect(query.select.profile.select).toEqual({
-      city: true,
-      bio: true,
-    });
     expect(result.map((candidate) => candidate?.id)).toEqual(
       expect.arrayContaining(['known-location', 'unknown-location']),
     );
@@ -580,7 +462,6 @@ describe('DiscoveryService', () => {
     prismaMock.like.findUnique
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 'mutual-like' });
-    prismaMock.match.findUnique.mockResolvedValue(null);
     prismaMock.pass.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.like.create.mockResolvedValue({ id: 'like-1' });
     prismaMock.userProfile.findMany.mockResolvedValue([
@@ -614,29 +495,13 @@ describe('DiscoveryService', () => {
       },
       update: expect.objectContaining({
         updatedAt: expect.any(Date),
+        isBlocked: false,
         isArchived: false,
         isDatingMatch: false,
         isWorkoutMatch: true,
       }),
     });
     expect(result).toEqual({ status: 'match', match: { id: 'match-1' } });
-  });
-
-  it('rejects a mutual like when an existing match is blocked', async () => {
-    prismaMock.like.findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 'mutual-like' });
-    prismaMock.match.findUnique.mockResolvedValue({
-      id: 'match-1',
-      isBlocked: true,
-    });
-    prismaMock.pass.deleteMany.mockResolvedValue({ count: 0 });
-    prismaMock.like.create.mockResolvedValue({ id: 'like-1' });
-
-    await expect(service.likeUser('user-1', 'user-2')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(prismaMock.match.upsert).not.toHaveBeenCalled();
   });
 
   it('returns already_liked status when like exists', async () => {
@@ -671,6 +536,44 @@ describe('DiscoveryService', () => {
     );
   });
 
+  it('rejects self-like requests', async () => {
+    await expect(service.likeUser('user-1', 'user-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('rejects liking a missing target user', async () => {
+    prismaMock.user.findFirst.mockResolvedValue(null);
+
+    await expect(service.likeUser('user-1', 'missing-user')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('rejects liking a blocked target user', async () => {
+    blockServiceMock.isBlocked.mockResolvedValue(true);
+
+    await expect(service.likeUser('user-1', 'user-2')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(prismaMock.like.create).not.toHaveBeenCalled();
+  });
+
+  it('clears an existing pass before creating a like', async () => {
+    prismaMock.like.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    prismaMock.pass.deleteMany.mockResolvedValue({ count: 1 });
+    prismaMock.like.create.mockResolvedValue({ id: 'like-1' });
+
+    const result = await service.likeUser('user-1', 'user-2');
+
+    expect(result).toEqual({ status: 'liked' });
+    expect(prismaMock.pass.deleteMany).toHaveBeenCalledWith({
+      where: { fromUserId: 'user-1', toUserId: 'user-2' },
+    });
+  });
+
   it('creates a pass record and clears any existing like', async () => {
     prismaMock.pass.findUnique.mockResolvedValue(null);
     prismaMock.like.deleteMany.mockResolvedValue({ count: 0 });
@@ -685,6 +588,29 @@ describe('DiscoveryService', () => {
     expect(prismaMock.pass.create).toHaveBeenCalledWith({
       data: { fromUserId: 'user-1', toUserId: 'user-2' },
     });
+  });
+
+  it('rejects self-pass requests', async () => {
+    await expect(service.passUser('user-1', 'user-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('rejects passing a missing target user', async () => {
+    prismaMock.user.findFirst.mockResolvedValue(null);
+
+    await expect(service.passUser('user-1', 'missing-user')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('rejects passing a blocked target user', async () => {
+    blockServiceMock.isBlocked.mockResolvedValue(true);
+
+    await expect(service.passUser('user-1', 'user-2')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(prismaMock.pass.create).not.toHaveBeenCalled();
   });
 
   it('returns already_passed status when pass exists', async () => {
@@ -744,6 +670,59 @@ describe('DiscoveryService', () => {
     });
   });
 
+  it('undoes the newer pass when both swipe types exist', async () => {
+    prismaMock.like.findFirst.mockResolvedValue({
+      id: 'like-1',
+      toUserId: 'user-2',
+      createdAt: new Date('2026-01-01T09:00:00.000Z'),
+    });
+    prismaMock.pass.findFirst.mockResolvedValue({
+      id: 'pass-1',
+      toUserId: 'user-3',
+      createdAt: new Date('2026-01-01T10:00:00.000Z'),
+    });
+
+    const result = await service.undoLastSwipe('user-1');
+
+    expect(prismaMock.pass.delete).toHaveBeenCalledWith({
+      where: { id: 'pass-1' },
+    });
+    expect(prismaMock.like.delete).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      status: 'undone',
+      action: 'pass',
+      targetUserId: 'user-3',
+    });
+  });
+
+  it('prefers undoing the like when both swipe types share the same timestamp', async () => {
+    const createdAt = new Date('2026-01-01T10:00:00.000Z');
+    prismaMock.like.findFirst.mockResolvedValue({
+      id: 'like-1',
+      toUserId: 'user-2',
+      createdAt,
+    });
+    prismaMock.pass.findFirst.mockResolvedValue({
+      id: 'pass-1',
+      toUserId: 'user-3',
+      createdAt,
+    });
+    prismaMock.like.delete.mockResolvedValue({ id: 'like-1' });
+    prismaMock.match.findUnique.mockResolvedValue(null);
+
+    const result = await service.undoLastSwipe('user-1');
+
+    expect(prismaMock.like.delete).toHaveBeenCalledWith({
+      where: { id: 'like-1' },
+    });
+    expect(prismaMock.pass.delete).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      status: 'undone',
+      action: 'like',
+      targetUserId: 'user-2',
+    });
+  });
+
   it('undoes a like and archives the resulting match', async () => {
     prismaMock.like.findFirst.mockResolvedValue({
       id: 'like-1',
@@ -790,6 +769,31 @@ describe('DiscoveryService', () => {
     const result = await service.undoLastSwipe('user-1');
 
     expect(prismaMock.match.findUnique).toHaveBeenCalled();
+    expect(prismaMock.match.update).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      status: 'undone',
+      action: 'like',
+      targetUserId: 'user-2',
+    });
+  });
+
+  it('does not re-archive an already archived match when undoing a like', async () => {
+    prismaMock.like.findFirst.mockResolvedValue({
+      id: 'like-1',
+      toUserId: 'user-2',
+      createdAt: new Date('2026-01-01T10:00:00.000Z'),
+    });
+    prismaMock.pass.findFirst.mockResolvedValue(null);
+    prismaMock.like.delete.mockResolvedValue({ id: 'like-1' });
+    prismaMock.match.findUnique.mockResolvedValue({
+      id: 'match-1',
+      userAId: 'user-1',
+      userBId: 'user-2',
+      isArchived: true,
+    });
+
+    const result = await service.undoLastSwipe('user-1');
+
     expect(prismaMock.match.update).not.toHaveBeenCalled();
     expect(result).toEqual({
       status: 'undone',

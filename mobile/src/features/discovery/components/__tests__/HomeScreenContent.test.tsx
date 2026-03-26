@@ -67,6 +67,7 @@ function renderHomeScreenContent(overrides: Partial<React.ComponentProps<typeof 
       filterState={baseFilterState}
       feed={[] as User[]}
       greeting="Evening, Lana"
+      isActing={false}
       intentOption={{ color: '#8BAA7A', label: 'Open to both' }}
       onApplyFilters={jest.fn()}
       onMatchAnimationFinish={jest.fn()}

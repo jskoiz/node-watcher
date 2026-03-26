@@ -38,6 +38,7 @@ function ModalFilterPill({
 
 export function DiscoveryFilterSheet({
   controller,
+  isActing,
   onApply,
   onChangeAvailability,
   onChangeDistanceKm,
@@ -52,6 +53,7 @@ export function DiscoveryFilterSheet({
     AppBottomSheetProps,
     'onChangeIndex' | 'onDismiss' | 'onRequestClose' | 'refObject' | 'visible'
   >;
+  isActing: boolean;
   onApply: () => void;
   onChangeAvailability: (value: 'morning' | 'evening') => void;
   onChangeDistanceKm: (value: string) => void;
@@ -158,7 +160,13 @@ export function DiscoveryFilterSheet({
         <View style={styles.pillWrap}>{availabilityPills}</View>
 
         <View style={styles.modalActions}>
-          <Button label="Undo swipe" onPress={onUndoSwipe} variant="ghost" style={{ flex: 1 }} />
+          <Button
+            label="Undo swipe"
+            onPress={onUndoSwipe}
+            variant="ghost"
+            disabled={isActing}
+            style={{ flex: 1 }}
+          />
           <Button label="Apply" onPress={onApply} variant="primary" style={{ flex: 1 }} />
         </View>
       </View>

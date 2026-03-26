@@ -65,6 +65,7 @@ function renderSheet(overrides: Partial<React.ComponentProps<typeof DiscoveryFil
   render(
     <DiscoveryFilterSheet
       controller={controller}
+      isActing={false}
       onApply={onApply}
       onChangeAvailability={onChangeAvailability}
       onChangeDistanceKm={onChangeDistanceKm}
@@ -147,5 +148,13 @@ describe('DiscoveryFilterSheet', () => {
     expect(onChangeAvailability).toHaveBeenCalledWith('evening');
     expect(onUndoSwipe).toHaveBeenCalledTimes(1);
     expect(onApply).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables undo while a discovery mutation is in flight', () => {
+    renderSheet({ isActing: true });
+
+    expect(screen.getByLabelText('Undo swipe').props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true }),
+    );
   });
 });

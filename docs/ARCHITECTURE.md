@@ -1,6 +1,6 @@
 # BRDG Architecture Map
 
-Start with [`REPO_MAP.md`](./REPO_MAP.md) for fast navigation and [`HARNESS.md`](./HARNESS.md) for validation rules. This document focuses on structural boundaries rather than workflow. Shared schemas in `shared/contracts/` are the authority for backend/mobile payload shape.
+Start with [`REPO_MAP.md`](./REPO_MAP.md) for fast navigation and [`HARNESS.md`](./HARNESS.md) for validation rules. This document focuses on structural boundaries rather than workflow.
 
 ## Monorepo Layout
 
@@ -49,10 +49,9 @@ Start with [`REPO_MAP.md`](./REPO_MAP.md) for fast navigation and [`HARNESS.md`]
 4. Do not hardcode storage key strings; use `STORAGE_KEYS`.
 5. Keep environment access centralized via `config/env.ts`.
 6. Normalize API errors before surfacing them in UI state.
-7. The dev-mode response validator in `mobile/src/api/contractValidator.ts` is the mobile enforcement point for shared contract drift; it warns and does not block production.
-8. Use Storybook as the default workshop for visual-only mobile work; use the seeded app runtime for integrated flow validation.
-9. Avoid ad hoc preview routes for design iteration; expand `mobile/src/stories` instead.
-10. Treat `docs/STORYBOOK_WORKFLOW.md` as the canonical Storybook process and coverage guide.
+7. Use Storybook as the default workshop for visual-only mobile work; use the seeded app runtime for integrated flow validation.
+8. Avoid ad hoc preview routes for design iteration; expand `mobile/src/stories` instead.
+9. Treat `docs/STORYBOOK_WORKFLOW.md` as the canonical Storybook process and coverage guide.
 
 ## Backend Architecture (`backend/src`)
 
@@ -67,7 +66,7 @@ Start with [`REPO_MAP.md`](./REPO_MAP.md) for fast navigation and [`HARNESS.md`]
 1. Read runtime config through `appConfig`, not `process.env` directly in modules.
 2. Keep module boundaries by domain (`auth`, `profile`, `discovery`, `matches`).
 3. Reuse environment conventions in scripts (`backend/scripts/env.js`) for non-Nest tooling.
-4. Preserve API contracts when refactoring internals; backend controller specs are the main enforcement point for shared response contracts, with `backend/src/contracts/response-shapes.spec.ts` retained for schema-only guardrails.
+4. Preserve API contracts when refactoring internals.
 5. Local profile photo uploads are stored under backend-managed public uploads and served as static assets in dev.
 
 ## Environment Variables
@@ -89,6 +88,8 @@ Start with [`REPO_MAP.md`](./REPO_MAP.md) for fast navigation and [`HARNESS.md`]
 - Discovery filters, explore actions, create substeps, and chat quick actions now share a common bottom-sheet presentation layer.
 - Mobile profile editing is split between basic profile fields (`PUT /profile`) and fitness fields (`PUT /profile/fitness`), with a unified screen-level save UX.
 - Profile photo uploads and mutations are handled through the backend `profile` module and invalidated through React Query so discovery, matches, chat, and profile detail refresh consistently.
+- Discovery mutations are owned by feature hooks and must invalidate the entire discovery feed family so filtered and unfiltered feeds stay coherent after like/pass/undo actions.
+- Discovery and profile-detail swipe actions share one moderation rule set: blocked targets are non-actionable, and the client serializes discovery mutations to one in-flight action at a time.
 - When payload shapes change, update `shared/contracts/`, the backend controller-boundary specs plus shared guardrails, and the mobile dev validator together.
 - The current planning direction is to build on this foundation with event conversion/re-engagement flows, not to introduce a second parallel interaction system.
 

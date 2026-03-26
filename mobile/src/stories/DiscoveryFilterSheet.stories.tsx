@@ -34,6 +34,7 @@ function DiscoveryFilterSheetStory({
       <Button label="Open filters" onPress={sheet.open} variant="secondary" />
       <DiscoveryFilterSheet
         controller={sheet.sheetProps}
+        isActing={false}
         state={state}
         onApply={() => undefined}
         onChangeAvailability={() => undefined}

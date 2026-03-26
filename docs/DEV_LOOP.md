@@ -114,6 +114,7 @@ The current reset also creates a discovery candidate, a mutual match with messag
 
 The current seeded QA path is especially useful for validating:
 - discovery filters and quick filters
+- discovery like/pass/undo coherence across the deck and profile detail
 - explore quick actions
 - create flow substeps
 - chat quick-action suggestions
@@ -132,10 +133,15 @@ Recommended local QA loop for the current shipped mobile surface:
    - remove a non-primary photo
 6. Validate the sheet-driven flows in the current shipped surface:
    - discovery filters
+   - discovery like/pass/undo from both the deck and profile detail
    - explore quick actions
    - create activity/timing substeps
    - chat quick-action suggestions
-7. Pull to refresh or revisit downstream screens and confirm the updated primary photo and profile fields are reflected outside the Profile tab.
+7. Confirm discovery feed coherence after mutations:
+   - a liked or passed profile disappears from every filter variant you revisit
+   - undo restores server truth after the refetch completes
+   - blocked profiles are not actionable from discovery or profile detail
+8. Pull to refresh or revisit downstream screens and confirm the updated primary photo and profile fields are reflected outside the Profile tab.
 
 Use this seeded app loop after Storybook review, not instead of Storybook review, when a task is primarily visual.
 
@@ -216,6 +222,8 @@ If you are planning follow-on work, the current recommended next track is event 
   - `DiscoveryService`
 - Mobile routes should not call the raw axios client directly.
 - Server reads/mutations should flow through React Query-backed feature hooks and the service layer.
+- Discovery mutations are intentionally serialized one at a time in the UI. If swipe/undo behavior looks stuck, wait for the in-flight request to settle before assuming the cache is broken.
+- Discovery and profile-detail swipes should follow the same moderation policy: blocked targets are non-actionable and should not produce like/pass side effects.
 - Profile photo uploads now flow through backend-managed local storage in dev via the `profile` API; if uploads fail, inspect backend logs first.
 - If the seeded preview login or deterministic QA state is missing, rerun `npm run dev:scenario -- ui-preview` before debugging screen code.
 

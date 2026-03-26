@@ -109,6 +109,10 @@ describe('Discovery flow integration', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.feed).toHaveLength(3);
 
+    // After the pass, the server-side feed should no longer include u2.
+    const feedWithoutBob = feedUsers.filter((u) => u.id !== 'u2');
+    mockFeed.mockResolvedValue({ data: feedWithoutBob });
+
     await act(async () => {
       await result.current.passUser('u2');
     });
@@ -132,6 +136,10 @@ describe('Discovery flow integration', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
+    // After the like, the server-side feed should no longer include u1.
+    const feedWithoutAlice = feedUsers.filter((u) => u.id !== 'u1');
+    mockFeed.mockResolvedValue({ data: feedWithoutAlice });
+
     let likeResult: unknown;
     await act(async () => {
       likeResult = await result.current.likeUser('u1');
@@ -153,6 +161,10 @@ describe('Discovery flow integration', () => {
     const { result } = renderHook(() => useDiscoveryFeed());
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // After the like, the server-side feed should no longer include u3.
+    const feedWithoutCarol = feedUsers.filter((u) => u.id !== 'u3');
+    mockFeed.mockResolvedValue({ data: feedWithoutCarol });
 
     let likeResult: unknown;
     await act(async () => {

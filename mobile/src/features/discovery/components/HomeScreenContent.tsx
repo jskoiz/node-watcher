@@ -31,6 +31,7 @@ export function HomeScreenContent({
   filterState,
   feed,
   greeting,
+  isActing,
   intentOption,
   onPressCompleteness,
   onApplyFilters,
@@ -62,6 +63,7 @@ export function HomeScreenContent({
   feed: User[];
   greeting: string;
   intentOption: { color: string; label: string };
+  isActing: boolean;
   completenessScore: number;
   onPressCompleteness: () => void;
   onApplyFilters: () => void;
@@ -127,6 +129,7 @@ export function HomeScreenContent({
             <SwipeDeck
               cardHeight={cardHeight}
               data={feed}
+              interactionDisabled={isActing}
               onSwipeLeft={onSwipeLeft}
               onSwipeRight={onSwipeRight}
               onPress={onPressProfile}
@@ -139,6 +142,7 @@ export function HomeScreenContent({
 
       <DiscoveryFilterSheet
         controller={filtersSheet}
+        isActing={isActing}
         state={filterState}
         onApply={onApplyFilters}
         onChangeAvailability={onToggleAvailability}

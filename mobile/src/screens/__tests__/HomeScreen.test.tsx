@@ -62,6 +62,7 @@ describe('HomeScreen', () => {
           firstName: 'Leilani',
         },
       ],
+      isActing: false,
       isLoading: false,
       likeUser: mockLikeUser,
       passUser: mockPassUser,

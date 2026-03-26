@@ -3,21 +3,20 @@ import { act, render } from '@testing-library/react-native';
 import SwipeDeck from '../SwipeDeck';
 
 let onSwipedAllCallback: (() => void) | null = null;
+let latestSwiperProps: Record<string, unknown> | null = null;
 
 jest.mock('react-native-deck-swiper', () => {
   const React = require('react');
   const { View } = require('react-native');
 
-  return function MockSwiper({
-    cards,
-    renderCard,
-    onSwipedAll,
-  }: {
+  return function MockSwiper(props: {
     cards: unknown[];
     onSwipedAll?: () => void;
     renderCard: (card: unknown) => React.ReactElement;
   }) {
+    const { cards, renderCard, onSwipedAll } = props;
     onSwipedAllCallback = onSwipedAll || null;
+    latestSwiperProps = props;
 
     return (
       <View>
@@ -47,6 +46,10 @@ jest.mock('../ui/AppIcon', () => {
 
 describe('SwipeDeck', () => {
   const noop = () => {};
+
+  beforeEach(() => {
+    latestSwiperProps = null;
+  });
 
   it('renders empty state when data is empty', () => {
     const { getByText } = render(<SwipeDeck data={[]} onSwipeLeft={noop} onSwipeRight={noop} />);
@@ -200,5 +203,49 @@ describe('SwipeDeck', () => {
     );
 
     expect(getByText('Kakaako · 0 km away')).toBeTruthy();
+  });
+
+  it('dispatches onSwipeLeft with the correct user', () => {
+    const onSwipeLeft = jest.fn();
+    const user = { id: 'u8', firstName: 'Nalu' };
+
+    render(<SwipeDeck data={[user]} onSwipeLeft={onSwipeLeft} onSwipeRight={noop} />);
+
+    act(() => {
+      (latestSwiperProps?.onSwipedLeft as ((index: number) => void) | undefined)?.(0);
+    });
+
+    expect(onSwipeLeft).toHaveBeenCalledWith(user);
+  });
+
+  it('dispatches onSwipeRight with the correct user', () => {
+    const onSwipeRight = jest.fn();
+    const user = { id: 'u8', firstName: 'Nalu' };
+
+    render(<SwipeDeck data={[user]} onSwipeLeft={noop} onSwipeRight={onSwipeRight} />);
+
+    act(() => {
+      (latestSwiperProps?.onSwipedRight as ((index: number) => void) | undefined)?.(0);
+    });
+
+    expect(onSwipeRight).toHaveBeenCalledWith(user);
+  });
+
+  it('disables swipes while interaction is locked', () => {
+    render(
+      <SwipeDeck
+        data={[{ id: 'u9', firstName: 'Noa' }]}
+        interactionDisabled
+        onSwipeLeft={noop}
+        onSwipeRight={noop}
+      />,
+    );
+
+    expect(latestSwiperProps).toEqual(
+      expect.objectContaining({
+        disableLeftSwipe: true,
+        disableRightSwipe: true,
+      }),
+    );
   });
 });

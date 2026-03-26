@@ -39,8 +39,8 @@ interface UserWithRelations {
   profile: {
     city: string | null;
     bio: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
+    latitude: number | null;
+    longitude: number | null;
   } | null;
   fitnessProfile: {
     primaryGoal: string | null;
@@ -58,12 +58,41 @@ interface UserWithRelations {
   }>;
 }
 
-interface RecommendationContext {
-  fitnessProfile: {
-    intensityLevel?: IntensityLevel | null;
+interface DiscoveryRequester {
+  id: string;
+  profile: {
+    latitude: number | null;
+    longitude: number | null;
   } | null;
-  goals: Set<string>;
+  fitnessProfile: {
+    primaryGoal: string | null;
+    secondaryGoal: string | null;
+    intensityLevel: IntensityLevel;
+  } | null;
 }
+
+interface SanitizedDiscoveryProfile {
+  city: string | null;
+  bio: string | null;
+}
+
+export interface DiscoveryFeedEntry extends Omit<UserWithRelations, 'profile'> {
+  age: number;
+  distanceKm: number | null;
+  profile: SanitizedDiscoveryProfile;
+  recommendationScore: number;
+}
+
+interface SwipeRecord {
+  id: string;
+  toUserId: string;
+  createdAt: Date;
+}
+
+type DiscoveryTransaction = Pick<
+  PrismaService,
+  'like' | 'match' | 'pass' | 'userProfile'
+>;
 
 function asLogMessage(event: string, context: Record<string, unknown>) {
   return JSON.stringify({ event, ...context });
@@ -84,12 +113,43 @@ export class DiscoveryService {
   ) {}
 
   async getFeed(userId: string, filters: DiscoveryFilters = {}) {
-    const me = await this.prisma.user.findUnique({
+    const me = await this.getRequesterOrThrow(userId);
+    const blockedIds = await this.blockService.getBlockedUserIds(userId);
+    const users = await this.findFeedCandidates(userId, blockedIds, filters);
+
+    const scored = this.scoreAndFilterCandidates(me, users, filters)
+      .sort(
+        (a, b) => b.recommendationScore - a.recommendationScore,
+      )
+      .slice(0, DISCOVERY_FEED_RESULT_LIMIT);
+
+    this.logger.debug(
+      asLogMessage('discovery.feed.generated', {
+        userId,
+        blockedCount: blockedIds.length,
+        candidateCount: users.length,
+        returnedCount: scored.length,
+        filters: {
+          hasDistanceKm: typeof filters.distanceKm === 'number',
+          hasMinAge: typeof filters.minAge === 'number',
+          hasMaxAge: typeof filters.maxAge === 'number',
+          goalsCount: filters.goals?.length ?? 0,
+          intensityCount: filters.intensity?.length ?? 0,
+          availabilityCount: filters.availability?.length ?? 0,
+        },
+      }),
+    );
+
+    return scored;
+  }
+
+  private async getRequesterOrThrow(userId: string): Promise<DiscoveryRequester> {
+    const requester = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { profile: true, fitnessProfile: true },
     });
 
-    if (!me) {
+    if (!requester) {
       this.logger.warn(
         asLogMessage('discovery.feed.user_missing', {
           userId,
@@ -98,45 +158,16 @@ export class DiscoveryService {
       throw new NotFoundException('User not found');
     }
 
-    const birthdateFilter = this.buildBirthdateFilter(filters);
-    const fitnessProfileFilter = this.buildFitnessProfileFilter(filters);
+    return requester;
+  }
 
-    const blockedIds = await this.blockService.getBlockedUserIds(userId);
-    const requesterLatitude = me.profile?.latitude ?? null;
-    const requesterLongitude = me.profile?.longitude ?? null;
-    const requesterHasCoordinates =
-      requesterLatitude !== null && requesterLongitude !== null;
-    const maxDistanceKm = this.resolveDistanceFilter(filters.distanceKm);
-    const profileFilter = this.buildProfileFilter(
-      requesterLatitude,
-      requesterLongitude,
-      maxDistanceKm,
-    );
-
-    const users: UserWithRelations[] = await this.prisma.user.findMany({
-      where: {
-        id: { notIn: [userId, ...blockedIds] },
-        isDeleted: false,
-        isBanned: false,
-        isOnboarded: true,
-        receivedLikes: { none: { fromUserId: userId } },
-        receivedPasses: { none: { fromUserId: userId } },
-        ...(birthdateFilter ? { birthdate: birthdateFilter } : {}),
-        ...(fitnessProfileFilter
-          ? {
-              fitnessProfile: {
-                is: fitnessProfileFilter,
-              },
-            }
-          : {}),
-        ...(profileFilter
-          ? {
-              profile: {
-                is: profileFilter,
-              },
-            }
-          : {}),
-      },
+  private async findFeedCandidates(
+    userId: string,
+    blockedIds: string[],
+    filters: DiscoveryFilters,
+  ): Promise<UserWithRelations[]> {
+    return this.prisma.user.findMany({
+      where: this.buildFeedQuery(userId, blockedIds, filters),
       select: {
         id: true,
         firstName: true,
@@ -155,18 +186,13 @@ export class DiscoveryService {
           select: {
             city: true,
             bio: true,
-            ...(requesterHasCoordinates
-              ? {
-                  latitude: true,
-                  longitude: true,
-                }
-              : {}),
+            latitude: true,
+            longitude: true,
           },
         },
         photos: {
           where: { isHidden: false },
-          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
-          take: 1,
+          orderBy: { sortOrder: 'asc' },
           select: {
             id: true,
             storageKey: true,
@@ -177,84 +203,162 @@ export class DiscoveryService {
       },
       take: DISCOVERY_FEED_QUERY_LIMIT,
     });
+  }
 
-    const meForScore: RecommendationContext = {
-      fitnessProfile: me.fitnessProfile
+  private buildFeedQuery(
+    userId: string,
+    blockedIds: string[],
+    filters: DiscoveryFilters,
+  ) {
+    const birthdateFilter = this.buildBirthdateFilter(filters);
+    const fitnessProfileFilter = this.buildFitnessProfileFilter(filters);
+
+    return {
+      id: { notIn: [userId, ...blockedIds] },
+      isDeleted: false,
+      isBanned: false,
+      isOnboarded: true,
+      receivedLikes: { none: { fromUserId: userId } },
+      receivedPasses: { none: { fromUserId: userId } },
+      ...(birthdateFilter ? { birthdate: birthdateFilter } : {}),
+      ...(fitnessProfileFilter
         ? {
-            intensityLevel: me.fitnessProfile.intensityLevel,
+            fitnessProfile: {
+              is: fitnessProfileFilter,
+            },
           }
-        : null,
-      goals: new Set(
-        [me.fitnessProfile?.primaryGoal, me.fitnessProfile?.secondaryGoal]
-          .filter(Boolean)
-          .map((goal) => String(goal).toLowerCase()),
-      ),
+        : {}),
     };
+  }
 
-    const scored = users
-      .map((user) => {
-        const age = calculateAge(user.birthdate) ?? 0;
-        const distanceKm = this.calculateDistanceKm(
-          requesterLatitude,
-          requesterLongitude,
-          user.profile?.latitude,
-          user.profile?.longitude,
-        );
+  private scoreAndFilterCandidates(
+    requester: DiscoveryRequester,
+    users: UserWithRelations[],
+    filters: DiscoveryFilters,
+  ): DiscoveryFeedEntry[] {
+    const maxDistanceKm = this.getValidDistanceFilter(filters.distanceKm);
+    const requesterHasCoordinates = this.hasCoordinates(
+      requester.profile?.latitude,
+      requester.profile?.longitude,
+    );
+    const scoringRequester = this.createScoringRequester(requester);
 
-        if (filters.minAge && age < filters.minAge) return null;
-        if (filters.maxAge && age > filters.maxAge) return null;
-        if (
-          maxDistanceKm !== null &&
-          requesterHasCoordinates &&
-          (distanceKm === null || distanceKm > maxDistanceKm)
+    return users.reduce<DiscoveryFeedEntry[]>((results, user) => {
+      const age = calculateAge(user.birthdate) ?? 0;
+      const distanceKm = this.calculateDistanceKm(
+        requester.profile?.latitude,
+        requester.profile?.longitude,
+        user.profile?.latitude,
+        user.profile?.longitude,
+      );
+
+      if (
+        this.shouldExcludeCandidate(
+          age,
+          distanceKm,
+          filters,
+          maxDistanceKm,
+          requesterHasCoordinates,
         )
-          return null;
+      ) {
+        return results;
+      }
 
-        const score = this.computeRecommendationScore(
-          meForScore,
+      const recommendationScore = this.computeRecommendationScore(
+        scoringRequester,
+        user,
+        age,
+        distanceKm,
+      );
+
+      results.push(
+        this.sanitizeDiscoveryCandidate(
           user,
           age,
           distanceKm,
-        );
-        const { profile, ...userWithoutProfile } = user;
-        const {
-          latitude: _lat,
-          longitude: _lon,
-          ...safeProfile
-        } = profile ?? {};
-        return {
-          ...userWithoutProfile,
-          profile: safeProfile,
-          age,
-          distanceKm,
-          recommendationScore: score,
-        };
-      })
-      .filter(Boolean)
-      .sort(
-        (a, b) => (b?.recommendationScore || 0) - (a?.recommendationScore || 0),
-      )
-      .slice(0, DISCOVERY_FEED_RESULT_LIMIT);
+          recommendationScore,
+        ),
+      );
+      return results;
+    }, []);
+  }
 
-    this.logger.debug(
-      asLogMessage('discovery.feed.generated', {
-        userId,
-        blockedCount: blockedIds.length,
-        candidateCount: users.length,
-        returnedCount: scored.length,
-        filters: {
-          hasDistanceKm: typeof maxDistanceKm === 'number',
-          hasMinAge: typeof filters.minAge === 'number',
-          hasMaxAge: typeof filters.maxAge === 'number',
-          goalsCount: filters.goals?.length ?? 0,
-          intensityCount: filters.intensity?.length ?? 0,
-          availabilityCount: filters.availability?.length ?? 0,
-        },
-        requesterHasCoordinates,
-      }),
+  private shouldExcludeCandidate(
+    age: number,
+    distanceKm: number | null,
+    filters: DiscoveryFilters,
+    maxDistanceKm: number | null,
+    requesterHasCoordinates: boolean,
+  ) {
+    if (typeof filters.minAge === 'number' && age < filters.minAge) {
+      return true;
+    }
+
+    if (typeof filters.maxAge === 'number' && age > filters.maxAge) {
+      return true;
+    }
+
+    return (
+      maxDistanceKm !== null &&
+      requesterHasCoordinates &&
+      (distanceKm === null || distanceKm > maxDistanceKm)
     );
+  }
 
-    return scored;
+  private createScoringRequester(requester: DiscoveryRequester) {
+    return {
+      fitnessProfile: requester.fitnessProfile
+        ? {
+            intensityLevel: requester.fitnessProfile.intensityLevel,
+            primaryGoal: requester.fitnessProfile.primaryGoal,
+            secondaryGoal: requester.fitnessProfile.secondaryGoal,
+          }
+        : null,
+    };
+  }
+
+  private sanitizeDiscoveryCandidate(
+    user: UserWithRelations,
+    age: number,
+    distanceKm: number | null,
+    recommendationScore: number,
+  ): DiscoveryFeedEntry {
+    const { profile, ...userWithoutProfile } = user;
+
+    return {
+      ...userWithoutProfile,
+      profile: {
+        city: profile?.city ?? null,
+        bio: profile?.bio ?? null,
+      },
+      age,
+      distanceKm,
+      recommendationScore,
+    };
+  }
+
+  private getValidDistanceFilter(distanceKm?: number) {
+    if (
+      typeof distanceKm === 'number' &&
+      Number.isFinite(distanceKm) &&
+      distanceKm > 0
+    ) {
+      return distanceKm;
+    }
+
+    return null;
+  }
+
+  private hasCoordinates(
+    latitude?: number | null,
+    longitude?: number | null,
+  ): boolean {
+    return (
+      latitude !== null &&
+      latitude !== undefined &&
+      longitude !== null &&
+      longitude !== undefined
+    );
   }
 
   private buildBirthdateFilter(filters: DiscoveryFilters) {
@@ -343,88 +447,48 @@ export class DiscoveryService {
     };
   }
 
-  private resolveDistanceFilter(distanceKm?: number) {
-    if (
-      typeof distanceKm === 'number' &&
-      Number.isFinite(distanceKm) &&
-      distanceKm > 0
-    ) {
-      return distanceKm;
-    }
-
-    return null;
-  }
-
-  private buildProfileFilter(
-    requesterLatitude: number | null,
-    requesterLongitude: number | null,
-    maxDistanceKm: number | null,
-  ) {
-    if (
-      maxDistanceKm === null ||
-      requesterLatitude === null ||
-      requesterLongitude === null
-    ) {
-      return null;
-    }
-
-    const latitudeDelta = maxDistanceKm / 111;
-    const longitudeScale = Math.max(
-      0.01,
-      Math.abs(Math.cos((requesterLatitude * Math.PI) / 180)),
-    );
-    const longitudeDelta = maxDistanceKm / (111 * longitudeScale);
-
-    const minLon = requesterLongitude - longitudeDelta;
-    const maxLon = requesterLongitude + longitudeDelta;
-
-    // When the bounding box crosses the antimeridian (180/-180 boundary),
-    // minLon > maxLon after clamping, so we use OR: lon >= minLon OR lon <= maxLon.
-    const longitudeFilter =
-      minLon > maxLon
-        ? { OR: [{ longitude: { gte: minLon } }, { longitude: { lte: maxLon } }] }
-        : { longitude: { gte: minLon, lte: maxLon } };
-
-    return {
-      AND: [
-        {
-          latitude: {
-            gte: requesterLatitude - latitudeDelta,
-            lte: requesterLatitude + latitudeDelta,
-          },
-        },
-        longitudeFilter,
-      ],
-    };
-  }
-
   private getBirthdateBoundary(age: number) {
     const boundary = new Date();
     boundary.setFullYear(boundary.getFullYear() - age);
     return boundary;
   }
 
+  private normalizeGoals(goals: Array<string | null | undefined>) {
+    return goals
+      .filter(Boolean)
+      .map((goal) => String(goal).toLowerCase());
+  }
+
   private computeRecommendationScore(
-    me: RecommendationContext,
+    me: {
+      fitnessProfile?: {
+        intensityLevel?: IntensityLevel | null;
+        primaryGoal?: string | null;
+        secondaryGoal?: string | null;
+      } | null;
+    } | null,
     candidate: UserWithRelations,
     age: number,
     distanceKm: number | null,
   ): number {
     let score = 0;
 
-    const candidateGoals = [
+    const candidateGoals = this.normalizeGoals([
       candidate.fitnessProfile?.primaryGoal,
       candidate.fitnessProfile?.secondaryGoal,
-    ]
-      .filter(Boolean)
-      .map((g) => String(g).toLowerCase());
+    ]);
+    const myGoals = this.normalizeGoals([
+      me?.fitnessProfile?.primaryGoal,
+      me?.fitnessProfile?.secondaryGoal,
+    ]);
+
     const sharedGoals = candidateGoals.filter((goal) =>
-      me.goals.has(goal),
+      myGoals.includes(goal),
     ).length;
     score += sharedGoals * DISCOVERY_SCORE_WEIGHTS.sharedGoal;
 
     if (
-      me.fitnessProfile?.intensityLevel &&
+      me?.fitnessProfile?.intensityLevel &&
       candidate.fitnessProfile?.intensityLevel &&
       me.fitnessProfile.intensityLevel ===
         candidate.fitnessProfile.intensityLevel
@@ -492,107 +556,14 @@ export class DiscoveryService {
       throw new BadRequestException('Cannot like yourself');
     }
 
-    if (await this.blockService.isBlocked(userId, targetUserId)) {
-      throw new NotFoundException('User not found');
-    }
-
-    const targetUser = await this.prisma.user.findFirst({
-      where: { id: targetUserId, isDeleted: false, isBanned: false },
-      select: { id: true },
-    });
-    if (!targetUser) {
-      this.logger.warn(
-        asLogMessage('discovery.like.target_missing', {
-          userId,
-          targetUserId,
-        }),
-      );
-      throw new NotFoundException('User not found');
-    }
+    await this.assertSwipeTargetAvailable(userId, targetUserId);
 
     if (await this.blockService.isBlocked(userId, targetUserId)) {
       throw new ForbiddenException('This user is no longer available');
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const existingLike = await tx.like.findUnique({
-        where: {
-          fromUserId_toUserId: {
-            fromUserId: userId,
-            toUserId: targetUserId,
-          },
-        },
-      });
-
-      if (existingLike) return { status: 'already_liked' as const };
-
-      await tx.pass.deleteMany({
-        where: { fromUserId: userId, toUserId: targetUserId },
-      });
-
-      await tx.like.create({
-        data: {
-          fromUserId: userId,
-          toUserId: targetUserId,
-        },
-      });
-
-      const mutualLike = await tx.like.findUnique({
-        where: {
-          fromUserId_toUserId: {
-            fromUserId: targetUserId,
-            toUserId: userId,
-          },
-        },
-      });
-
-      if (mutualLike) {
-        const [userAId, userBId] = [userId, targetUserId].sort();
-        const existingMatch = await tx.match.findUnique({
-          where: {
-            userAId_userBId: {
-              userAId,
-              userBId,
-            },
-          },
-          select: {
-            id: true,
-            isBlocked: true,
-          },
-        });
-
-        if (existingMatch?.isBlocked) {
-          throw new NotFoundException('User not found');
-        }
-
-        const classification = await deriveMatchClassification(tx, [
-          userId,
-          targetUserId,
-        ]);
-
-        const match = await tx.match.upsert({
-          where: {
-            userAId_userBId: {
-              userAId,
-              userBId,
-            },
-          },
-          create: {
-            userAId,
-            userBId,
-            ...classification,
-          },
-          update: {
-            updatedAt: new Date(),
-            isArchived: false,
-            ...classification,
-          },
-        });
-
-        return { status: 'match' as const, match };
-      }
-
-      return { status: 'liked' as const };
+      return this.createLikeResult(tx, userId, targetUserId);
     });
 
     this.logger.debug(
@@ -671,52 +642,14 @@ export class DiscoveryService {
       throw new BadRequestException('Cannot pass on yourself');
     }
 
-    if (await this.blockService.isBlocked(userId, targetUserId)) {
-      throw new NotFoundException('User not found');
-    }
-
-    const targetUser = await this.prisma.user.findFirst({
-      where: { id: targetUserId, isDeleted: false, isBanned: false },
-      select: { id: true },
-    });
-    if (!targetUser) {
-      this.logger.warn(
-        asLogMessage('discovery.pass.target_missing', {
-          userId,
-          targetUserId,
-        }),
-      );
-      throw new NotFoundException('User not found');
-    }
+    await this.assertSwipeTargetAvailable(userId, targetUserId);
 
     if (await this.blockService.isBlocked(userId, targetUserId)) {
       throw new ForbiddenException('This user is no longer available');
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const existingPass = await tx.pass.findUnique({
-        where: {
-          fromUserId_toUserId: {
-            fromUserId: userId,
-            toUserId: targetUserId,
-          },
-        },
-      });
-
-      if (existingPass) return { status: 'already_passed' as const };
-
-      await tx.like.deleteMany({
-        where: { fromUserId: userId, toUserId: targetUserId },
-      });
-
-      await tx.pass.create({
-        data: {
-          fromUserId: userId,
-          toUserId: targetUserId,
-        },
-      });
-
-      return { status: 'passed' as const };
+      return this.createPassResult(tx, userId, targetUserId);
     });
 
     this.logger.debug(
@@ -732,38 +665,20 @@ export class DiscoveryService {
 
   async undoLastSwipe(userId: string) {
     const result = await this.prisma.$transaction(async (tx) => {
-      const [lastLike, lastPass] = await Promise.all([
-        tx.like.findFirst({
-          where: { fromUserId: userId },
-          orderBy: { createdAt: 'desc' },
-        }),
-        tx.pass.findFirst({
-          where: { fromUserId: userId },
-          orderBy: { createdAt: 'desc' },
-        }),
-      ]);
+      const lastSwipe = await this.findLastSwipe(tx, userId);
 
-      if (!lastLike && !lastPass) return { status: 'nothing_to_undo' as const };
+      if (!lastSwipe) {
+        return { status: 'nothing_to_undo' as const };
+      }
 
-      const undoLike =
-        !!lastLike && (!lastPass || lastLike.createdAt >= lastPass.createdAt);
-
-      if (undoLike && lastLike) {
+      if (lastSwipe.action === 'like') {
+        const lastLike = lastSwipe.record;
         await tx.like.delete({ where: { id: lastLike.id } });
-
-        const [userAId, userBId] = [userId, lastLike.toUserId].sort();
-        const existingMatch = await tx.match.findUnique({
-          where: { userAId_userBId: { userAId, userBId } },
-        });
-
-        let archivedMatchId: string | undefined;
-        if (existingMatch && !existingMatch.isArchived) {
-          await tx.match.update({
-            where: { id: existingMatch.id },
-            data: { isArchived: true },
-          });
-          archivedMatchId = existingMatch.id;
-        }
+        const archivedMatchId = await this.archiveMatchForUndo(
+          tx,
+          userId,
+          lastLike.toUserId,
+        );
 
         return {
           status: 'undone' as const,
@@ -773,16 +688,12 @@ export class DiscoveryService {
         };
       }
 
-      if (lastPass) {
-        await tx.pass.delete({ where: { id: lastPass.id } });
-        return {
-          status: 'undone' as const,
-          action: 'pass' as const,
-          targetUserId: lastPass.toUserId,
-        };
-      }
-
-      return { status: 'nothing_to_undo' as const };
+      await tx.pass.delete({ where: { id: lastSwipe.record.id } });
+      return {
+        status: 'undone' as const,
+        action: 'pass' as const,
+        targetUserId: lastSwipe.record.toUserId,
+      };
     });
 
     this.logger.debug(
@@ -797,6 +708,183 @@ export class DiscoveryService {
     );
 
     return result;
+  }
+
+  private async assertTargetUserExists(targetUserId: string) {
+    const targetUser = await this.prisma.user.findFirst({
+      where: { id: targetUserId, isDeleted: false, isBanned: false },
+      select: { id: true },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+  }
+
+  private async assertSwipeTargetAvailable(userId: string, targetUserId: string) {
+    if (await this.blockService.isBlocked(userId, targetUserId)) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.assertTargetUserExists(targetUserId);
+  }
+
+  private async createLikeResult(
+    tx: DiscoveryTransaction,
+    userId: string,
+    targetUserId: string,
+  ) {
+    const existingLike = await tx.like.findUnique({
+      where: {
+        fromUserId_toUserId: {
+          fromUserId: userId,
+          toUserId: targetUserId,
+        },
+      },
+    });
+
+    if (existingLike) {
+      return { status: 'already_liked' as const };
+    }
+
+    await tx.pass.deleteMany({
+      where: { fromUserId: userId, toUserId: targetUserId },
+    });
+
+    await tx.like.create({
+      data: {
+        fromUserId: userId,
+        toUserId: targetUserId,
+      },
+    });
+
+    const mutualLike = await tx.like.findUnique({
+      where: {
+        fromUserId_toUserId: {
+          fromUserId: targetUserId,
+          toUserId: userId,
+        },
+      },
+    });
+
+    if (!mutualLike) {
+      return { status: 'liked' as const };
+    }
+
+    const [userAId, userBId] = [userId, targetUserId].sort();
+    const classification = await deriveMatchClassification(tx, [
+      userId,
+      targetUserId,
+    ]);
+
+    const match = await tx.match.upsert({
+      where: {
+        userAId_userBId: {
+          userAId,
+          userBId,
+        },
+      },
+      create: {
+        userAId,
+        userBId,
+        ...classification,
+      },
+      update: {
+        updatedAt: new Date(),
+        isBlocked: false,
+        isArchived: false,
+        ...classification,
+      },
+    });
+
+    return { status: 'match' as const, match };
+  }
+
+  private async createPassResult(
+    tx: DiscoveryTransaction,
+    userId: string,
+    targetUserId: string,
+  ) {
+    const existingPass = await tx.pass.findUnique({
+      where: {
+        fromUserId_toUserId: {
+          fromUserId: userId,
+          toUserId: targetUserId,
+        },
+      },
+    });
+
+    if (existingPass) {
+      return { status: 'already_passed' as const };
+    }
+
+    await tx.like.deleteMany({
+      where: { fromUserId: userId, toUserId: targetUserId },
+    });
+
+    await tx.pass.create({
+      data: {
+        fromUserId: userId,
+        toUserId: targetUserId,
+      },
+    });
+
+    return { status: 'passed' as const };
+  }
+
+  private async findLastSwipe(tx: DiscoveryTransaction, userId: string) {
+    // Prisma interactive transactions do not support parallel queries;
+    // run them sequentially to avoid runtime errors.
+    const lastLike = await tx.like.findFirst({
+      where: { fromUserId: userId },
+      orderBy: { createdAt: 'desc' },
+    }) as SwipeRecord | null;
+    const lastPass = await tx.pass.findFirst({
+      where: { fromUserId: userId },
+      orderBy: { createdAt: 'desc' },
+    }) as SwipeRecord | null;
+
+    if (!lastLike && !lastPass) {
+      return null;
+    }
+
+    if (lastLike && (!lastPass || lastLike.createdAt >= lastPass.createdAt)) {
+      return {
+        action: 'like' as const,
+        record: lastLike,
+      };
+    }
+
+    if (lastPass) {
+      return {
+        action: 'pass' as const,
+        record: lastPass,
+      };
+    }
+
+    return null;
+  }
+
+  private async archiveMatchForUndo(
+    tx: DiscoveryTransaction,
+    userId: string,
+    targetUserId: string,
+  ) {
+    const [userAId, userBId] = [userId, targetUserId].sort();
+    const existingMatch = await tx.match.findUnique({
+      where: { userAId_userBId: { userAId, userBId } },
+    });
+
+    if (!existingMatch || existingMatch.isArchived) {
+      return undefined;
+    }
+
+    await tx.match.update({
+      where: { id: existingMatch.id },
+      data: { isArchived: true },
+    });
+
+    return existingMatch.id;
   }
 
 }

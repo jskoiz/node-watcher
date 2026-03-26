@@ -6,8 +6,8 @@ This matrix tracks the visible MVP surfaces and whether each user-facing action 
 | --- | --- | --- | --- |
 | Auth | Sign up, sign in, restore session, delete account | live | `auth` API + mobile auth store |
 | Onboarding | Save fitness basics and session intent context | partial | `PUT /profile/fitness` |
-| Discovery | Load feed, like, pass, open profile detail | live | `discovery` API |
-| Profile detail | Load another user and open chat when already matched | live only for existing matches | `GET /profile/:id` + `GET /matches` |
+| Discovery | Load feed, like, pass, undo the last swipe, open profile detail | live | `discovery` API + discovery feature hooks |
+| Profile detail | Load another user, like/pass from detail, and open chat when already matched | live only for existing matches | `GET /profile/:id` + `GET /matches` + discovery mutations |
 | Profile | Load profile, edit fitness basics, delete account | live | `GET /profile`, `PUT /profile/fitness`, `DELETE /auth/me` |
 | Profile | Edit bio/city/intent from the app | live | `PUT /profile` |
 | Profile | Upload, reorder, set primary, and remove photos | live | `POST /profile/photos`, `PATCH /profile/photos/:id`, `DELETE /profile/photos/:id` |
@@ -33,6 +33,14 @@ This matrix tracks the visible MVP surfaces and whether each user-facing action 
 - Contract-shape changes should be reflected in `shared/contracts/`, then verified by backend controller-boundary specs plus shared guardrails, the mobile dev validator warnings, and a smoke run if the runtime path changed.
 - Release QA must explicitly cover profile edits, profile photo mutations, and the sheet-driven discovery/explore/create/chat flows before submission.
 - The seeded `ui-preview` scenario is the canonical local runtime for deterministic release/readiness checks; rerun it after backend restarts.
+
+## Discovery policy
+
+- Discovery targets that are blocked must be non-actionable everywhere, including direct profile-detail swipes. Feed exclusion and mutation behavior should stay aligned.
+- A successful discovery `like` or `pass` must remove that user from every cached discovery feed variant, not only the currently visible filter state.
+- Discovery `undo` should treat the backend as the source of truth and refresh the full discovery feed family plus matches rather than relying on a local single-feed restore.
+- Discovery surfaces should allow only one in-flight mutation at a time. Deck swipes and undo actions are intentionally serialized until the pending request settles.
+- Profile and photo edits must refresh downstream discovery-dependent surfaces, including discovery feed variants, matches, and profile-completeness nudges.
 
 ## Planning note
 

@@ -76,6 +76,7 @@ function HomeScreenContentStory({
       onUpdateMaxAge={() => undefined}
       onUpdateMinAge={() => undefined}
       completenessScore={85}
+      isActing={false}
       onPressCompleteness={() => undefined}
       showMatch={showMatch}
       unreadCount={4}

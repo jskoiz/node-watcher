@@ -165,6 +165,7 @@ const SwipeDeckCard = React.memo(({ cardHeight, onPressUser, user }: SwipeDeckCa
 interface SwipeDeckProps {
   cardHeight?: number;
   data: SwipeDeckUser[];
+  interactionDisabled?: boolean;
   onPress?: (user: SwipeDeckUser) => void;
   onSwipeLeft: (user: SwipeDeckUser) => void;
   onSwipeRight: (user: SwipeDeckUser) => void;
@@ -173,6 +174,7 @@ interface SwipeDeckProps {
 export default function SwipeDeck({
   cardHeight,
   data,
+  interactionDisabled = false,
   onSwipeLeft,
   onSwipeRight,
   onPress,
@@ -229,22 +231,22 @@ export default function SwipeDeck({
 
   const handleSwipedLeft = useCallback(
     (index: number) => {
-      if (swipingRef.current) return;
+      if (interactionDisabled || swipingRef.current || !data[index]) return;
       swipingRef.current = true;
       onSwipeLeft(data[index]);
       requestAnimationFrame(() => { swipingRef.current = false; });
     },
-    [data, onSwipeLeft],
+    [data, interactionDisabled, onSwipeLeft],
   );
 
   const handleSwipedRight = useCallback(
     (index: number) => {
-      if (swipingRef.current) return;
+      if (interactionDisabled || swipingRef.current || !data[index]) return;
       swipingRef.current = true;
       onSwipeRight(data[index]);
       requestAnimationFrame(() => { swipingRef.current = false; });
     },
-    [data, onSwipeRight],
+    [data, interactionDisabled, onSwipeRight],
   );
 
   useEffect(() => {
@@ -280,6 +282,8 @@ export default function SwipeDeck({
         cards={data}
         containerStyle={styles.swiperContainer}
         disableBottomSwipe
+        disableLeftSwipe={interactionDisabled}
+        disableRightSwipe={interactionDisabled}
         disableTopSwipe
         onSwipedLeft={handleSwipedLeft}
         onSwipedRight={handleSwipedRight}

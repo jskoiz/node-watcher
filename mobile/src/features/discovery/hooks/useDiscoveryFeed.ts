@@ -1,67 +1,66 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DiscoveryUser, LikeResponse, UndoSwipeResponse } from '../../../api/types';
+import type {
+  LikeResponse,
+  UndoSwipeResponse,
+} from '../../../api/types';
 import {
   discoveryApi,
   type DiscoveryFiltersInput,
 } from '../../../services/api';
-import { beginOptimisticUpdate } from '../../../lib/query/optimisticUpdates';
 import {
-  invalidateQueryScopes,
-  queryInvalidationScopes,
-} from '../../../lib/query/queryInvalidation';
+  removeUserFromDiscoveryFeedFamily,
+  restoreDiscoveryFeedFamily,
+} from '../../../lib/query/discoveryFeedCache';
 import { queryKeys } from '../../../lib/query/queryKeys';
+import { invalidateQueryScopes, queryInvalidationScopes } from '../../../lib/query/queryInvalidation';
+
+function createFeedKey(filters?: DiscoveryFiltersInput) {
+  return queryKeys.discovery.feed(filters ?? {});
+}
 
 export function useDiscoveryFeed(filters?: DiscoveryFiltersInput) {
   const queryClient = useQueryClient();
+  const feedKey = createFeedKey(filters);
 
   const query = useQuery({
-    queryKey: queryKeys.discovery.feed(filters ?? {}),
-    queryFn: async () =>
-      (await discoveryApi.feed(filters) as { data: DiscoveryUser[] | null }).data || [],
+    queryKey: feedKey,
+    queryFn: async () => (await discoveryApi.feed(filters)).data || [],
   });
-
-  const removeFromFeeds = async (userId: string) =>
-    beginOptimisticUpdate(queryClient, [
-      {
-        queryKey: queryKeys.discovery.feeds(),
-        updater: (current) =>
-          Array.isArray(current)
-            ? current.filter((item) => (item as DiscoveryUser).id !== userId)
-            : current,
-      },
-    ]);
-
-  const invalidateMatches = () => {
-    void invalidateQueryScopes(queryClient, [
-      { queryKey: queryKeys.matches.list() },
-    ]);
-  };
 
   const pass = useMutation({
     mutationFn: async (userId: string) => discoveryApi.pass(userId),
-    onMutate: removeFromFeeds,
+    onMutate: async (userId) => ({
+      previousFeeds: await removeUserFromDiscoveryFeedFamily(queryClient, userId),
+    }),
     onError: (_error, _userId, context) => {
-      context?.rollback();
+      restoreDiscoveryFeedFamily(queryClient, context?.previousFeeds);
+    },
+    onSettled: () => {
+      void invalidateQueryScopes(queryClient, queryInvalidationScopes.discoveryAction);
     },
   });
 
   const like = useMutation({
     mutationFn: async (userId: string) =>
-      (await discoveryApi.like(userId) as { data: LikeResponse }).data,
-    onMutate: removeFromFeeds,
+      (await discoveryApi.like(userId)).data as LikeResponse,
+    onMutate: async (userId) => ({
+      previousFeeds: await removeUserFromDiscoveryFeedFamily(queryClient, userId),
+    }),
     onSuccess: (data) => {
       if (data.status === 'match') {
-        invalidateMatches();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.matches.list() });
       }
     },
     onError: (_error, _userId, context) => {
-      context?.rollback();
+      restoreDiscoveryFeedFamily(queryClient, context?.previousFeeds);
+    },
+    onSettled: () => {
+      void invalidateQueryScopes(queryClient, queryInvalidationScopes.discoveryAction);
     },
   });
 
   const undo = useMutation({
-    mutationFn: async () =>
-      (await discoveryApi.undo() as { data: UndoSwipeResponse }).data,
+    mutationFn: async () => (await discoveryApi.undo()).data as UndoSwipeResponse,
     onSuccess: () => {
       void invalidateQueryScopes(queryClient, queryInvalidationScopes.discoveryAction);
     },

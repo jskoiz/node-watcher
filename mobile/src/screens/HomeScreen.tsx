@@ -54,7 +54,8 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
     () => buildDiscoveryFilters(activeQuickFilter, appliedFilterState),
     [activeQuickFilter, appliedFilterState],
   );
-  const { error, feed, isLoading, likeUser, passUser, refetch, undoSwipe } = useDiscoveryFeed(currentFilters);
+  const { error, feed, isActing, isLoading, likeUser, passUser, refetch, undoSwipe } =
+    useDiscoveryFeed(currentFilters);
   const { score: completenessScore } = useProfileCompleteness();
   const errorMessage = error ? normalizeApiError(error).message : null;
 
@@ -94,6 +95,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
       filtersSheet={filtersSheet.sheetProps}
       filterState={draftFilterState}
       greeting={getGreeting(user?.firstName)}
+      isActing={isActing}
       intentOption={intentOption}
       onApplyFilters={() => {
         void triggerSheetCommitHaptic();
@@ -124,12 +126,18 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
         void refetch();
       }}
       onSwipeLeft={(profile) => {
+        if (isActing) {
+          return;
+        }
         void triggerSelectionHaptic();
         passUser(profile.id).catch(() => {
           // Mutation onError already rolls back the optimistic update.
         });
       }}
       onSwipeRight={(profile) => {
+        if (isActing) {
+          return;
+        }
         void triggerSelectionHaptic();
         likeUser(profile.id).then((response) => {
           if (response.status === 'match' && response.match) {
@@ -159,6 +167,9 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
         }))
       }
       onUndoAndClose={() => {
+        if (isActing) {
+          return;
+        }
         void triggerSheetCommitHaptic();
         undoSwipe().catch(() => {
           // Swallow — undo failure is non-critical and the UI stays consistent.
