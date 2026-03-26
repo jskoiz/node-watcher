@@ -9,11 +9,13 @@ const matchFindUnique = jest.fn();
 const matchUpdate = jest.fn();
 const passUpsert = jest.fn().mockResolvedValue({});
 const notificationsCreate = jest.fn().mockResolvedValue({});
+const userFindFirst = jest.fn();
 
 const prisma = {
   report: { create: reportCreate },
   match: { findUnique: matchFindUnique, update: matchUpdate },
   pass: { upsert: passUpsert },
+  user: { findFirst: userFindFirst },
 } as unknown as PrismaService;
 
 const notifications = {
@@ -25,6 +27,7 @@ describe('ModerationService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    userFindFirst.mockResolvedValue({ id: 'user-2' });
     service = new ModerationService(prisma, notifications);
   });
 
@@ -54,6 +57,35 @@ describe('ModerationService', () => {
           matchId: 'match-1',
         }),
       ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws Forbidden when the reported user is not the other participant in the match', async () => {
+      matchFindUnique.mockResolvedValue({
+        id: 'match-1',
+        userAId: 'user-1',
+        userBId: 'user-2',
+      });
+
+      await expect(
+        service.reportUser('user-1', {
+          reportedUserId: 'user-3',
+          category: ReportCategory.SPAM,
+          matchId: 'match-1',
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rejects reports against deleted, banned, or missing users', async () => {
+      userFindFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.reportUser('user-1', {
+          reportedUserId: 'user-2',
+          category: ReportCategory.SPAM,
+        }),
+      ).rejects.toThrow();
+
+      expect(reportCreate).not.toHaveBeenCalled();
     });
 
     it('creates a report and fires notification when valid', async () => {
@@ -87,6 +119,24 @@ describe('ModerationService', () => {
 
       expect(result).toMatchObject({ id: 'report-2' });
       expect(matchFindUnique).not.toHaveBeenCalled();
+    });
+
+    it('validates the reported target before persisting', async () => {
+      reportCreate.mockResolvedValue({ id: 'report-2', status: 'open' });
+
+      await service.reportUser('user-1', {
+        reportedUserId: 'user-3',
+        category: ReportCategory.SPAM,
+      });
+
+      expect(userFindFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'user-3',
+          isDeleted: false,
+          isBanned: false,
+        },
+        select: { id: true },
+      });
     });
   });
 
@@ -156,6 +206,16 @@ describe('ModerationService', () => {
         }),
       );
       expect(notificationsCreate).toHaveBeenCalled();
+    });
+
+    it('rejects blocks against deleted, banned, or missing users', async () => {
+      userFindFirst.mockResolvedValueOnce(null);
+
+      await expect(service.blockUser('user-1', 'user-99')).rejects.toThrow();
+
+      expect(matchFindUnique).not.toHaveBeenCalled();
+      expect(reportCreate).not.toHaveBeenCalled();
+      expect(passUpsert).not.toHaveBeenCalled();
     });
   });
 });

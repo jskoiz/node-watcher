@@ -33,6 +33,11 @@ npm run check:full
 npm run dev:scenario -- ui-preview
 ```
 
+## Security Regression Coverage
+
+Security-sensitive backend changes should extend the matching negative-path spec before the API or transport contract changes.
+The main guardrails currently live in `backend/src/auth/auth.security.spec.ts`, `backend/src/discovery/discovery.service.spec.ts`, `backend/src/events/events.service.spec.ts`, `backend/src/verification/verification.service.spec.ts`, and `backend/src/matches/chat.gateway.spec.ts`.
+
 Profile/photo APIs now include:
 
 ```bash

@@ -6,30 +6,31 @@ jest.mock('../config/app.config', () => ({
 
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtStrategy } from './jwt.strategy';
-import { PrismaService } from '../prisma/prisma.service';
+import { AuthenticatedUserService } from './authenticated-user.service';
 
 describe('JwtStrategy', () => {
   let strategy: JwtStrategy;
-  let prisma: { user: { findFirst: jest.Mock } };
+  let authenticatedUserService: { requireActiveUser: jest.Mock };
 
   const payload = { sub: 'user-1', email: 'alice@example.com' };
 
   beforeEach(() => {
-    prisma = { user: { findFirst: jest.fn() } };
-    strategy = new JwtStrategy(prisma as unknown as PrismaService);
+    authenticatedUserService = { requireActiveUser: jest.fn() };
+    strategy = new JwtStrategy(
+      authenticatedUserService as unknown as AuthenticatedUserService,
+    );
   });
 
   it('returns the user when active and not banned/deleted', async () => {
     const dbUser = { id: 'user-1', email: 'alice@example.com' };
-    prisma.user.findFirst.mockResolvedValue(dbUser);
+    authenticatedUserService.requireActiveUser.mockResolvedValue(dbUser);
 
     const result = await strategy.validate(payload);
 
     expect(result).toEqual(dbUser);
-    expect(prisma.user.findFirst).toHaveBeenCalledWith({
-      where: { id: 'user-1', isDeleted: false, isBanned: false },
-      select: { id: true, email: true },
-    });
+    expect(authenticatedUserService.requireActiveUser).toHaveBeenCalledWith(
+      'user-1',
+    );
   });
 
   it.each([
@@ -37,9 +38,10 @@ describe('JwtStrategy', () => {
     'banned',
     'non-existent',
   ])('rejects a %s user with UnauthorizedException', async (scenario) => {
-    // All three cases result in findFirst returning null because the
-    // query filters on isDeleted: false and isBanned: false.
-    prisma.user.findFirst.mockResolvedValue(null);
+    void scenario;
+    authenticatedUserService.requireActiveUser.mockRejectedValue(
+      new UnauthorizedException('User no longer valid'),
+    );
 
     await expect(strategy.validate(payload)).rejects.toThrow(
       new UnauthorizedException('User no longer valid'),

@@ -6,6 +6,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { appConfig } from '../config/app.config';
+import { AuthenticatedUserService } from './authenticated-user.service';
+import { TokenAuthService } from './token-auth.service';
 
 @Module({
   imports: [
@@ -16,8 +18,13 @@ import { appConfig } from '../config/app.config';
       signOptions: { expiresIn: appConfig.jwt.expiresIn },
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    AuthenticatedUserService,
+    TokenAuthService,
+  ],
   controllers: [AuthController],
-  exports: [JwtModule],
+  exports: [AuthenticatedUserService, TokenAuthService, JwtModule],
 })
 export class AuthModule {}

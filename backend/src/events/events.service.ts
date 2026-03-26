@@ -20,6 +20,11 @@ interface EventWithRsvps {
   rsvps?: { id: string }[];
 }
 
+interface ActiveUser {
+  id: string;
+  firstName: string;
+}
+
 function mapEventSummary(
   event: {
     id: string;
@@ -59,7 +64,42 @@ export class EventsService {
     private readonly blockService: BlockService,
   ) {}
 
+  private async getActiveUser(userId: string): Promise<ActiveUser> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, isDeleted: false, isBanned: false },
+      select: { id: true, firstName: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  private buildVisibleEventWhere(blockedIds: string[] = []) {
+    return {
+      host: {
+        is: {
+          isDeleted: false,
+          isBanned: false,
+        },
+      },
+      ...(blockedIds.length
+        ? {
+            hostId: {
+              notIn: blockedIds,
+            },
+          }
+        : {}),
+    };
+  }
+
   async list(userId?: string, take = 20, skip = 0) {
+    if (userId) {
+      await this.getActiveUser(userId);
+    }
+
     const blockedIds = userId
       ? await this.blockService.getBlockedUserIds(userId)
       : [];
@@ -67,7 +107,7 @@ export class EventsService {
     const events = await this.prisma.event.findMany({
       where: {
         startsAt: { gte: new Date() },
-        ...(blockedIds.length ? { hostId: { notIn: blockedIds } } : {}),
+        ...this.buildVisibleEventWhere(blockedIds),
       },
       orderBy: { startsAt: 'asc' },
       take,
@@ -91,9 +131,20 @@ export class EventsService {
     );
   }
 
-  async detail(id: string, userId?: string) {
-    const event = await this.prisma.event.findUnique({
-      where: { id },
+  async detail(id: string, userId?: string, activeUser?: ActiveUser) {
+    if (userId && !activeUser) {
+      await this.getActiveUser(userId);
+    }
+
+    const blockedIds = userId
+      ? await this.blockService.getBlockedUserIds(userId)
+      : [];
+
+    const event = await this.prisma.event.findFirst({
+      where: {
+        id,
+        ...this.buildVisibleEventWhere(blockedIds),
+      },
       include: {
         host: { select: { id: true, firstName: true } },
         _count: { select: { rsvps: true } },
@@ -176,7 +227,8 @@ export class EventsService {
   }
 
   async rsvp(eventId: string, userId: string) {
-    const event = await this.detail(eventId);
+    const currentUser = await this.getActiveUser(userId);
+    const event = await this.detail(eventId, userId, currentUser);
 
     const countBefore = await this.prisma.eventRsvp.count({
       where: { eventId, userId },
@@ -231,7 +283,8 @@ export class EventsService {
     message?: string,
   ) {
     // Validate event exists
-    const event = await this.detail(eventId, userId);
+    const currentUser = await this.getActiveUser(userId);
+    const event = await this.detail(eventId, userId, currentUser);
 
     // Validate user is host or has RSVP'd
     const isHost = event.host.id === userId;
@@ -244,7 +297,27 @@ export class EventsService {
     // Validate match exists and user is a participant
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
-      select: { id: true, userAId: true, userBId: true, isBlocked: true },
+      select: {
+        id: true,
+        userAId: true,
+        userBId: true,
+        isBlocked: true,
+        isArchived: true,
+        userA: {
+          select: {
+            id: true,
+            isDeleted: true,
+            isBanned: true,
+          },
+        },
+        userB: {
+          select: {
+            id: true,
+            isDeleted: true,
+            isBanned: true,
+          },
+        },
+      },
     });
 
     if (!match) {
@@ -255,12 +328,17 @@ export class EventsService {
       throw new ForbiddenException('You are not part of this match');
     }
 
-    if (match.isBlocked) {
+    if (match.isBlocked || match.isArchived) {
       throw new ForbiddenException('This conversation is no longer available');
     }
 
     const inviteeId =
       match.userAId === userId ? match.userBId : match.userAId;
+
+    const invitee = match.userAId === userId ? match.userB : match.userA;
+    if (invitee.isDeleted || invitee.isBanned) {
+      throw new ForbiddenException('This conversation is no longer available');
+    }
 
     // Check block relationship even when match is not flagged (e.g. block from discovery)
     const blocked = await this.blockService.isBlocked(userId, inviteeId);
@@ -315,19 +393,13 @@ export class EventsService {
       data: { updatedAt: new Date() },
     });
 
-    // Fetch inviter name for notification
-    const inviter = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { firstName: true },
-    });
-
     // Send notification to invitee
     void this.notifications
       .create(
         inviteeId,
         buildEventInviteNotification(
           eventId,
-          inviter?.firstName ?? 'Someone',
+          currentUser.firstName,
           event.title,
           matchId,
         ),
@@ -353,9 +425,14 @@ export class EventsService {
   }
 
   async getInvites(eventId: string, userId: string) {
+    await this.getActiveUser(userId);
+
     // Only the host can view invites for an event
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
+    const event = await this.prisma.event.findFirst({
+      where: {
+        id: eventId,
+        ...this.buildVisibleEventWhere(),
+      },
       select: { hostId: true },
     });
 
@@ -368,7 +445,17 @@ export class EventsService {
     }
 
     const invites = await this.prisma.eventInvite.findMany({
-      where: { eventId },
+      where: {
+        eventId,
+        inviter: {
+          isDeleted: false,
+          isBanned: false,
+        },
+        invitee: {
+          isDeleted: false,
+          isBanned: false,
+        },
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         inviter: { select: { id: true, firstName: true } },
@@ -386,8 +473,14 @@ export class EventsService {
   }
 
   async myEvents(userId: string, take = 20, skip = 0) {
+    await this.getActiveUser(userId);
+    const blockedIds = await this.blockService.getBlockedUserIds(userId);
+
     const rows = await this.prisma.eventRsvp.findMany({
-      where: { userId },
+      where: {
+        userId,
+        event: this.buildVisibleEventWhere(blockedIds),
+      },
       orderBy: { createdAt: 'desc' },
       take,
       skip,

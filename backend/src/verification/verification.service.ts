@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { appConfig } from '../config/app.config';
@@ -9,6 +14,8 @@ const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const CODE_MIN = 100_000;
 /** Maximum value (exclusive) for a 6-digit verification code. */
 const CODE_MAX = 1_000_000;
+/** Maximum wrong-code attempts before a pending challenge is discarded. */
+const MAX_CONFIRM_ATTEMPTS = 5;
 
 interface PendingVerification {
   userId: string;
@@ -16,6 +23,7 @@ interface PendingVerification {
   target: string;
   code: string;
   expiresAt: Date;
+  attemptsRemaining: number;
   inFlight?: boolean;
 }
 
@@ -27,15 +35,47 @@ export class VerificationService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  start(userId: string, channel: 'email' | 'phone', target: string) {
+  async start(userId: string, channel: 'email' | 'phone', target: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        phoneNumber: true,
+        hasVerifiedEmail: true,
+        hasVerifiedPhone: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const normalizedTarget =
+      channel === 'email' ? target.trim().toLowerCase() : target.trim();
+    const storedTarget =
+      channel === 'email'
+        ? user.email?.trim().toLowerCase()
+        : user.phoneNumber?.trim();
+
+    if (!normalizedTarget || !storedTarget || storedTarget !== normalizedTarget) {
+      throw new BadRequestException('Verification target does not match your account');
+    }
+
+    const alreadyVerified =
+      channel === 'email' ? user.hasVerifiedEmail : user.hasVerifiedPhone;
+    if (alreadyVerified) {
+      throw new BadRequestException('Verification is already complete');
+    }
+
     const code = randomInt(CODE_MIN, CODE_MAX).toString();
     const key = `${userId}:${channel}`;
     this.pending.set(key, {
       userId,
       channel,
-      target,
+      target: normalizedTarget,
       code,
       expiresAt: new Date(Date.now() + VERIFICATION_TTL_MS),
+      attemptsRemaining: MAX_CONFIRM_ATTEMPTS,
     });
 
     // In production, dispatch via real SMS/email provider and never return the code.
@@ -43,7 +83,7 @@ export class VerificationService {
     return {
       started: true,
       channel,
-      maskedTarget: this.maskTarget(channel, target),
+      maskedTarget: this.maskTarget(channel, normalizedTarget),
       ...(isDev ? { devCode: code } : {}),
     };
   }
@@ -55,9 +95,23 @@ export class VerificationService {
     if (
       !pending ||
       pending.inFlight ||
-      pending.expiresAt.getTime() < Date.now() ||
-      pending.code !== code
+      pending.expiresAt.getTime() < Date.now()
     ) {
+      if (pending && pending.expiresAt.getTime() < Date.now()) {
+        this.pending.delete(key);
+      }
+      return { verified: false };
+    }
+
+    if (pending.code !== code) {
+      if (pending.attemptsRemaining <= 1) {
+        this.pending.delete(key);
+      } else {
+        this.pending.set(key, {
+          ...pending,
+          attemptsRemaining: pending.attemptsRemaining - 1,
+        });
+      }
       return { verified: false };
     }
 

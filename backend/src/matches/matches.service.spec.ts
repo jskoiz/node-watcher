@@ -180,6 +180,8 @@ describe('MatchesService realtime', () => {
       id: 'match-1',
       userAId: 'user-1',
       userBId: 'user-2',
+      userA: { id: 'user-1', isDeleted: false, isBanned: false },
+      userB: { id: 'user-2', isDeleted: false, isBanned: false },
     } as any);
     jest.mocked((prisma as any).$transaction).mockImplementation(
       async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
@@ -212,6 +214,8 @@ describe('MatchesService realtime', () => {
       id: 'match-1',
       userAId: 'user-1',
       userBId: 'user-2',
+      userA: { id: 'user-1', isDeleted: false, isBanned: false },
+      userB: { id: 'user-2', isDeleted: false, isBanned: false },
     } as any);
     jest.mocked((prisma as any).$transaction).mockImplementation(
       async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
@@ -259,6 +263,8 @@ describe('MatchesService realtime', () => {
       id: 'match-1',
       userAId: 'user-1',
       userBId: 'user-2',
+      userA: { id: 'user-1', isDeleted: false, isBanned: false },
+      userB: { id: 'user-2', isDeleted: false, isBanned: false },
     } as any);
     jest.mocked(realtime.stream).mockReturnValue(of(event));
 
@@ -277,6 +283,8 @@ describe('MatchesService realtime', () => {
       userAId: 'user-1',
       userBId: 'user-2',
       isBlocked: false,
+      userA: { id: 'user-1', isDeleted: false, isBanned: false },
+      userB: { id: 'user-2', isDeleted: false, isBanned: false },
     } as any);
 
     await expect(
@@ -291,6 +299,8 @@ describe('MatchesService realtime', () => {
       userAId: 'user-1',
       userBId: 'user-2',
       isBlocked: true,
+      userA: { id: 'user-1', isDeleted: false, isBanned: false },
+      userB: { id: 'user-2', isDeleted: false, isBanned: false },
     } as any);
 
     await expect(
@@ -318,6 +328,8 @@ describe('MatchesService realtime', () => {
       userAId: 'user-1',
       userBId: 'user-2',
       isBlocked: false,
+      userA: { id: 'user-1', isDeleted: false, isBanned: false },
+      userB: { id: 'user-2', isDeleted: false, isBanned: false },
     } as any);
     jest
       .mocked(prisma.message.findMany)
@@ -345,6 +357,8 @@ describe('MatchesService realtime', () => {
       userAId: 'user-1',
       userBId: 'user-2',
       isBlocked: false,
+      userA: { id: 'user-1', isDeleted: false, isBanned: false },
+      userB: { id: 'user-2', isDeleted: false, isBanned: false },
     } as any);
 
     await expect(
@@ -396,7 +410,65 @@ describe('MatchesService realtime', () => {
         userBId: 'user-2',
         isBlocked: false,
         isArchived: true,
+        userA: { id: 'user-1', isDeleted: false, isBanned: false },
+        userB: { id: 'user-2', isDeleted: false, isBanned: false },
       } as any);
+
+      await expect(call()).rejects.toBeInstanceOf(ForbiddenException);
+      assertNoSideEffect();
+    },
+  );
+
+  it.each([
+    {
+      label: 'message reads when the other user is deleted',
+      match: {
+        id: 'match-1',
+        userAId: 'user-1',
+        userBId: 'user-2',
+        isBlocked: false,
+        isArchived: false,
+        userA: { id: 'user-1', isDeleted: false, isBanned: false },
+        userB: { id: 'user-2', isDeleted: true, isBanned: false },
+      },
+      call: () => service.getMessages('match-1', 'user-1'),
+      assertNoSideEffect: () =>
+        expect(jest.mocked(prisma.message.findMany)).not.toHaveBeenCalled(),
+    },
+    {
+      label: 'message streaming when the other user is banned',
+      match: {
+        id: 'match-1',
+        userAId: 'user-1',
+        userBId: 'user-2',
+        isBlocked: false,
+        isArchived: false,
+        userA: { id: 'user-1', isDeleted: false, isBanned: false },
+        userB: { id: 'user-2', isDeleted: false, isBanned: true },
+      },
+      call: () => service.streamMessages('match-1', 'user-1'),
+      assertNoSideEffect: () =>
+        expect(jest.mocked(realtime.stream)).not.toHaveBeenCalled(),
+    },
+    {
+      label: 'message sends when the other user is deleted',
+      match: {
+        id: 'match-1',
+        userAId: 'user-1',
+        userBId: 'user-2',
+        isBlocked: false,
+        isArchived: false,
+        userA: { id: 'user-1', isDeleted: false, isBanned: false },
+        userB: { id: 'user-2', isDeleted: true, isBanned: false },
+      },
+      call: () => service.sendMessage('match-1', 'user-1', 'hey'),
+      assertNoSideEffect: () =>
+        expect(jest.mocked(prisma.message.create)).not.toHaveBeenCalled(),
+    },
+  ])(
+    'rejects $label with a forbidden error',
+    async ({ match, call, assertNoSideEffect }) => {
+      jest.mocked(prisma.match.findUnique).mockResolvedValue(match as any);
 
       await expect(call()).rejects.toBeInstanceOf(ForbiddenException);
       assertNoSideEffect();

@@ -395,6 +395,10 @@ export class DiscoveryService {
       throw new BadRequestException('Cannot like yourself');
     }
 
+    if (await this.blockService.isBlocked(userId, targetUserId)) {
+      throw new NotFoundException('User not found');
+    }
+
     const targetUser = await this.prisma.user.findFirst({
       where: { id: targetUserId, isDeleted: false, isBanned: false },
       select: { id: true },
@@ -437,6 +441,22 @@ export class DiscoveryService {
 
       if (mutualLike) {
         const [userAId, userBId] = [userId, targetUserId].sort();
+        const existingMatch = await tx.match.findUnique({
+          where: {
+            userAId_userBId: {
+              userAId,
+              userBId,
+            },
+          },
+          select: {
+            id: true,
+            isBlocked: true,
+          },
+        });
+
+        if (existingMatch?.isBlocked) {
+          throw new NotFoundException('User not found');
+        }
 
         const classification = await deriveMatchClassification(tx, [
           userId,
@@ -457,7 +477,6 @@ export class DiscoveryService {
           },
           update: {
             updatedAt: new Date(),
-            isBlocked: false,
             isArchived: false,
             ...classification,
           },
@@ -496,6 +515,10 @@ export class DiscoveryService {
   async passUser(userId: string, targetUserId: string) {
     if (userId === targetUserId) {
       throw new BadRequestException('Cannot pass on yourself');
+    }
+
+    if (await this.blockService.isBlocked(userId, targetUserId)) {
+      throw new NotFoundException('User not found');
     }
 
     const targetUser = await this.prisma.user.findFirst({

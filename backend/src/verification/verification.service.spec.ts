@@ -1,3 +1,4 @@
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { VerificationService } from './verification.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { appConfig } from '../config/app.config';
@@ -18,14 +19,20 @@ describe('VerificationService', () => {
   beforeEach(() => {
     userUpdate.mockReset();
     userFindUnique.mockReset();
+    userFindUnique.mockResolvedValue({
+      email: 'alice@example.com',
+      phoneNumber: '+18085551234',
+      hasVerifiedEmail: false,
+      hasVerifiedPhone: false,
+    });
     service = new VerificationService(prisma);
   });
 
   // ── start ────────────────────────────────────────────────────────────────────
 
   describe('start', () => {
-    it('returns a masked email and dev code', () => {
-      const result = service.start('user-1', 'email', 'alice@example.com');
+    it('returns a masked email and dev code', async () => {
+      const result = await service.start('user-1', 'email', 'alice@example.com');
 
       expect(result.started).toBe(true);
       expect(result.channel).toBe('email');
@@ -33,18 +40,45 @@ describe('VerificationService', () => {
       expect(result.devCode).toMatch(/^\d{6}$/);
     });
 
-    it('returns a masked phone and dev code', () => {
-      const result = service.start('user-1', 'phone', '+18085551234');
+    it('rejects start when the user does not exist', async () => {
+      userFindUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.start('missing-user', 'email', 'alice@example.com'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('rejects start when the target does not match the account', async () => {
+      await expect(
+        service.start('user-1', 'email', 'someone-else@example.com'),
+      ).rejects.toThrow('Verification target does not match your account');
+    });
+
+    it('rejects start when the channel is already verified', async () => {
+      userFindUnique.mockResolvedValueOnce({
+        email: 'alice@example.com',
+        phoneNumber: '+18085551234',
+        hasVerifiedEmail: true,
+        hasVerifiedPhone: false,
+      });
+
+      await expect(
+        service.start('user-1', 'email', 'alice@example.com'),
+      ).rejects.toThrow('Verification is already complete');
+    });
+
+    it('returns a masked phone and dev code', async () => {
+      const result = await service.start('user-1', 'phone', '+18085551234');
 
       expect(result.started).toBe(true);
       expect(result.maskedTarget).toBe('***34');
       expect(result.devCode).toMatch(/^\d{6}$/);
     });
 
-    it('does NOT return devCode when isProduction is true', () => {
+    it('does NOT return devCode when isProduction is true', async () => {
       const replaced = jest.replaceProperty(appConfig as { isProduction: boolean }, 'isProduction', true);
       try {
-        const result = service.start('user-1', 'email', 'alice@example.com');
+        const result = await service.start('user-1', 'email', 'alice@example.com');
 
         expect(result.started).toBe(true);
         expect(result).not.toHaveProperty('devCode');
@@ -53,9 +87,9 @@ describe('VerificationService', () => {
       }
     });
 
-    it('overwrites a previous pending entry for the same channel', () => {
-      const r1 = service.start('user-1', 'email', 'alice@example.com');
-      const r2 = service.start('user-1', 'email', 'alice@example.com');
+    it('overwrites a previous pending entry for the same channel', async () => {
+      const r1 = await service.start('user-1', 'email', 'alice@example.com');
+      const r2 = await service.start('user-1', 'email', 'alice@example.com');
 
       expect(r1.devCode).not.toBeUndefined();
       expect(r2.devCode).not.toBeUndefined();
@@ -66,9 +100,27 @@ describe('VerificationService', () => {
 
   describe('confirm', () => {
     it('returns verified:false for wrong code', async () => {
-      service.start('user-1', 'email', 'alice@example.com');
+      await service.start('user-1', 'email', 'alice@example.com');
 
       const result = await service.confirm('user-1', 'email', '000000');
+      expect(result).toEqual({ verified: false });
+      expect(userUpdate).not.toHaveBeenCalled();
+    });
+
+    it('invalidates the pending code after too many wrong attempts', async () => {
+      const { devCode } = await service.start(
+        'user-1',
+        'email',
+        'alice@example.com',
+      );
+
+      for (let i = 0; i < 5; i += 1) {
+        await expect(
+          service.confirm('user-1', 'email', '000000'),
+        ).resolves.toEqual({ verified: false });
+      }
+
+      const result = await service.confirm('user-1', 'email', devCode!);
       expect(result).toEqual({ verified: false });
       expect(userUpdate).not.toHaveBeenCalled();
     });
@@ -78,8 +130,28 @@ describe('VerificationService', () => {
       expect(result).toEqual({ verified: false });
     });
 
+    it('returns verified:false when the code has expired', async () => {
+      jest.useFakeTimers();
+      const issuedAt = new Date('2026-01-01T00:00:00.000Z');
+
+      try {
+        jest.setSystemTime(issuedAt);
+
+        const { devCode } = await service.start('user-1', 'email', 'alice@example.com');
+        expect(devCode).toBeDefined();
+
+        jest.setSystemTime(new Date(issuedAt.getTime() + 10 * 60 * 1000 + 1));
+
+        const result = await service.confirm('user-1', 'email', devCode!);
+        expect(result).toEqual({ verified: false });
+        expect(userUpdate).not.toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it('verifies email and updates user when code matches', async () => {
-      const { devCode } = service.start('user-1', 'email', 'alice@example.com');
+      const { devCode } = await service.start('user-1', 'email', 'alice@example.com');
       expect(devCode).toBeDefined();
       userFindUnique.mockResolvedValue({
         email: 'alice@example.com',
@@ -98,7 +170,7 @@ describe('VerificationService', () => {
     });
 
     it('verifies phone and updates user when code matches', async () => {
-      const { devCode } = service.start('user-1', 'phone', '+18085551234');
+      const { devCode } = await service.start('user-1', 'phone', '+18085551234');
       expect(devCode).toBeDefined();
       userFindUnique.mockResolvedValue({
         email: 'alice@example.com',
@@ -117,7 +189,7 @@ describe('VerificationService', () => {
     });
 
     it('clears the pending entry after successful confirmation', async () => {
-      const { devCode } = service.start('user-1', 'email', 'alice@example.com');
+      const { devCode } = await service.start('user-1', 'email', 'alice@example.com');
       expect(devCode).toBeDefined();
       userFindUnique.mockResolvedValue({
         email: 'alice@example.com',
@@ -133,7 +205,7 @@ describe('VerificationService', () => {
     });
 
     it('prevents double-verification when two requests race with the same code', async () => {
-      const { devCode } = service.start('user-1', 'email', 'alice@example.com');
+      const { devCode } = await service.start('user-1', 'email', 'alice@example.com');
       expect(devCode).toBeDefined();
       userFindUnique.mockResolvedValue({
         email: 'alice@example.com',
@@ -169,7 +241,7 @@ describe('VerificationService', () => {
     });
 
     it('restores the pending entry after target mismatch so the code can be retried', async () => {
-      const { devCode } = service.start('user-1', 'email', 'alice@example.com');
+      const { devCode } = await service.start('user-1', 'email', 'alice@example.com');
       expect(devCode).toBeDefined();
       userFindUnique.mockResolvedValue({
         email: 'someone-else@example.com',
@@ -193,7 +265,7 @@ describe('VerificationService', () => {
     });
 
     it('restores the pending entry after update failure so the code can be retried', async () => {
-      const { devCode } = service.start('user-1', 'email', 'alice@example.com');
+      const { devCode } = await service.start('user-1', 'email', 'alice@example.com');
       expect(devCode).toBeDefined();
       userFindUnique.mockResolvedValue({
         email: 'alice@example.com',

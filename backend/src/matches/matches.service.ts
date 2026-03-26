@@ -231,6 +231,20 @@ export class MatchesService {
         userBId: true,
         isBlocked: true,
         isArchived: true,
+        userA: {
+          select: {
+            id: true,
+            isDeleted: true,
+            isBanned: true,
+          },
+        },
+        userB: {
+          select: {
+            id: true,
+            isDeleted: true,
+            isBanned: true,
+          },
+        },
       },
     });
 
@@ -243,6 +257,11 @@ export class MatchesService {
     }
 
     if (match.isBlocked || match.isArchived) {
+      throw new ForbiddenException('This conversation is no longer available');
+    }
+
+    const otherUser = match.userAId === userId ? match.userB : match.userA;
+    if (otherUser.isDeleted || otherUser.isBanned) {
       throw new ForbiddenException('This conversation is no longer available');
     }
 

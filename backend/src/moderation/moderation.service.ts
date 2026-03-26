@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -17,6 +18,23 @@ export class ModerationService {
     private readonly notifications: NotificationsService,
   ) {}
 
+  private async getActiveTargetUser(targetUserId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: targetUserId,
+        isDeleted: false,
+        isBanned: false,
+      },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
   async reportUser(
     reporterId: string,
     payload: {
@@ -30,15 +48,28 @@ export class ModerationService {
       throw new BadRequestException('Cannot report yourself');
     }
 
+    await this.getActiveTargetUser(payload.reportedUserId);
+
     if (payload.matchId) {
       const match = await this.prisma.match.findUnique({
         where: { id: payload.matchId },
+        select: {
+          id: true,
+          userAId: true,
+          userBId: true,
+        },
       });
       if (
         !match ||
         (match.userAId !== reporterId && match.userBId !== reporterId)
       ) {
         throw new ForbiddenException('Match access denied');
+      }
+
+      const expectedReportedUserId =
+        match.userAId === reporterId ? match.userBId : match.userAId;
+      if (expectedReportedUserId !== payload.reportedUserId) {
+        throw new ForbiddenException('Reported user must be the other match participant');
       }
     }
 
@@ -70,6 +101,8 @@ export class ModerationService {
     if (actorId === targetUserId) {
       throw new BadRequestException('Cannot block yourself');
     }
+
+    await this.getActiveTargetUser(targetUserId);
 
     const [userAId, userBId] = [actorId, targetUserId].sort();
     const match = await this.prisma.match.findUnique({

@@ -11,42 +11,34 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { MatchesService } from './matches.service';
-
-type AuthTokenPayload = {
-  sub: string;
-};
+import { TokenAuthService } from '../auth/token-auth.service';
 
 interface AuthenticatedSocket extends Socket {
-  data: { userId: string };
+  data: { userId?: string; joinedMatchIds?: string[] };
 }
 
 function extractToken(client: Socket): string | undefined {
   const authToken = (client.handshake.auth as { token?: unknown } | undefined)?.token;
-  if (typeof authToken === 'string' && authToken.length > 0) {
-    return authToken;
+  if (typeof authToken === 'string' && authToken.trim().length > 0) {
+    return authToken.trim();
   }
 
   const queryToken = client.handshake.query?.token;
-  if (typeof queryToken === 'string' && queryToken.length > 0) {
-    return queryToken;
+  if (typeof queryToken === 'string' && queryToken.trim().length > 0) {
+    return queryToken.trim();
   }
 
   const authorization = client.handshake.headers?.authorization;
   if (typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
-    return authorization.slice('Bearer '.length);
+    const token = authorization.slice('Bearer '.length).trim();
+    if (token.length > 0) {
+      return token;
+    }
   }
 
   return undefined;
 }
 
-function isAuthTokenPayload(payload: unknown): payload is AuthTokenPayload {
-  return (
-    typeof payload === 'object' &&
-    payload !== null &&
-    typeof (payload as { sub?: unknown }).sub === 'string' &&
-    (payload as { sub: string }).sub.length > 0
-  );
-}
 
 @WebSocketGateway({ namespace: '/chat', cors: true })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -57,24 +49,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly matchesService: MatchesService,
-    private readonly jwtService: JwtService,
+    private readonly tokenAuthService: TokenAuthService,
   ) {}
+
+  private hasJoinedMatch(client: AuthenticatedSocket, matchId: string) {
+    return client.data.joinedMatchIds?.includes(matchId) ?? false;
+  }
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
-      const token = extractToken(client);
-
-      if (!token) {
-        throw new UnauthorizedException('Missing authentication token');
-      }
-
-      const payload = await this.jwtService.verifyAsync(token);
-      if (!isAuthTokenPayload(payload)) {
-        throw new UnauthorizedException('Invalid authentication token');
-      }
-
-      client.data = { userId: payload.sub };
-      this.logger.debug(`Client connected: ${client.id} (user: ${payload.sub})`);
+      const userId = await this.authenticateClient(client);
+      client.data = { userId, joinedMatchIds: [] };
+      this.logger.debug(`Client connected: ${client.id} (user: ${userId})`);
     } catch {
       this.logger.warn(`Connection rejected: ${client.id}`);
       client.emit('error', { message: 'Authentication failed' });
@@ -91,18 +77,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { matchId: string },
   ) {
-    const userId = client.data?.userId;
+    const matchId = data.matchId?.trim();
+    if (!matchId) {
+      client.emit('error', { message: 'Cannot join this match room' });
+      return;
+    }
+
+    const userId = await this.requireActiveUser(client);
     if (!userId) {
-      client.emit('error', { message: 'Not authenticated' });
       return;
     }
 
     try {
       // Validates that the user is part of this match
-      await this.matchesService.getMessages(data.matchId, userId, 1);
-      await client.join(`match:${data.matchId}`);
-      client.emit('joined:match', { matchId: data.matchId });
-      this.logger.debug(`User ${userId} joined match room ${data.matchId}`);
+      await this.matchesService.getMessages(matchId, userId, 1);
+      await client.join(`match:${matchId}`);
+      client.data.joinedMatchIds = Array.from(
+        new Set([...(client.data.joinedMatchIds ?? []), matchId]),
+      );
+      client.emit('joined:match', { matchId });
+      this.logger.debug(`User ${userId} joined match room ${matchId}`);
     } catch {
       client.emit('error', { message: 'Cannot join this match room' });
     }
@@ -113,8 +107,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { matchId: string },
   ) {
-    await client.leave(`match:${data.matchId}`);
-    client.emit('left:match', { matchId: data.matchId });
+    const matchId = data.matchId?.trim();
+    if (!matchId) {
+      client.emit('error', { message: 'Cannot leave this match room' });
+      return;
+    }
+
+    const userId = await this.requireActiveUser(client);
+    if (!userId) {
+      return;
+    }
+
+    await client.leave(`match:${matchId}`);
+    client.data.joinedMatchIds = (client.data.joinedMatchIds ?? []).filter(
+      (joinedMatchId) => joinedMatchId !== matchId,
+    );
+    client.emit('left:match', { matchId });
   }
 
   @SubscribeMessage('message:send')
@@ -122,18 +130,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { matchId: string; content: string },
   ) {
-    const userId = client.data?.userId;
+    const matchId = data.matchId?.trim();
+    const content = data.content?.trim();
+
+    if (!matchId) {
+      client.emit('error', { message: 'Cannot send this message' });
+      return;
+    }
+
+    if (!content) {
+      client.emit('error', { message: 'Message content is required' });
+      return;
+    }
+
+    const userId = await this.requireActiveUser(client);
     if (!userId) {
-      client.emit('error', { message: 'Not authenticated' });
       return;
     }
 
     try {
-      await this.matchesService.sendMessage(
-        data.matchId,
-        userId,
-        data.content,
-      );
+      await this.matchesService.sendMessage(matchId, userId, content);
     } catch (error) {
       client.emit('error', {
         message:
@@ -143,29 +159,43 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('typing:start')
-  handleTypingStart(
+  async handleTypingStart(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { matchId: string },
   ) {
-    const userId = client.data?.userId;
-    if (!userId) return;
+    const matchId = data.matchId?.trim();
+    if (!matchId) return;
 
-    client.to(`match:${data.matchId}`).emit('typing:start', {
-      matchId: data.matchId,
+    const userId = await this.requireActiveUser(client);
+    if (!userId) return;
+    if (!this.hasJoinedMatch(client, matchId)) {
+      client.emit('error', { message: 'Cannot send typing state for this match' });
+      return;
+    }
+
+    client.to(`match:${matchId}`).emit('typing:start', {
+      matchId,
       userId,
     });
   }
 
   @SubscribeMessage('typing:stop')
-  handleTypingStop(
+  async handleTypingStop(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { matchId: string },
   ) {
-    const userId = client.data?.userId;
-    if (!userId) return;
+    const matchId = data.matchId?.trim();
+    if (!matchId) return;
 
-    client.to(`match:${data.matchId}`).emit('typing:stop', {
-      matchId: data.matchId,
+    const userId = await this.requireActiveUser(client);
+    if (!userId) return;
+    if (!this.hasJoinedMatch(client, matchId)) {
+      client.emit('error', { message: 'Cannot send typing state for this match' });
+      return;
+    }
+
+    client.to(`match:${matchId}`).emit('typing:stop', {
+      matchId,
       userId,
     });
   }
@@ -182,5 +212,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       matchId,
       message,
     });
+  }
+
+  private async authenticateClient(client: Socket): Promise<string> {
+    const token = extractToken(client);
+    if (!token) {
+      throw new UnauthorizedException('Missing authentication token');
+    }
+
+    const user = await this.tokenAuthService.authenticateAccessToken(token);
+    return user.id;
+  }
+
+  private async requireActiveUser(client: AuthenticatedSocket): Promise<string | null> {
+    const userId = client.data?.userId;
+    if (!userId) {
+      client.emit('error', { message: 'Not authenticated' });
+      return null;
+    }
+
+    try {
+      const user = await this.tokenAuthService.authenticateAccessToken(
+        extractToken(client) ?? '',
+      );
+      client.data = {
+        userId: user.id,
+        joinedMatchIds: client.data.joinedMatchIds ?? [],
+      };
+      return user.id;
+    } catch {
+      client.emit('error', { message: 'Authentication failed' });
+      client.disconnect(true);
+      return null;
+    }
   }
 }
