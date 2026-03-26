@@ -50,6 +50,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
   const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilterKey>('all');
   const [appliedFilterState, setAppliedFilterState] = useState<FilterModalState>(DEFAULT_FILTER_STATE);
   const [draftFilterState, setDraftFilterState] = useState<FilterModalState>(DEFAULT_FILTER_STATE);
+  const [cardHeight, setCardHeight] = useState<number | undefined>(undefined);
   const filtersSheet = useSheetController();
 
   const currentFilters = useMemo(
@@ -99,6 +100,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
     <HomeScreenContent
       activeFilterCount={activeFilterCount}
       activeQuickFilter={activeQuickFilter}
+      cardHeight={cardHeight}
       feed={feed}
       filtersSheet={filtersSheet.sheetProps}
       filterState={draftFilterState}
@@ -130,6 +132,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
           setActiveQuickFilter((current) => (current === filterId ? 'all' : filterId));
         }
       }
+      onCardHeightChange={setCardHeight}
       onRefetch={() => {
         void refetch();
       }}

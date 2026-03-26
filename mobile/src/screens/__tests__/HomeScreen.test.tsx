@@ -37,7 +37,7 @@ jest.mock('../../components/SwipeDeck', () => {
   const React = require('react');
   const { Text } = require('react-native');
 
-  return () => <Text>Swipe deck</Text>;
+  return ({ cardHeight }: { cardHeight?: number }) => <Text>{`Swipe deck ${cardHeight}`}</Text>;
 });
 jest.mock('../../components/MatchAnimation', () => () => null);
 jest.mock('../../components/ui/AppBackdrop', () => () => null);
@@ -77,7 +77,7 @@ describe('HomeScreen', () => {
   it('marks quick filters as selected when the user toggles them', async () => {
     render(<HomeScreen navigation={navigation} route={route} />);
 
-    expect(await screen.findByText('Swipe deck')).toBeTruthy();
+    expect(await screen.findByText('Swipe deck 520')).toBeTruthy();
 
     const quickFilter = screen.getByLabelText('Filter by Strength');
     fireEvent.press(quickFilter);
@@ -92,7 +92,7 @@ describe('HomeScreen', () => {
   it('surfaces the active filter count after applying bounded discovery controls', async () => {
     render(<HomeScreen navigation={navigation} route={route} />);
 
-    expect(await screen.findByText('Swipe deck')).toBeTruthy();
+    expect(await screen.findByText('Swipe deck 520')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Increase Distance'));
     fireEvent.press(screen.getByLabelText('Increase Min age'));
@@ -144,6 +144,55 @@ describe('HomeScreen', () => {
 
     await waitFor(() => {
       expect(navigation.navigate).toHaveBeenCalledWith('Onboarding');
+    });
+  });
+
+  it('preserves the measured deck height across loading remounts', async () => {
+    const { rerender } = render(<HomeScreen navigation={navigation} route={route} />);
+
+    expect(await screen.findByText('Swipe deck 520')).toBeTruthy();
+
+    fireEvent(screen.getByTestId('discovery-deck-area'), 'layout', {
+      nativeEvent: { layout: { height: 442 } },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Swipe deck 440')).toBeTruthy();
+    });
+
+    mockUseDiscoveryFeed.mockReturnValue({
+      error: null,
+      feed: [],
+      isActing: false,
+      isLoading: true,
+      likeUser: mockLikeUser,
+      passUser: mockPassUser,
+      refetch: mockRefetch,
+      undoSwipe: mockUndoSwipe,
+    });
+    rerender(<HomeScreen navigation={navigation} route={route} />);
+
+    expect(screen.getByTestId('discovery-skeleton')).toBeTruthy();
+
+    mockUseDiscoveryFeed.mockReturnValue({
+      error: null,
+      feed: [
+        {
+          id: 'user-2',
+          firstName: 'Leilani',
+        },
+      ],
+      isActing: false,
+      isLoading: false,
+      likeUser: mockLikeUser,
+      passUser: mockPassUser,
+      refetch: mockRefetch,
+      undoSwipe: mockUndoSwipe,
+    });
+    rerender(<HomeScreen navigation={navigation} route={route} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Swipe deck 440')).toBeTruthy();
     });
   });
 });

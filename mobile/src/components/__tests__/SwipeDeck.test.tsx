@@ -11,19 +11,22 @@ let latestSwiperProps: Record<string, unknown> | null = null;
 
 jest.mock('react-native-deck-swiper', () => {
   const React = require('react');
-  const { View } = require('react-native');
+  const { Text, View } = require('react-native');
 
   return function MockSwiper(props: {
     cards: unknown[];
+    cardStyle?: { height?: number };
     onSwipedAll?: () => void;
     renderCard: (card: unknown) => React.ReactElement;
   }) {
-    const { cards, renderCard, onSwipedAll } = props;
+    const { cards, cardStyle, renderCard, onSwipedAll } = props;
+    const [initialHeight] = React.useState(cardStyle?.height);
     onSwipedAllCallback = onSwipedAll || null;
     latestSwiperProps = props;
 
     return (
       <View>
+        <Text>{`swiper-height-${initialHeight}`}</Text>
         {cards.map((card: unknown, i: number) => (
           <View key={i}>{renderCard(card)}</View>
         ))}
@@ -250,6 +253,21 @@ describe('SwipeDeck', () => {
         disableTopSwipe: true,
       }),
     );
+  });
+
+  it('reinitializes the swiper when the resolved card height changes', () => {
+    const user = { id: 'u10', firstName: 'Ari' };
+    const { getByText, rerender } = render(
+      <SwipeDeck data={[user]} cardHeight={520} onSwipeLeft={noop} onSwipeRight={noop} />,
+    );
+
+    expect(getByText('swiper-height-520')).toBeTruthy();
+
+    rerender(
+      <SwipeDeck data={[user]} cardHeight={440} onSwipeLeft={noop} onSwipeRight={noop} />,
+    );
+
+    expect(getByText('swiper-height-440')).toBeTruthy();
   });
 });
 

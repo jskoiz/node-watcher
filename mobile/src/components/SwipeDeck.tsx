@@ -34,6 +34,10 @@ export default function SwipeDeck({
     }),
     [resolvedCardHeight],
   );
+  const swiperKey = useMemo(
+    () => `${resolvedCardHeight}:${data.length}:${data[0]?.id ?? 'empty'}`,
+    [data, resolvedCardHeight],
+  );
 
   if (!data || data.length === 0 || allSwiped) {
     return (
@@ -50,6 +54,7 @@ export default function SwipeDeck({
   return (
     <View style={styles.container}>
       <Swiper
+        key={swiperKey}
         ref={swiperRef}
         animateCardOpacity
         animateOverlayLabelsOpacity

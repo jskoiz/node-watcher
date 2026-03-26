@@ -7,7 +7,10 @@ import type { FilterModalState, QuickFilterKey } from '../discoveryFilters';
 
 jest.mock('../../../../components/SwipeDeck', () => ({
   __esModule: true,
-  default: () => null,
+  default: ({ cardHeight }: { cardHeight?: number }) => {
+    const { Text } = require('react-native');
+    return <Text>{`Swipe deck ${cardHeight}`}</Text>;
+  },
 }));
 
 jest.mock('../../../../components/MatchAnimation', () => ({
@@ -62,6 +65,7 @@ function renderHomeScreenContent(overrides: Partial<React.ComponentProps<typeof 
     <HomeScreenContent
       activeFilterCount={0}
       activeQuickFilter="all"
+      cardHeight={520}
       completenessScore={45}
       filtersSheet={filtersSheet}
       filterState={baseFilterState}
@@ -77,6 +81,7 @@ function renderHomeScreenContent(overrides: Partial<React.ComponentProps<typeof 
       onPressProfile={jest.fn()}
       onQuickFilterPress={jest.fn()}
       onRefetch={jest.fn()}
+      onCardHeightChange={jest.fn()}
       onSwipeLeft={jest.fn()}
       onSwipeRight={jest.fn()}
       onToggleAvailability={jest.fn()}
@@ -124,5 +129,22 @@ describe('HomeScreenContent', () => {
 
     expect(onOpenFilters).toHaveBeenCalledTimes(1);
     expect(onQuickFilterPress).toHaveBeenCalledWith('strength' as QuickFilterKey);
+  });
+
+  it('reports deck-area layout changes and forwards the persisted card height into SwipeDeck', () => {
+    const onCardHeightChange = jest.fn();
+    renderHomeScreenContent({
+      cardHeight: 520,
+      feed: [{ id: 'user-1', firstName: 'Kai' } as User],
+      onCardHeightChange,
+    });
+
+    expect(screen.getByText('Swipe deck 520')).toBeTruthy();
+
+    fireEvent(screen.getByTestId('discovery-deck-area'), 'layout', {
+      nativeEvent: { layout: { height: 442 } },
+    });
+
+    expect(onCardHeightChange).toHaveBeenCalledWith(440);
   });
 });

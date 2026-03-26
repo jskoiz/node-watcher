@@ -7,25 +7,20 @@ import MatchAnimation from '../../../components/MatchAnimation';
 import AppBackdrop from '../../../components/ui/AppBackdrop';
 import { StatePanel } from '../../../design/primitives';
 import type { AppBottomSheetProps } from '../../../design/sheets/AppBottomSheet';
-import { spacing } from '../../../theme/tokens';
 import { DiscoveryNudgeCard } from './DiscoveryNudgeCard';
 import { HomeHero } from './HomeHero';
 import { HomeQuickFilters } from './HomeQuickFilters';
 import { DiscoveryFilterSheet } from './DiscoveryFilterSheet';
 import { homeStyles as styles } from './home.styles';
 import type { FilterModalState, QuickFilterKey } from './discoveryFilters';
+import { clampCardHeight } from '../../../components/swipeDeck/swipeDeck.presentation';
 
 const DEFAULT_CARD_HEIGHT = 520;
-const MIN_CARD_HEIGHT = 360;
-const MAX_CARD_HEIGHT = 680;
-
-function clampCardHeight(value: number) {
-  return Math.min(MAX_CARD_HEIGHT, Math.max(MIN_CARD_HEIGHT, Math.round(value)));
-}
 
 export function HomeScreenContent({
   activeFilterCount,
   activeQuickFilter,
+  cardHeight,
   completenessScore,
   filtersSheet,
   filterState,
@@ -41,6 +36,7 @@ export function HomeScreenContent({
   onPressProfile,
   onQuickFilterPress,
   onRefetch,
+  onCardHeightChange,
   onSwipeLeft,
   onSwipeRight,
   onToggleAvailability,
@@ -55,6 +51,7 @@ export function HomeScreenContent({
 }: {
   activeFilterCount: number;
   activeQuickFilter: QuickFilterKey;
+  cardHeight?: number;
   filtersSheet: Pick<
     AppBottomSheetProps,
     'onChangeIndex' | 'onDismiss' | 'onRequestClose' | 'refObject' | 'visible'
@@ -73,6 +70,7 @@ export function HomeScreenContent({
   onPressProfile: (profile: User) => void;
   onQuickFilterPress: (filterId: QuickFilterKey) => void;
   onRefetch: () => void;
+  onCardHeightChange?: (height: number) => void;
   onSwipeLeft: (profile: User) => void;
   onSwipeRight: (profile: User) => void;
   onToggleAvailability: (value: 'morning' | 'evening') => void;
@@ -85,11 +83,13 @@ export function HomeScreenContent({
   showMatch: boolean;
   unreadCount: number;
 }) {
-  const [cardHeight, setCardHeight] = React.useState(DEFAULT_CARD_HEIGHT);
+  const resolvedCardHeight = clampCardHeight(cardHeight ?? DEFAULT_CARD_HEIGHT);
   const handleDeckAreaLayout = React.useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
     const nextHeight = clampCardHeight(event.nativeEvent.layout.height - 2);
-    setCardHeight((current) => (Math.abs(current - nextHeight) > 1 ? nextHeight : current));
-  }, []);
+    if (Math.abs(resolvedCardHeight - nextHeight) > 1) {
+      onCardHeightChange?.(nextHeight);
+    }
+  }, [onCardHeightChange, resolvedCardHeight]);
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -116,6 +116,7 @@ export function HomeScreenContent({
       <View style={styles.deckArea}>
         <View
           style={styles.deckAreaInner}
+          testID="discovery-deck-area"
           onLayout={handleDeckAreaLayout}
         >
           {feed.length === 0 ? (
@@ -127,7 +128,7 @@ export function HomeScreenContent({
             />
           ) : (
             <SwipeDeck
-              cardHeight={cardHeight}
+              cardHeight={resolvedCardHeight}
               data={feed}
               onSwipeLeft={onSwipeLeft}
               onSwipeRight={onSwipeRight}
