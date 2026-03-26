@@ -284,7 +284,22 @@ echo "  auth mode: $AUTH_MODE"
 echo "release-ios: running repo validation"
 (
   cd "$ROOT_DIR"
-  npm run check
+  env \
+    -u APP_VERSION \
+    -u IOS_BUILD_NUMBER \
+    -u IOS_BUNDLE_IDENTIFIER \
+    -u ASC_LIVE_BUILD_NUMBER \
+    -u ASC_BUILD_NUMBER_VERIFIED_AT \
+    -u ASC_API_KEY_ID \
+    -u ASC_API_ISSUER_ID \
+    -u ASC_API_KEY_PATH \
+    -u IOS_DEVELOPMENT_TEAM \
+    -u BRDG_BUILD_DATE \
+    -u BRDG_RELEASE_MODE \
+    -u BRDG_RELEASE_PROFILE \
+    -u AUTH_MODE \
+    -u CHECK_ONLY \
+    npm run check
 )
 
 mkdir -p "$MANIFEST_DIR"
