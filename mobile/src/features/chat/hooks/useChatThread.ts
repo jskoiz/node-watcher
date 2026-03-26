@@ -10,6 +10,34 @@ type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnec
 
 const TYPING_DEBOUNCE_MS = 2000;
 
+function upsertMessage(
+  current: ChatMessage[] | undefined,
+  nextMessage: ChatMessage,
+  tempId?: string,
+) {
+  const messages = current ?? [];
+  let replacedTemp = false;
+  const updated = messages.reduce<ChatMessage[]>((accumulator, item) => {
+    if (tempId && item.id === tempId) {
+      accumulator.push(nextMessage);
+      replacedTemp = true;
+      return accumulator;
+    }
+
+    if (item.id !== nextMessage.id) {
+      accumulator.push(item);
+    }
+
+    return accumulator;
+  }, []);
+
+  if (!replacedTemp) {
+    updated.unshift(nextMessage);
+  }
+
+  return updated;
+}
+
 export function useChatThread(matchId: string) {
   const queryClient = useQueryClient();
   const messageKey = queryKeys.matches.messages(matchId);
@@ -32,7 +60,6 @@ export function useChatThread(matchId: string) {
     enabled: Boolean(matchId),
     queryKey: messageKey,
     queryFn: async () => (await matchesApi.getMessages(matchId)).data || [],
-    staleTime: 0,
   });
 
   const refetchRef = useRef(query.refetch);
@@ -158,7 +185,10 @@ export function useChatThread(matchId: string) {
         const handleMessageNew = (data: { matchId: string; message: ChatMessage }) => {
           if (data.matchId !== matchId) return;
           setIsTyping(false);
-          void refetchRef.current();
+          queryClient.setQueryData<ChatMessage[]>(
+            messageKey,
+            (current) => upsertMessage(current, data.message),
+          );
         };
 
         const handleTypingStart = (data: { matchId: string; userId: string }) => {
@@ -205,6 +235,7 @@ export function useChatThread(matchId: string) {
         // If already connected, join immediately
         if (socket.connected) {
           setConnectionStatus('connected');
+          stopPolling();
           socket.emit('join:match', { matchId });
         }
       } catch {
@@ -215,8 +246,6 @@ export function useChatThread(matchId: string) {
       }
     };
 
-    // Start polling immediately as a safety net
-    startPolling();
     void setupWebSocket();
 
     return () => {
@@ -270,11 +299,8 @@ export function useChatThread(matchId: string) {
     },
     onSuccess: (message, _text, context) => {
       queryClient.setQueryData<ChatMessage[]>(messageKey, (current = []) =>
-        current.map((item) => (item.id === context?.tempId ? message : item)),
+        upsertMessage(current, message, context?.tempId),
       );
-    },
-    onSettled: () => {
-      void query.refetch();
     },
   });
 

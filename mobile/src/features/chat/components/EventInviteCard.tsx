@@ -46,9 +46,13 @@ export function EventInviteCard({
 }: EventInviteCardProps) {
   const theme = useTheme();
   const queryClient = useQueryClient();
-
-  const expired = isEventExpired(startsAt);
-  const effectiveStatus = expired && initialStatus === 'pending' ? 'expired' : initialStatus;
+  const { effectiveStatus, formattedStartsAt } = React.useMemo(() => {
+    const expired = isEventExpired(startsAt);
+    return {
+      effectiveStatus: expired && initialStatus === 'pending' ? 'expired' : initialStatus,
+      formattedStartsAt: formatInviteDate(startsAt),
+    };
+  }, [initialStatus, startsAt]);
 
   const rsvpMutation = useMutation({
     mutationFn: async () => (await eventsApi.rsvp(eventId)).data,
@@ -83,7 +87,7 @@ export function EventInviteCard({
           <View style={styles.metaRow}>
             <AppIcon name="clock" size={13} color={theme.textMuted} />
             <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-              {formatInviteDate(startsAt)}
+              {formattedStartsAt}
             </Text>
           </View>
           <View style={styles.metaRow}>

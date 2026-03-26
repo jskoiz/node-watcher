@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
 import {
   AppBottomSheet,
@@ -8,11 +9,54 @@ import {
   type AppBottomSheetProps,
 } from '../../../design/sheets/AppBottomSheet';
 import { useTheme } from '../../../theme/useTheme';
-import { lightTheme, radii, spacing, typography } from '../../../theme/tokens';
+import { radii, spacing, typography } from '../../../theme/tokens';
 import { matchesApi } from '../../../services/api';
 import { queryKeys } from '../../../lib/query/queryKeys';
 import { getPrimaryPhotoUri } from '../../../lib/profilePhotos';
 import type { Match } from '../../../api/types';
+
+const MatchRow = React.memo(function MatchRow({
+  match,
+  onPress,
+  theme,
+}: {
+  match: Match;
+  onPress: (match: Match) => void;
+  theme: ReturnType<typeof useTheme>;
+}) {
+  const photoUrl = getPrimaryPhotoUri(match.user);
+
+  return (
+    <Pressable
+      onPress={() => onPress(match)}
+      style={({ pressed }) => [
+        styles.matchRow,
+        {
+          backgroundColor: pressed ? theme.surfaceElevated : 'transparent',
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`Invite ${match.user.firstName}`}
+    >
+      {photoUrl ? (
+        <Image
+          source={{ uri: photoUrl }}
+          style={[styles.avatar, { borderColor: theme.border }]}
+          contentFit="cover"
+        />
+      ) : (
+        <View style={[styles.avatar, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' }]}>
+          <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>
+            {match.user.firstName?.[0] ?? '?'}
+          </Text>
+        </View>
+      )}
+      <Text style={[styles.matchName, { color: theme.textPrimary }]}>
+        {match.user.firstName}
+      </Text>
+    </Pressable>
+  );
+});
 
 export function MatchPickerSheet({
   controller,
@@ -32,6 +76,17 @@ export function MatchPickerSheet({
     queryFn: async () => (await matchesApi.list()).data || [],
     enabled: controller.visible,
   });
+  const handleSelectMatch = React.useCallback((match: Match) => {
+    onClose();
+    onSelectMatch(match);
+  }, [onClose, onSelectMatch]);
+  const renderMatch = React.useCallback(
+    ({ item }: { item: Match }) => (
+      <MatchRow match={item} onPress={handleSelectMatch} theme={theme} />
+    ),
+    [handleSelectMatch, theme],
+  );
+  const keyExtractor = React.useCallback((item: Match) => item.id, []);
 
   return (
     <AppBottomSheet
@@ -47,40 +102,11 @@ export function MatchPickerSheet({
           No matches yet. Start swiping to find your workout partner!
         </Text>
       ) : (
-        matches.map((match) => (
-          <Pressable
-            key={match.id}
-            onPress={() => {
-              onClose();
-              onSelectMatch(match);
-            }}
-            style={({ pressed }) => [
-              styles.matchRow,
-              {
-                backgroundColor: pressed ? theme.surfaceElevated : 'transparent',
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`Invite ${match.user.firstName}`}
-          >
-            {match.user.photoUrl ? (
-              <Image
-                source={{ uri: match.user.photoUrl }}
-                style={[styles.avatar, { borderColor: theme.border }]}
-                contentFit="cover"
-              />
-            ) : (
-              <View style={[styles.avatar, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' }]}>
-                <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>
-                  {match.user.firstName?.[0] ?? '?'}
-                </Text>
-              </View>
-            )}
-            <Text style={[styles.matchName, { color: theme.textPrimary }]}>
-              {match.user.firstName}
-            </Text>
-          </Pressable>
-        ))
+        <FlashList
+          data={matches}
+          keyExtractor={keyExtractor}
+          renderItem={renderMatch}
+        />
       )}
     </AppBottomSheet>
   );

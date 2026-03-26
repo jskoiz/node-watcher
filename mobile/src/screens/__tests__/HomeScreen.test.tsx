@@ -96,11 +96,21 @@ describe('HomeScreen', () => {
     fireEvent.press(screen.getByLabelText('Increase Distance'));
     fireEvent.press(screen.getByLabelText('Increase Min age'));
     fireEvent.press(screen.getByLabelText('Decrease Max age'));
+
+    expect(mockUseDiscoveryFeed).not.toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        distanceKm: 51,
+        minAge: 22,
+        maxAge: 44,
+      }),
+    );
+
     fireEvent.press(screen.getByText('Apply'));
 
     await waitFor(() => {
       expect(screen.getByText('Refine (3)')).toBeTruthy();
     });
+    expect(mockRefetch).not.toHaveBeenCalled();
   });
 
   it('does not redirect while auth state is loading', async () => {

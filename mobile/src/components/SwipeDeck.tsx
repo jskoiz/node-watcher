@@ -18,11 +18,13 @@ import { getAvatarInitial, getPrimaryPhotoUri } from '../lib/profilePhotos';
 const DEFAULT_CARD_HEIGHT = 520;
 const MIN_CARD_HEIGHT = 360;
 const MAX_CARD_HEIGHT = 680;
+const DEFAULT_IMAGE_CONTENT_POSITION = { left: '48%', top: '41%' } as const;
+const COMPACT_IMAGE_CONTENT_POSITION = { left: '48%', top: '38%' } as const;
 type SwipeDeckUser = User & Pick<Partial<DiscoveryUser>, 'distanceKm' | 'recommendationScore'>;
 
 interface SwipeDeckCardProps {
   cardHeight: number;
-  onPress?: () => void;
+  onPressUser?: (user: SwipeDeckUser) => void;
   user: SwipeDeckUser;
 }
 
@@ -44,20 +46,36 @@ const clampCardHeight = (value?: number) => {
   return Math.min(MAX_CARD_HEIGHT, Math.max(MIN_CARD_HEIGHT, Math.round(value)));
 };
 
-const SwipeDeckCard = React.memo(({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
-  const primaryPhoto = getPrimaryPhotoUri(user);
-  const chips = getProfileChips(user);
+const SwipeDeckCard = React.memo(({ cardHeight, onPressUser, user }: SwipeDeckCardProps) => {
   const compact = cardHeight < 390;
   const ultraCompact = cardHeight < 350;
-  const visibleChips = ultraCompact ? [] : compact ? chips.slice(0, 1) : chips;
-  const intentLabel = getIntentLabel(user);
-  const presenceLabel = getPresenceLabel(user);
-  const alignmentLabel = getAlignmentLabel(user.recommendationScore);
-  const tempoLabel = getTempoLabel(user);
+  const {
+    alignmentLabel,
+    fallbackChips,
+    intentLabel,
+    presenceLabel,
+    primaryPhoto,
+    tempoLabel,
+    visibleChips,
+  } = React.useMemo(() => {
+    const chips = getProfileChips(user);
+    return {
+      alignmentLabel: getAlignmentLabel(user.recommendationScore),
+      fallbackChips: ultraCompact ? [] : ['Nearby'],
+      intentLabel: getIntentLabel(user),
+      presenceLabel: getPresenceLabel(user),
+      primaryPhoto: getPrimaryPhotoUri(user),
+      tempoLabel: getTempoLabel(user),
+      visibleChips: ultraCompact ? [] : compact ? chips.slice(0, 1) : chips,
+    };
+  }, [compact, ultraCompact, user]);
+  const handlePress = useCallback(() => {
+    onPressUser?.(user);
+  }, [onPressUser, user]);
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       style={({ pressed }) => [styles.card, { height: cardHeight, opacity: pressed ? 0.96 : 1 }]}
       accessibilityRole="button"
       accessibilityLabel={`View profile of ${user.firstName || 'Someone'}${user.age ? `, age ${user.age}` : ''}`}
@@ -69,7 +87,7 @@ const SwipeDeckCard = React.memo(({ cardHeight, onPress, user }: SwipeDeckCardPr
             source={{ uri: primaryPhoto }}
             style={styles.image}
             contentFit="cover"
-            contentPosition={{ left: '48%', top: compact ? '38%' : '41%' }}
+            contentPosition={compact ? COMPACT_IMAGE_CONTENT_POSITION : DEFAULT_IMAGE_CONTENT_POSITION}
             transition={180}
             accessibilityLabel={`Photo of ${user.firstName || 'profile'}`}
           />
@@ -132,7 +150,7 @@ const SwipeDeckCard = React.memo(({ cardHeight, onPress, user }: SwipeDeckCardPr
           <Text style={[styles.tempoLine, compact && styles.tempoLineCompact]}>{tempoLabel}</Text>
 
           <View style={[styles.chipRow, compact && styles.chipRowCompact]}>
-            {(visibleChips.length > 0 ? visibleChips : ultraCompact ? [] : ['Nearby']).map((chip, index) => (
+            {(visibleChips.length > 0 ? visibleChips : fallbackChips).map((chip, index) => (
               <View key={`${chip}-${index}`} style={styles.chip}>
                 <Text style={styles.chipText}>{chip}</Text>
               </View>
@@ -177,6 +195,36 @@ export default function SwipeDeck({
       height: resolvedCardHeight,
     }),
     [resolvedCardHeight],
+  );
+  const overlayLabels = React.useMemo(
+    () => ({
+      left: {
+        title: 'PASS',
+        style: {
+          label: styles.overlayReject,
+          wrapper: styles.overlayWrapperLeft,
+        },
+      },
+      right: {
+        title: 'LIKE',
+        style: {
+          label: styles.overlayLike,
+          wrapper: styles.overlayWrapperRight,
+        },
+      },
+    }),
+    [],
+  );
+  const renderCard = useCallback(
+    (card: SwipeDeckUser | null | undefined) =>
+      card ? (
+        <SwipeDeckCard
+          cardHeight={resolvedCardHeight}
+          onPressUser={onPress}
+          user={card}
+        />
+      ) : null,
+    [onPress, resolvedCardHeight],
   );
 
   const handleSwipedLeft = useCallback(
@@ -236,31 +284,8 @@ export default function SwipeDeck({
         onSwipedLeft={handleSwipedLeft}
         onSwipedRight={handleSwipedRight}
         onSwipedAll={() => setAllSwiped(true)}
-        overlayLabels={{
-          left: {
-            title: 'PASS',
-            style: {
-              label: styles.overlayReject,
-              wrapper: styles.overlayWrapperLeft,
-            },
-          },
-          right: {
-            title: 'LIKE',
-            style: {
-              label: styles.overlayLike,
-              wrapper: styles.overlayWrapperRight,
-            },
-          },
-        }}
-        renderCard={(card) =>
-          card ? (
-            <SwipeDeckCard
-              cardHeight={resolvedCardHeight}
-              onPress={() => onPress && onPress(card)}
-              user={card}
-            />
-          ) : null
-        }
+        overlayLabels={overlayLabels}
+        renderCard={renderCard}
         stackSeparation={14}
         stackSize={2}
         swipeBackCard

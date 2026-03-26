@@ -23,6 +23,7 @@ const mockSocketOn = jest.fn();
 const mockSocketOff = jest.fn();
 const mockSocketEmit = jest.fn();
 const mockSocketDisconnect = jest.fn();
+const mockSocketHandlers = new Map<string, (...args: unknown[]) => void>();
 let mockSocketConnected = false;
 
 const mockSocket = {
@@ -70,10 +71,27 @@ jest.mock('@tanstack/react-query', () => ({
     setQueryData: mockSetQueryData,
     getQueryData: mockGetQueryData,
   }),
-  useMutation: ({ mutationFn, onMutate }: { mutationFn: (text: string) => Promise<unknown>; onMutate: (text: string) => Promise<unknown> }) => ({
+  useMutation: ({
+    mutationFn,
+    onMutate,
+    onError,
+    onSuccess,
+  }: {
+    mutationFn: (text: string) => Promise<unknown>;
+    onMutate?: (text: string) => Promise<unknown>;
+    onError?: (error: unknown, text: string, context: unknown) => void;
+    onSuccess?: (result: unknown, text: string, context: unknown) => void;
+  }) => ({
     mutateAsync: async (text: string) => {
-      await onMutate?.(text);
-      return mutationFn(text);
+      const context = await onMutate?.(text);
+      try {
+        const result = await mutationFn(text);
+        onSuccess?.(result, text, context);
+        return result;
+      } catch (error) {
+        onError?.(error, text, context);
+        throw error;
+      }
     },
     isPending: false,
   }),
@@ -83,8 +101,15 @@ describe('useChatThread', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    mockSocketHandlers.clear();
     mockSocketConnected = false;
     mockSocket.connected = false;
+    mockSocketOn.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
+      mockSocketHandlers.set(event, handler);
+    });
+    mockSocketOff.mockImplementation((event: string) => {
+      mockSocketHandlers.delete(event);
+    });
     mockGetSocket.mockReturnValue(mockSocket);
     mockConnectSocket.mockResolvedValue(mockSocket);
   });
@@ -187,6 +212,64 @@ describe('useChatThread', () => {
     await waitFor(() => {
       expect(mockSocket.emit).toHaveBeenCalledWith('join:match', { matchId: 'match-1' });
     });
+  });
+
+  it('does not keep polling when the socket is already connected', async () => {
+    mockSocket.connected = true;
+    mockConnectSocket.mockResolvedValue(mockSocket);
+
+    renderHook(() => useChatThread('match-1'));
+
+    await waitFor(() => {
+      expect(mockSocket.emit).toHaveBeenCalledWith('join:match', { matchId: 'match-1' });
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    expect(mockRefetch).not.toHaveBeenCalled();
+  });
+
+  it('writes incoming websocket messages into cache instead of refetching', async () => {
+    renderHook(() => useChatThread('match-1'));
+
+    await waitFor(() => {
+      expect(mockSocketHandlers.get('message:new')).toEqual(expect.any(Function));
+    });
+
+    act(() => {
+      mockSocketHandlers.get('message:new')?.({
+        matchId: 'match-1',
+        message: {
+          id: 'msg-2',
+          text: 'new message',
+          sender: 'them',
+          timestamp: '2026-03-17T00:01:00Z',
+        },
+      });
+    });
+
+    expect(mockSetQueryData).toHaveBeenCalledWith(
+      ['matches', 'messages', 'match-1'],
+      expect.any(Function),
+    );
+    expect(mockRefetch).not.toHaveBeenCalled();
+  });
+
+  it('replaces the optimistic message without refetching after send', async () => {
+    const { result } = renderHook(() => useChatThread('match-1'));
+
+    await act(async () => {
+      await result.current.sendMessage('hi');
+    });
+
+    expect(mockSendMessage).toHaveBeenCalledWith('match-1', 'hi');
+    expect(mockSetQueryData).toHaveBeenCalledWith(
+      ['matches', 'messages', 'match-1'],
+      expect.any(Function),
+    );
+    expect(mockRefetch).not.toHaveBeenCalled();
   });
 
   it('emits typing:stop on unmount when a typing session is active', async () => {

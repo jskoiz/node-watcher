@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -27,6 +27,7 @@ import type {
 
 type TabKey = 'Joined' | 'Created';
 const TABS: TabKey[] = ['Joined', 'Created'];
+const EVENTS_REFRESH_INTERVAL_MS = 60_000;
 
 const EMPTY_STATES: Record<
   TabKey,
@@ -88,6 +89,67 @@ function normalizeEvents(data: unknown): EventSummary[] {
   );
 }
 
+type DecoratedEvent = EventSummary & { formattedStartsAt: string };
+
+const EventRow = memo(function EventRow({
+  event,
+  onPress,
+  theme,
+}: {
+  event: DecoratedEvent;
+  onPress: (eventId: string) => void;
+  theme: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: theme.surfaceElevated,
+          borderColor: theme.border,
+          opacity: pressed ? 0.88 : 1,
+        },
+      ]}
+      onPress={() => {
+        if (!event.id) return;
+        onPress(event.id);
+      }}
+    >
+      {!!event.category && (
+        <View
+          style={[
+            styles.cardCategoryBar,
+            { backgroundColor: `${theme.primary}22` },
+          ]}
+        >
+          <Text style={[styles.cardCategory, { color: theme.primary }]}>
+            {event.category}
+          </Text>
+        </View>
+      )}
+      <View style={styles.cardBody}>
+        <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+          {event.title}
+        </Text>
+        <View style={styles.cardMetaRow}>
+          <AppIcon name="calendar" size={13} color={theme.textSecondary} />
+          <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
+            {event.formattedStartsAt}
+          </Text>
+        </View>
+        {!!event.location && (
+          <View style={styles.cardMetaRow}>
+            <AppIcon name="map-pin" size={13} color={theme.textMuted} />
+            <Text style={[styles.cardMeta, { color: theme.textMuted }]}>
+              {event.location}
+            </Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+});
+
 export default function MyEventsScreen({
   navigation,
 }: RootStackScreenProps<'MyEvents'>) {
@@ -96,14 +158,14 @@ export default function MyEventsScreen({
   const [activeTab, setActiveTab] = useState<TabKey>('Joined');
   const { error, events: rawEvents, isLoading: loading, isRefetching, refetch } =
     useMyEvents();
-  const events = normalizeEvents(rawEvents);
+  const events = useMemo(() => normalizeEvents(rawEvents), [rawEvents]);
   const errorMessage = error ? normalizeApiError(error).message : null;
 
   const lastFetchedAt = useRef(0);
   useFocusEffect(
     useCallback(() => {
       const now = Date.now();
-      if (now - lastFetchedAt.current > 30_000) {
+      if (now - lastFetchedAt.current >= EVENTS_REFRESH_INTERVAL_MS) {
         lastFetchedAt.current = now;
         void refetch();
       }
@@ -111,19 +173,41 @@ export default function MyEventsScreen({
   );
 
   const emptyMeta = EMPTY_STATES[activeTab];
-  const createdEvents = currentUserId
-    ? events.filter((event) => event.host?.id === currentUserId)
-    : [];
-  const joinedEvents = currentUserId
-    ? events.filter(
-        (event) => event.joined && event.host?.id !== currentUserId,
-      )
-    : events.filter((event) => event.joined);
+  const { createdEvents, joinedEvents } = useMemo(() => {
+    const decoratedEvents: DecoratedEvent[] = events.map((event) => ({
+      ...event,
+      formattedStartsAt: formatDate(event.startsAt),
+    }));
+
+    return {
+      createdEvents: currentUserId
+        ? decoratedEvents.filter((event) => event.host?.id === currentUserId)
+        : [],
+      joinedEvents: currentUserId
+        ? decoratedEvents.filter(
+            (event) => event.joined && event.host?.id !== currentUserId,
+          )
+        : decoratedEvents.filter((event) => event.joined),
+    };
+  }, [currentUserId, events]);
   const displayedEvents = activeTab === 'Joined' ? joinedEvents : createdEvents;
   const tabCounts = {
     Joined: joinedEvents.length,
     Created: createdEvents.length,
   } as const;
+  const handleRefresh = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+  const handleOpenEvent = useCallback((eventId: string) => {
+    navigation.navigate('EventDetail', { eventId });
+  }, [navigation]);
+  const renderEvent = useCallback(
+    ({ item }: { item: DecoratedEvent }) => (
+      <EventRow event={item} onPress={handleOpenEvent} theme={theme} />
+    ),
+    [handleOpenEvent, theme],
+  );
+  const keyExtractor = useCallback((item: DecoratedEvent) => item.id, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -236,65 +320,16 @@ export default function MyEventsScreen({
         <FlashList
           contentContainerStyle={styles.list}
           data={displayedEvents}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching && !loading}
-              onRefresh={() => {
-                void refetch();
-              }}
+              onRefresh={handleRefresh}
               tintColor={theme.primary}
             />
           }
-          renderItem={({ item }) => (
-            <Pressable
-              style={({ pressed }) => [
-                styles.card,
-                {
-                  backgroundColor: theme.surfaceElevated,
-                  borderColor: theme.border,
-                  opacity: pressed ? 0.88 : 1,
-                },
-              ]}
-              onPress={() => {
-                if (!item.id) return;
-                navigation.navigate('EventDetail', { eventId: item.id });
-              }}
-            >
-              {!!item.category && (
-                <View
-                  style={[
-                    styles.cardCategoryBar,
-                    { backgroundColor: `${theme.primary}22` },
-                  ]}
-                >
-                  <Text style={[styles.cardCategory, { color: theme.primary }]}>
-                    {item.category}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.cardBody}>
-                <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
-                  {item.title}
-                </Text>
-                <View style={styles.cardMetaRow}>
-                  <AppIcon name="calendar" size={13} color={theme.textSecondary} />
-                  <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
-                    {formatDate(item.startsAt)}
-                  </Text>
-                </View>
-                {!!item.location && (
-                  <View style={styles.cardMetaRow}>
-                    <AppIcon name="map-pin" size={13} color={theme.textMuted} />
-                    <Text style={[styles.cardMeta, { color: theme.textMuted }]}>
-                      {item.location}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </Pressable>
-          )}
+          renderItem={renderEvent}
         />
       )}
     </SafeAreaView>

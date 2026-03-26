@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppBackdrop from '../components/ui/AppBackdrop';
@@ -45,7 +45,7 @@ export default function ChatScreen({ navigation, route }: RootStackScreenProps<'
     }
   }, [prefillMessage]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if (!message.trim() || sending) return;
     const text = message.trim();
 
@@ -59,16 +59,16 @@ export default function ChatScreen({ navigation, route }: RootStackScreenProps<'
       setSendError(normalizeApiError(err).message);
       // message stays in the input for retry
     }
-  };
+  }, [message, sendMessage, sending]);
 
-  const handleManualRefresh = async () => {
+  const handleManualRefresh = useCallback(async () => {
     try {
       setManualRefreshing(true);
       await refresh();
     } finally {
       setManualRefreshing(false);
     }
-  };
+  }, [refresh]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
@@ -95,7 +95,7 @@ export default function ChatScreen({ navigation, route }: RootStackScreenProps<'
       ) : (
         <ChatMessageList
           messages={messages}
-          onRefresh={() => { void handleManualRefresh(); }}
+          onRefresh={handleManualRefresh}
           refreshing={manualRefreshing}
           theme={theme}
         />
@@ -133,7 +133,7 @@ export default function ChatScreen({ navigation, route }: RootStackScreenProps<'
             setMessage(text);
             if (text.length > 0) emitTyping();
           }}
-          onSend={() => { void handleSendMessage(); }}
+          onSend={handleSendMessage}
           sending={sending}
           theme={theme}
         />

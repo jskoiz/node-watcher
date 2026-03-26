@@ -83,4 +83,18 @@ describe('MatchPickerSheet', () => {
       await screen.findByText('No matches yet. Start swiping to find your workout partner!'),
     ).toBeTruthy();
   });
+
+  it('does not fetch matches until the sheet is visible', async () => {
+    renderWithProviders(
+      <MatchPickerSheet
+        controller={{ ...controller, visible: false }}
+        onClose={jest.fn()}
+        onSelectMatch={jest.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(mockList).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -236,6 +236,18 @@ describe('DiscoveryService', () => {
         ],
       },
     });
+    expect(query.where.profile).toBeUndefined();
+    expect(query.select.photos).toEqual({
+      where: { isHidden: false },
+      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+      take: 1,
+      select: {
+        id: true,
+        storageKey: true,
+        isPrimary: true,
+        sortOrder: true,
+      },
+    });
   });
 
   it('still filters distance after the database query and returns top scored results', async () => {
@@ -275,8 +287,27 @@ describe('DiscoveryService', () => {
     ]);
 
     const result = await service.getFeed('me', { distanceKm: 10 });
+    const query = prismaMock.user.findMany.mock.calls[0][0];
 
     expect(result).toHaveLength(1);
+    expect(query.where.profile).toEqual({
+      is: {
+        AND: expect.arrayContaining([
+          expect.objectContaining({
+            latitude: expect.objectContaining({
+              gte: expect.any(Number),
+              lte: expect.any(Number),
+            }),
+          }),
+          expect.objectContaining({
+            longitude: expect.objectContaining({
+              gte: expect.any(Number),
+              lte: expect.any(Number),
+            }),
+          }),
+        ]),
+      },
+    });
     expect(result.map((candidate) => candidate!.id)).toEqual(['nearby-match']);
     expect(result[0]).toEqual(
       expect.objectContaining({
@@ -416,8 +447,14 @@ describe('DiscoveryService', () => {
     ]);
 
     const result = await service.getFeed('me', { distanceKm: 50 });
+    const query = prismaMock.user.findMany.mock.calls[0][0];
 
     expect(result).toHaveLength(2);
+    expect(query.where.profile).toBeUndefined();
+    expect(query.select.profile.select).toEqual({
+      city: true,
+      bio: true,
+    });
     expect(result.map((candidate) => candidate?.id)).toEqual(
       expect.arrayContaining(['known-location', 'unknown-location']),
     );

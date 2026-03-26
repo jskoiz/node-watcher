@@ -14,6 +14,7 @@ export function useNotifications() {
   const query = useQuery({
     queryKey: getNotificationList(),
     queryFn: async () => (await notificationsApi.list()).data || [],
+    staleTime: 60_000,
   });
 
   const markRead = useMutation({
@@ -50,9 +51,6 @@ export function useNotifications() {
           current.map((item) => (item.id === id ? updated : item)),
       );
     },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: getNotificationList() });
-    },
   });
 
   const markAllRead = useMutation({
@@ -77,9 +75,6 @@ export function useNotifications() {
       if (context?.previous) {
         queryClient.setQueryData(getNotificationList(), context.previous);
       }
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: getNotificationList() });
     },
   });
 

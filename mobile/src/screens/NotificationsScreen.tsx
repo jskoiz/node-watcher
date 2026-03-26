@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import {
   RefreshControl,
   SectionList,
@@ -26,9 +26,11 @@ import {
 import { resolveNotificationNavigation } from '../features/notifications/notificationNavigation';
 import type { RootStackScreenProps } from '../core/navigation/types';
 
+const NOTIFICATION_REFRESH_INTERVAL_MS = 60_000;
+
 // ─── NotifRow ─────────────────────────────────────────────────────────────────
 
-function NotifRow({
+const NotifRow = memo(function NotifRow({
   notif,
   theme,
   onMarkRead,
@@ -92,7 +94,7 @@ function NotifRow({
       )}
     </TouchableOpacity>
   );
-}
+});
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -113,33 +115,38 @@ export default function NotificationsScreen({
   } = useNotifications();
   const errorMessage =
     actionError ?? (error ? normalizeApiError(error).message : null);
+  const lastFocusedAt = useRef(0);
 
   useFocusEffect(
     useCallback(() => {
       setActionError(null);
-      void refetch();
+      const now = Date.now();
+      if (now - lastFocusedAt.current >= NOTIFICATION_REFRESH_INTERVAL_MS) {
+        lastFocusedAt.current = now;
+        void refetch();
+      }
     }, [refetch]),
   );
 
-  const handleMarkRead = async (id: string) => {
+  const handleMarkRead = useCallback(async (id: string) => {
     try {
       setActionError(null);
       await markRead(id);
     } catch (err) {
       setActionError(normalizeApiError(err).message);
     }
-  };
+  }, [markRead]);
 
-  const clearAll = async () => {
+  const clearAll = useCallback(async () => {
     try {
       setActionError(null);
       await markAllRead();
     } catch (err) {
       setActionError(normalizeApiError(err).message);
     }
-  };
+  }, [markAllRead]);
 
-  const handleNavigate = (notif: AppNotification) => {
+  const handleNavigate = useCallback((notif: AppNotification) => {
     setActionError(null);
     const result = resolveNotificationNavigation(notif);
     if (!result.ok) {
@@ -158,8 +165,25 @@ export default function NotificationsScreen({
     }
 
     navigation.navigate('ProfileDetail', result.target.params);
-  };
-  const sections = buildNotificationSections(notifs);
+  }, [navigation]);
+  const sections = useMemo(() => buildNotificationSections(notifs), [notifs]);
+  const renderNotification = useCallback(
+    ({ item }: { item: AppNotification }) => (
+      <NotifRow
+        notif={item}
+        theme={theme}
+        onMarkRead={handleMarkRead}
+        onNavigate={handleNavigate}
+      />
+    ),
+    [handleMarkRead, handleNavigate, theme],
+  );
+  const renderSectionHeader = useCallback(
+    ({ section: { title } }: { section: { title: string } }) => (
+      <Text style={[styles.groupLabel, { color: theme.textMuted }]}>{title}</Text>
+    ),
+    [theme.textMuted],
+  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -212,17 +236,8 @@ export default function NotificationsScreen({
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <NotifRow
-              notif={item}
-              theme={theme}
-              onMarkRead={handleMarkRead}
-              onNavigate={handleNavigate}
-            />
-          )}
-          renderSectionHeader={({ section: { title } }) => (
-            <Text style={[styles.groupLabel, { color: theme.textMuted }]}>{title}</Text>
-          )}
+          renderItem={renderNotification}
+          renderSectionHeader={renderSectionHeader}
           ListHeaderComponent={
             actionError ? (
               <View style={styles.routeError}>

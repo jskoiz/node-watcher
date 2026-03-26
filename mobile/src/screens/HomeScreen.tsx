@@ -46,12 +46,13 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
   const [matchedProfile, setMatchedProfile] = useState<User | null>(null);
   const [matchId, setMatchId] = useState<string | null>(null);
   const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilterKey>('all');
-  const [filterState, setFilterState] = useState<FilterModalState>(DEFAULT_FILTER_STATE);
+  const [appliedFilterState, setAppliedFilterState] = useState<FilterModalState>(DEFAULT_FILTER_STATE);
+  const [draftFilterState, setDraftFilterState] = useState<FilterModalState>(DEFAULT_FILTER_STATE);
   const filtersSheet = useSheetController();
 
   const currentFilters = useMemo(
-    () => buildDiscoveryFilters(activeQuickFilter, filterState),
-    [activeQuickFilter, filterState],
+    () => buildDiscoveryFilters(activeQuickFilter, appliedFilterState),
+    [activeQuickFilter, appliedFilterState],
   );
   const { error, feed, isLoading, likeUser, passUser, refetch, undoSwipe } = useDiscoveryFeed(currentFilters);
   const { score: completenessScore } = useProfileCompleteness();
@@ -65,7 +66,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
   }, [isAuthLoaded, navigation, user]);
 
   const intentOption = INTENT_OPTIONS.find((option) => option.value === getUserIntent(user)) || INTENT_OPTIONS[2];
-  const activeFilterCount = countActiveFilters(currentFilters, filterState);
+  const activeFilterCount = countActiveFilters(currentFilters, appliedFilterState);
 
   if (isLoading) {
     return <DiscoverySkeleton testID="discovery-skeleton" />;
@@ -91,15 +92,18 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
       activeQuickFilter={activeQuickFilter}
       feed={feed}
       filtersSheet={filtersSheet.sheetProps}
-      filterState={filterState}
+      filterState={draftFilterState}
       greeting={getGreeting(user?.firstName)}
       intentOption={intentOption}
       onApplyFilters={() => {
         void triggerSheetCommitHaptic();
-        void refetch();
+        setAppliedFilterState(draftFilterState);
         filtersSheet.close();
       }}
-      onOpenFilters={filtersSheet.open}
+      onOpenFilters={() => {
+        setDraftFilterState(appliedFilterState);
+        filtersSheet.open();
+      }}
       onMatchAnimationFinish={() => {
         setShowMatch(false);
         if (matchedProfile && matchId) {
@@ -140,34 +144,30 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'Discover'
         });
       }}
       onToggleAvailability={(value) =>
-        setFilterState((current) => ({
+        setDraftFilterState((current) => ({
           ...current,
           availability: toggleValue(current.availability, value),
         }))
       }
       onToggleGoal={(value) =>
-        setFilterState((current) => ({ ...current, goals: toggleValue(current.goals, value) }))
+        setDraftFilterState((current) => ({ ...current, goals: toggleValue(current.goals, value) }))
       }
       onToggleIntensity={(value) =>
-        setFilterState((current) => ({
+        setDraftFilterState((current) => ({
           ...current,
           intensity: toggleValue(current.intensity, value),
         }))
       }
       onUndoAndClose={() => {
         void triggerSheetCommitHaptic();
-        undoSwipe().then((response) => {
-          if (response.status === 'undone') {
-            void refetch();
-          }
-        }).catch(() => {
+        undoSwipe().catch(() => {
           // Swallow — undo failure is non-critical and the UI stays consistent.
         });
         filtersSheet.close();
       }}
-      onUpdateDistanceKm={(value) => setFilterState((current) => ({ ...current, distanceKm: value }))}
-      onUpdateMaxAge={(value) => setFilterState((current) => ({ ...current, maxAge: value }))}
-      onUpdateMinAge={(value) => setFilterState((current) => ({ ...current, minAge: value }))}
+      onUpdateDistanceKm={(value) => setDraftFilterState((current) => ({ ...current, distanceKm: value }))}
+      onUpdateMaxAge={(value) => setDraftFilterState((current) => ({ ...current, maxAge: value }))}
+      onUpdateMinAge={(value) => setDraftFilterState((current) => ({ ...current, minAge: value }))}
       completenessScore={completenessScore}
       onPressCompleteness={() => navigation.navigate('You' as never)}
       showMatch={showMatch}

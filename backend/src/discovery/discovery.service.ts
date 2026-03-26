@@ -38,8 +38,8 @@ interface UserWithRelations {
   profile: {
     city: string | null;
     bio: string | null;
-    latitude: number | null;
-    longitude: number | null;
+    latitude?: number | null;
+    longitude?: number | null;
   } | null;
   fitnessProfile: {
     primaryGoal: string | null;
@@ -55,6 +55,13 @@ interface UserWithRelations {
     isPrimary: boolean;
     sortOrder: number;
   }>;
+}
+
+interface RecommendationContext {
+  fitnessProfile: {
+    intensityLevel?: IntensityLevel | null;
+  } | null;
+  goals: Set<string>;
 }
 
 @Injectable()
@@ -81,6 +88,16 @@ export class DiscoveryService {
     const fitnessProfileFilter = this.buildFitnessProfileFilter(filters);
 
     const blockedIds = await this.blockService.getBlockedUserIds(userId);
+    const requesterLatitude = me.profile?.latitude ?? null;
+    const requesterLongitude = me.profile?.longitude ?? null;
+    const requesterHasCoordinates =
+      requesterLatitude !== null && requesterLongitude !== null;
+    const maxDistanceKm = this.resolveDistanceFilter(filters.distanceKm);
+    const profileFilter = this.buildProfileFilter(
+      requesterLatitude,
+      requesterLongitude,
+      maxDistanceKm,
+    );
 
     const users: UserWithRelations[] = await this.prisma.user.findMany({
       where: {
@@ -95,6 +112,13 @@ export class DiscoveryService {
           ? {
               fitnessProfile: {
                 is: fitnessProfileFilter,
+              },
+            }
+          : {}),
+        ...(profileFilter
+          ? {
+              profile: {
+                is: profileFilter,
               },
             }
           : {}),
@@ -117,13 +141,18 @@ export class DiscoveryService {
           select: {
             city: true,
             bio: true,
-            latitude: true,
-            longitude: true,
+            ...(requesterHasCoordinates
+              ? {
+                  latitude: true,
+                  longitude: true,
+                }
+              : {}),
           },
         },
         photos: {
           where: { isHidden: false },
-          orderBy: { sortOrder: 'asc' },
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+          take: 1,
           select: {
             id: true,
             storageKey: true,
@@ -135,26 +164,25 @@ export class DiscoveryService {
       take: DISCOVERY_FEED_QUERY_LIMIT,
     });
 
-    let maxDistanceKm: number | null = null;
-    if (
-      typeof filters.distanceKm === 'number' &&
-      Number.isFinite(filters.distanceKm) &&
-      filters.distanceKm > 0
-    ) {
-      maxDistanceKm = filters.distanceKm;
-    }
-    const requesterHasCoordinates =
-      me?.profile?.latitude !== null &&
-      me?.profile?.latitude !== undefined &&
-      me?.profile?.longitude !== null &&
-      me?.profile?.longitude !== undefined;
+    const meForScore: RecommendationContext = {
+      fitnessProfile: me.fitnessProfile
+        ? {
+            intensityLevel: me.fitnessProfile.intensityLevel,
+          }
+        : null,
+      goals: new Set(
+        [me.fitnessProfile?.primaryGoal, me.fitnessProfile?.secondaryGoal]
+          .filter(Boolean)
+          .map((goal) => String(goal).toLowerCase()),
+      ),
+    };
 
     const scored = users
       .map((user) => {
         const age = calculateAge(user.birthdate) ?? 0;
         const distanceKm = this.calculateDistanceKm(
-          me?.profile?.latitude,
-          me?.profile?.longitude,
+          requesterLatitude,
+          requesterLongitude,
           user.profile?.latitude,
           user.profile?.longitude,
         );
@@ -168,17 +196,6 @@ export class DiscoveryService {
         )
           return null;
 
-        const meForScore = me
-          ? {
-              fitnessProfile: me.fitnessProfile
-                ? {
-                    intensityLevel: me.fitnessProfile.intensityLevel,
-                    primaryGoal: me.fitnessProfile.primaryGoal,
-                    secondaryGoal: me.fitnessProfile.secondaryGoal,
-                  }
-                : null,
-            }
-          : null;
         const score = this.computeRecommendationScore(
           meForScore,
           user,
@@ -294,6 +311,61 @@ export class DiscoveryService {
     };
   }
 
+  private resolveDistanceFilter(distanceKm?: number) {
+    if (
+      typeof distanceKm === 'number' &&
+      Number.isFinite(distanceKm) &&
+      distanceKm > 0
+    ) {
+      return distanceKm;
+    }
+
+    return null;
+  }
+
+  private buildProfileFilter(
+    requesterLatitude: number | null,
+    requesterLongitude: number | null,
+    maxDistanceKm: number | null,
+  ) {
+    if (
+      maxDistanceKm === null ||
+      requesterLatitude === null ||
+      requesterLongitude === null
+    ) {
+      return null;
+    }
+
+    const latitudeDelta = maxDistanceKm / 111;
+    const longitudeScale = Math.max(
+      0.01,
+      Math.abs(Math.cos((requesterLatitude * Math.PI) / 180)),
+    );
+    const longitudeDelta = maxDistanceKm / (111 * longitudeScale);
+
+    const minLon = requesterLongitude - longitudeDelta;
+    const maxLon = requesterLongitude + longitudeDelta;
+
+    // When the bounding box crosses the antimeridian (180/-180 boundary),
+    // minLon > maxLon after clamping, so we use OR: lon >= minLon OR lon <= maxLon.
+    const longitudeFilter =
+      minLon > maxLon
+        ? { OR: [{ longitude: { gte: minLon } }, { longitude: { lte: maxLon } }] }
+        : { longitude: { gte: minLon, lte: maxLon } };
+
+    return {
+      AND: [
+        {
+          latitude: {
+            gte: requesterLatitude - latitudeDelta,
+            lte: requesterLatitude + latitudeDelta,
+          },
+        },
+        longitudeFilter,
+      ],
+    };
+  }
+
   private getBirthdateBoundary(age: number) {
     const boundary = new Date();
     boundary.setFullYear(boundary.getFullYear() - age);
@@ -301,13 +373,7 @@ export class DiscoveryService {
   }
 
   private computeRecommendationScore(
-    me: {
-      fitnessProfile?: {
-        intensityLevel?: IntensityLevel | null;
-        primaryGoal?: string | null;
-        secondaryGoal?: string | null;
-      } | null;
-    } | null,
+    me: RecommendationContext,
     candidate: UserWithRelations,
     age: number,
     distanceKm: number | null,
@@ -320,20 +386,13 @@ export class DiscoveryService {
     ]
       .filter(Boolean)
       .map((g) => String(g).toLowerCase());
-    const myGoals = [
-      me?.fitnessProfile?.primaryGoal,
-      me?.fitnessProfile?.secondaryGoal,
-    ]
-      .filter(Boolean)
-      .map((g) => String(g).toLowerCase());
-
     const sharedGoals = candidateGoals.filter((goal) =>
-      myGoals.includes(goal),
+      me.goals.has(goal),
     ).length;
     score += sharedGoals * DISCOVERY_SCORE_WEIGHTS.sharedGoal;
 
     if (
-      me?.fitnessProfile?.intensityLevel &&
+      me.fitnessProfile?.intensityLevel &&
       candidate.fitnessProfile?.intensityLevel &&
       me.fitnessProfile.intensityLevel ===
         candidate.fitnessProfile.intensityLevel

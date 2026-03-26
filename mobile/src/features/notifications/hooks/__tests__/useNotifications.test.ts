@@ -1,7 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { createQueryTestHarness } from '../../../../lib/testing/queryTestHarness';
 import { useNotifications } from '../useNotifications';
-import { queryKeys } from '../../../../lib/query/queryKeys';
 
 const mockList = jest.fn();
 const mockMarkRead = jest.fn();
@@ -69,7 +68,7 @@ describe('useNotifications', () => {
     expect(result.current.notifications).toEqual([]);
   });
 
-  it('optimistically marks a notification as read and invalidates after success', async () => {
+  it('optimistically marks a notification as read without an immediate refetch', async () => {
     const notifications = [
       { id: 'n1', title: 'Match!', readAt: null },
       { id: 'n2', title: 'Like', readAt: null },
@@ -80,12 +79,8 @@ describe('useNotifications', () => {
       readAt: '2026-01-01T00:00:00Z',
     };
     const { queryClient, wrapper } = createQueryTestHarness();
-    const invalidateSpy = jest
-      .spyOn(queryClient, 'invalidateQueries')
-      .mockResolvedValue(undefined as never);
-    mockList
-      .mockResolvedValueOnce({ data: notifications })
-      .mockResolvedValueOnce({ data: [updatedNotification, notifications[1]] });
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    mockList.mockResolvedValueOnce({ data: notifications });
     mockMarkRead.mockResolvedValue({ data: updatedNotification });
 
     const { result } = renderHook(() => useNotifications(), { wrapper });
@@ -98,20 +93,16 @@ describe('useNotifications', () => {
 
     await waitFor(() => expect(result.current.notifications[0]?.readAt).toBe(updatedNotification.readAt));
     expect(result.current.unreadCount).toBe(1);
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: queryKeys.notifications.list,
-    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
-  it('surfaces markRead failures after the optimistic update', async () => {
+  it('rolls back markRead failures without invalidating the list query', async () => {
     const notifications = [
       { id: 'n1', title: 'Match!', readAt: null },
       { id: 'n2', title: 'Like', readAt: '2026-01-01T00:00:00Z' },
     ];
     const { queryClient, wrapper } = createQueryTestHarness();
-    const invalidateSpy = jest
-      .spyOn(queryClient, 'invalidateQueries')
-      .mockResolvedValue(undefined as never);
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
     mockList.mockResolvedValue({ data: notifications });
     const mutation = deferred<{ data: { id: string; title: string; readAt: string } }>();
     mockMarkRead.mockReturnValue(mutation.promise);
@@ -129,28 +120,17 @@ describe('useNotifications', () => {
       await expect(markReadPromise!).rejects.toThrow('Network error');
     });
 
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: queryKeys.notifications.list,
-    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
-  it('optimistically marks all notifications read and invalidates after settle', async () => {
+  it('optimistically marks all notifications read without invalidating the list query', async () => {
     const notifications = [
       { id: 'n1', title: 'Match!', readAt: null },
       { id: 'n2', title: 'Like', readAt: null },
     ];
     const { queryClient, wrapper } = createQueryTestHarness();
-    const invalidateSpy = jest
-      .spyOn(queryClient, 'invalidateQueries')
-      .mockResolvedValue(undefined as never);
-    mockList
-      .mockResolvedValueOnce({ data: notifications })
-      .mockResolvedValueOnce({
-        data: notifications.map((notification) => ({
-          ...notification,
-          readAt: notification.readAt ?? '2026-01-01T00:00:00Z',
-        })),
-      });
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    mockList.mockResolvedValueOnce({ data: notifications });
     mockMarkAllRead.mockResolvedValue({ data: { updated: 2 } });
 
     const { result } = renderHook(() => useNotifications(), { wrapper });
@@ -164,20 +144,16 @@ describe('useNotifications', () => {
     await waitFor(() => expect(result.current.unreadCount).toBe(0));
     expect(result.current.notifications.every((item) => Boolean(item.readAt))).toBe(true);
 
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: queryKeys.notifications.list,
-    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
-  it('surfaces markAllRead failures after the optimistic update', async () => {
+  it('rolls back markAllRead failures without invalidating the list query', async () => {
     const notifications = [
       { id: 'n1', title: 'Match!', readAt: null },
       { id: 'n2', title: 'Like', readAt: null },
     ];
     const { queryClient, wrapper } = createQueryTestHarness();
-    const invalidateSpy = jest
-      .spyOn(queryClient, 'invalidateQueries')
-      .mockResolvedValue(undefined as never);
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
     mockList.mockResolvedValue({ data: notifications });
     const mutation = deferred<{ data: { updated: number } }>();
     mockMarkAllRead.mockReturnValue(mutation.promise);
@@ -195,8 +171,6 @@ describe('useNotifications', () => {
       await expect(markAllReadPromise!).rejects.toThrow('Network error');
     });
 
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: queryKeys.notifications.list,
-    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 });

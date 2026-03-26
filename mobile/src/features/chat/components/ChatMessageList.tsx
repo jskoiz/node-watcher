@@ -8,6 +8,8 @@ import type { EventInviteCardProps } from './EventInviteCard';
 
 /** Pattern for detecting event invite messages: [EVENT_INVITE:<eventId>] */
 const EVENT_INVITE_PATTERN = /\[EVENT_INVITE:([^\]]+)\]/;
+/** Far-future placeholder so loading cards are never treated as expired. */
+const PENDING_EVENT_STARTS_AT = '2099-01-01T00:00:00.000Z';
 
 export function parseEventInviteMessage(text: string): string | null {
   const match = EVENT_INVITE_PATTERN.exec(text);
@@ -27,7 +29,7 @@ const ChatBubble = React.memo(function ChatBubble({
 }) {
   const isMe = item.sender === 'me';
   const senderLabel = isMe ? 'You' : 'Them';
-  const eventId = parseEventInviteMessage(item.text);
+  const eventId = React.useMemo(() => parseEventInviteMessage(item.text), [item.text]);
 
   if (eventId) {
     const inviteData = eventInvites?.[eventId];
@@ -46,7 +48,7 @@ const ChatBubble = React.memo(function ChatBubble({
         eventId={eventId}
         title="Loading event..."
         location=""
-        startsAt={new Date().toISOString()}
+        startsAt={PENDING_EVENT_STARTS_AT}
         status="pending"
         isMe={isMe}
         onNavigateToEvent={onNavigateToEvent}
@@ -75,7 +77,7 @@ const ChatBubble = React.memo(function ChatBubble({
   );
 });
 
-export function ChatMessageList({
+export const ChatMessageList = React.memo(function ChatMessageList({
   eventInvites,
   messages,
   onNavigateToEvent,
@@ -90,18 +92,24 @@ export function ChatMessageList({
   refreshing: boolean;
   theme: Theme;
 }) {
+  const renderItem = React.useCallback(
+    ({ item }: { item: ChatMessage }) => (
+      <ChatBubble
+        eventInvites={eventInvites}
+        item={item}
+        onNavigateToEvent={onNavigateToEvent}
+        theme={theme}
+      />
+    ),
+    [eventInvites, onNavigateToEvent, theme],
+  );
+  const keyExtractor = React.useCallback((item: ChatMessage) => item.id, []);
+
   return (
     <FlatList
       data={messages}
-      renderItem={({ item }) => (
-        <ChatBubble
-          eventInvites={eventInvites}
-          item={item}
-          onNavigateToEvent={onNavigateToEvent}
-          theme={theme}
-        />
-      )}
-      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
       inverted
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
@@ -118,4 +126,4 @@ export function ChatMessageList({
       }
     />
   );
-}
+});
