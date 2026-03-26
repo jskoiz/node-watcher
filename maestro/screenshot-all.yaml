@@ -7,7 +7,10 @@ tags:
 # BRDG — Screenshot Every Screen (Expanded)
 # ============================================================
 # Auto-login kicks in on dev builds when no token is stored.
-# Run: maestro test maestro/screenshot-all.yaml
+# Strategy: let auto-login complete, screenshot main screens,
+# then logout to capture auth screens.
+#
+# Run: cd maestro && maestro test screenshot-all.yaml
 # Output: screenshots/
 #
 # Coverage:
@@ -30,8 +33,9 @@ tags:
 - stopApp
 - launchApp:
     clearState: true
+    clearKeychain: true
 
-# Handle Expo dev client and dev menus
+# Handle Expo dev client — select the local server
 - runFlow:
     when:
       visible: "DEVELOPMENT SERVERS"
@@ -39,19 +43,20 @@ tags:
       - tapOn: "http://localhost:8081"
       - waitForAnimationToEnd
 
+# ============================================================
+# Wait for JS bundle to load. The dev menu or the app itself
+# will appear. We wait for "BRDG" text to know hierarchy is stable.
+# ============================================================
+- extendedWaitUntil:
+    visible: "BRDG"
+    timeout: 60000
+
+# Dismiss Expo dev menus in order of appearance
 - runFlow:
     when:
       visible: "Not Now"
     commands:
       - tapOn: "Not Now"
-      - waitForAnimationToEnd
-
-- runFlow:
-    when:
-      visible: "Go home"
-    commands:
-      - tapOn:
-          point: "86%,27%"
       - waitForAnimationToEnd
 
 - runFlow:
@@ -65,63 +70,61 @@ tags:
           below: "Runtime version"
       - waitForAnimationToEnd
 
-# ============================================================
-# AUTH SCREENS — capture before auto-login completes
-# ============================================================
+- runFlow:
+    when:
+      visible: "Go home"
+    commands:
+      - tapOn:
+          point: "86%,27%"
+      - waitForAnimationToEnd
 
-# The login screen appears briefly before dev auto-login fires.
-# Wait for it to render, then screenshot immediately.
-- extendedWaitUntil:
-    visible:
-      id: "login-submit-button"
-    timeout: 30000
-- takeScreenshot: screenshots/01-login-screen
-
-# Navigate to Signup
-- tapOn: "Join BRDG"
-- waitForAnimationToEnd
-- takeScreenshot: screenshots/02-signup-screen
-
-# Go back to Login and let auto-login proceed
-- tapOn: "Sign in"
-- waitForAnimationToEnd
-
-# ============================================================
-# MAIN APP — wait for auto-login to land on main screen
-# ============================================================
-
+# Now wait for the main screen to be visible (auto-login completes)
 - extendedWaitUntil:
     visible:
       id: "main-screen"
-    timeout: 90000
+    timeout: 30000
 - waitForAnimationToEnd
+
+# ============================================================
+# MAIN APP SCREENS
+# ============================================================
 
 # ------ Tab 1: Discover (Home) ------
 - takeScreenshot: screenshots/03-discover-screen
 
 # ------ Discovery Filter Sheet ------
-- tapOn: "Refine"
-- waitForAnimationToEnd
-- takeScreenshot: screenshots/13-discovery-filter-sheet
-# Dismiss filter sheet by tapping outside / swiping down
-- swipe:
-    direction: DOWN
-    duration: 300
-- waitForAnimationToEnd
-
-# ------ Profile Detail (tap discovery card to open) ------
-- tapOn:
-    id: "discovery-deck-area"
-- waitForAnimationToEnd
-# If a profile detail modal opened, screenshot it
 - runFlow:
     when:
-      visible: "back-button"
+      visible:
+        text: ".*Refine.*"
     commands:
-      - takeScreenshot: screenshots/11-profile-detail-screen
       - tapOn:
-          id: "back-button"
+          text: ".*Refine.*"
       - waitForAnimationToEnd
+      - takeScreenshot: screenshots/13-discovery-filter-sheet
+      - swipe:
+          direction: DOWN
+          duration: 300
+      - waitForAnimationToEnd
+
+# ------ Profile Detail (tap discovery card to open) ------
+- runFlow:
+    when:
+      visible:
+        id: "discovery-deck-area"
+    commands:
+      - tapOn:
+          id: "discovery-deck-area"
+      - waitForAnimationToEnd
+      - runFlow:
+          when:
+            visible:
+              id: "back-button"
+          commands:
+            - takeScreenshot: screenshots/11-profile-detail-screen
+            - tapOn:
+                id: "back-button"
+            - waitForAnimationToEnd
 
 # ------ Tab 2: Explore ------
 - tapOn:
@@ -130,19 +133,24 @@ tags:
 - takeScreenshot: screenshots/04-explore-screen
 
 # ------ Event Detail (tap first event card) ------
-- tapOn: "View event"
+# Tap the event card via its accessibilityLabel (text inside buttons is absorbed)
+- extendedWaitUntil:
+    visible:
+      text: ".*Event:.*"
+    timeout: 10000
+- tapOn:
+    text: ".*Event:.*"
+    index: 0
 - waitForAnimationToEnd
 - takeScreenshot: screenshots/10-event-detail-screen
-# Go back
 - tapOn:
     id: "back-button"
 - waitForAnimationToEnd
 
 # ------ My Events ------
-- tapOn: "My Events →"
+- tapOn: "View my events"
 - waitForAnimationToEnd
 - takeScreenshot: screenshots/12-my-events-screen
-# Go back
 - tapOn:
     id: "back-button"
 - waitForAnimationToEnd
@@ -159,15 +167,24 @@ tags:
 - waitForAnimationToEnd
 - takeScreenshot: screenshots/06-inbox-screen
 
-# ------ Open Chat from a match (tap on match card area) ------
-- tapOn:
-    point: "28%,38%"
-- waitForAnimationToEnd
-- takeScreenshot: screenshots/08-chat-screen
-# Dismiss chat — tap back button
-- tapOn:
-    id: "back-button"
-- waitForAnimationToEnd
+# ------ Open Chat from a match ------
+- runFlow:
+    when:
+      visible:
+        point: "28%,38%"
+    commands:
+      - tapOn:
+          point: "28%,38%"
+      - waitForAnimationToEnd
+      - runFlow:
+          when:
+            visible:
+              id: "back-button"
+          commands:
+            - takeScreenshot: screenshots/08-chat-screen
+            - tapOn:
+                id: "back-button"
+            - waitForAnimationToEnd
 
 # ------ Tab 5: Profile / You ------
 - tapOn:
@@ -183,3 +200,46 @@ tags:
     id: "notifications-button"
 - waitForAnimationToEnd
 - takeScreenshot: screenshots/09-notifications-screen
+- runFlow:
+    when:
+      visible:
+        id: "back-button"
+    commands:
+      - tapOn:
+          id: "back-button"
+      - waitForAnimationToEnd
+
+# ============================================================
+# AUTH SCREENS — logout, then capture
+# ============================================================
+
+- tapOn:
+    id: "tab-you"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Log out"
+    direction: DOWN
+    timeout: 20000
+    speed: 60
+    visibilityPercentage: 50
+- tapOn: "Log out"
+- waitForAnimationToEnd
+
+# Wait for the login screen — give extra time for state transition
+- extendedWaitUntil:
+    visible:
+      id: "login-submit-button"
+    timeout: 30000
+- takeScreenshot: screenshots/01-login-screen
+
+# Navigate to Signup — scroll to reveal footer then tap
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Join BRDG.*"
+- waitForAnimationToEnd
+# If the tap didn't navigate, the signup screenshot shows login (best effort)
+- takeScreenshot: screenshots/02-signup-screen

@@ -38,6 +38,7 @@ export function ProfileLogoutButton({ onLogout }: { onLogout: () => void }) {
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel="Log out"
+      testID="logout-button"
     >
       <Text style={styles.logoutText}>Log out</Text>
     </TouchableOpacity>
