@@ -72,7 +72,7 @@ Use the deterministic preview/reset helper when you need a known-good state for 
 npm run dev:scenario -- ui-preview
 ```
 
-This script assumes the backend is already running. It recreates fixed preview users, a match, chat history, notifications, and an event RSVP flow. Because notifications are stored in-memory today, rerun the scenario after restarting the backend.
+This script assumes the backend is already running. It recreates fixed preview users, a discovery candidate, a mutual match, chat history, verified notifications, and an event invite plus RSVP flow. Each reset deletes and recreates all `preview.*` accounts, so prior mutations on those preview users are intentionally wiped.
 Seeded credentials:
 
 - `preview.lana@brdg.local` / `PreviewPass123!`

@@ -24,7 +24,7 @@
     "db:seed": "prisma db seed",
     "dev:bootstrap": "npm run db:up && npm run db:wait && npm run db:migrate && npm run db:seed",
     "dev:setup": "npm run dev:bootstrap && npm run start:dev",
-    "dev:scenario": "node scripts/reset-dev-scenario.js",
+    "dev:scenario": "node -r ts-node/register scripts/reset-dev-scenario.js",
     "module:new": "node ./scripts/scaffold-module.mjs",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "typecheck": "tsc --noEmit",

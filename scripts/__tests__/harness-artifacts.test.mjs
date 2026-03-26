@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   FAILURE_CATEGORIES,
+  inferFailureCategory,
   readJsonFile,
   runHarnessSteps,
 } from '../harness-shared.mjs';
@@ -116,4 +117,41 @@ test('loadHarnessArtifacts ignores non-JSON workflow summary files', () => {
   assert.deepEqual(artifacts.plan?.selectedCommands, ['npm run check']);
   assert.equal(artifacts.results, null);
   assert.equal(artifacts.failureSummary, null);
+});
+
+test('runHarnessSteps normalizes smoke bootstrap failures with actionable remediation', () => {
+  const artifactsDir = makeTempArtifactsDir();
+
+  const result = runHarnessSteps({
+    lane: 'test-smoke-fail',
+    selectedCommands: ['npm run smoke'],
+    changedFiles: ['scripts/smoke-e2e.sh'],
+    artifactsDir,
+    metadata: { source: 'unit-test' },
+    steps: [
+      {
+        command: 'node -e "process.exit(1)"',
+        label: 'Smoke bootstrap',
+        category: FAILURE_CATEGORIES.smokeBootstrap,
+      },
+    ],
+    printPlan: false,
+  });
+
+  assert.equal(result.exitCode, 1);
+
+  const failureSummary = readJsonFile(path.join(artifactsDir, 'harness-failure-summary.json'));
+  assert.equal(failureSummary.failureCategory, FAILURE_CATEGORIES.smokeBootstrap);
+  assert.equal(failureSummary.failingStep, 'Smoke bootstrap');
+  assert.match(failureSummary.remediationHint, /backend startup|database|scenario reset/i);
+
+  assert.equal(inferFailureCategory('npm run smoke'), FAILURE_CATEGORIES.smokeBootstrap);
+  assert.equal(
+    inferFailureCategory('npm --prefix backend run dev:bootstrap'),
+    FAILURE_CATEGORIES.smokeBootstrap,
+  );
+  assert.equal(
+    inferFailureCategory('npm --prefix backend run db:seed'),
+    FAILURE_CATEGORIES.smokeBootstrap,
+  );
 });

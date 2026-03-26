@@ -1,113 +1,65 @@
+const fs = require("node:fs");
+const path = require("node:path");
 const { PrismaClient } = require("@prisma/client");
+const {
+  UI_PREVIEW_PASSWORD,
+  UI_PREVIEW_USERS,
+  getUiPreviewEventWindow,
+} = require("../src/dev-preview/ui-preview");
 
+function loadLocalEnvFile() {
+  for (const fileName of [".env", ".env.example"]) {
+    const filePath = path.join(__dirname, "..", fileName);
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+
+    const contents = fs.readFileSync(filePath, "utf8");
+    for (const line of contents.split(/\r?\n/u)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) {
+        continue;
+      }
+
+      const separatorIndex = trimmed.indexOf("=");
+      if (separatorIndex === -1) {
+        continue;
+      }
+
+      const key = trimmed.slice(0, separatorIndex).trim();
+      if (!key || process.env[key] !== undefined) {
+        continue;
+      }
+
+      let value = trimmed.slice(separatorIndex + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+
+      process.env[key] = value;
+    }
+
+    return filePath;
+  }
+
+  return null;
+}
+
+const loadedEnvPath = loadLocalEnvFile();
 const prisma = new PrismaClient();
 
 const DEFAULT_PORT = process.env.PORT || "3010";
 const API_BASE_URL =
   process.env.API_BASE_URL || `http://127.0.0.1:${DEFAULT_PORT}`;
-const ASSET_BASE_URL = process.env.BASE_URL || API_BASE_URL;
-
-const PHOTO_FILES = [
-  "uifaces-human-avatar.jpg",
-  "uifaces-human-avatar (1).jpg",
-  "uifaces-human-avatar (2).jpg",
-];
+const REQUEST_TIMEOUT_MS = Number(process.env.SCENARIO_REQUEST_TIMEOUT_MS || "10000");
 
 const SCENARIOS = {
   "ui-preview": {
-    password: "PreviewPass123!",
-    users: [
-      {
-        key: "lana",
-        email: "preview.lana@brdg.local",
-        firstName: "Lana",
-        photoFile: "uifaces-popular-avatar.jpg",
-        birthdate: "1996-04-14",
-        gender: "woman",
-        profile: {
-          city: "Honolulu",
-          country: "US",
-          latitude: 21.2767,
-          longitude: -157.8275,
-          bio: "Morning runner looking for dates, workouts, and low-pressure beach hangs.",
-          intentDating: true,
-          intentWorkout: true,
-          intentFriends: false,
-          showMeMen: true,
-          showMeWomen: true,
-          showMeOther: true,
-          maxDistanceKm: 50,
-        },
-        fitness: {
-          intensityLevel: "INTERMEDIATE",
-          weeklyFrequencyBand: "3-4",
-          primaryGoal: "endurance",
-          favoriteActivities: "Running, Yoga, Beach",
-          prefersMorning: true,
-          prefersEvening: true,
-        },
-      },
-      {
-        key: "mason",
-        email: "preview.mason@brdg.local",
-        firstName: "Mason",
-        photoFile: "uifaces-popular-avatar (1).jpg",
-        birthdate: "1993-11-02",
-        gender: "man",
-        profile: {
-          city: "Kakaako",
-          country: "US",
-          latitude: 21.2968,
-          longitude: -157.8581,
-          bio: "Beach workouts, last-minute coffees, and low-ego training blocks.",
-          intentDating: true,
-          intentWorkout: true,
-          intentFriends: false,
-          showMeMen: true,
-          showMeWomen: true,
-          showMeOther: true,
-          maxDistanceKm: 50,
-        },
-        fitness: {
-          intensityLevel: "ADVANCED",
-          weeklyFrequencyBand: "4-5",
-          primaryGoal: "strength",
-          favoriteActivities: "Beach, Running, Boxing",
-          prefersMorning: false,
-          prefersEvening: true,
-        },
-      },
-      {
-        key: "niko",
-        email: "preview.niko@brdg.local",
-        firstName: "Niko",
-        photoFile: "uifaces-human-avatar.jpg",
-        birthdate: "1995-07-22",
-        gender: "man",
-        profile: {
-          city: "Manoa",
-          country: "US",
-          latitude: 21.3169,
-          longitude: -157.8075,
-          bio: "Climbs, trail miles, and early starts. Good candidate for a fresh discovery card.",
-          intentDating: true,
-          intentWorkout: true,
-          intentFriends: true,
-          showMeMen: true,
-          showMeWomen: true,
-          showMeOther: true,
-          maxDistanceKm: 50,
-        },
-        fitness: {
-          intensityLevel: "INTERMEDIATE",
-          weeklyFrequencyBand: "3-4",
-          primaryGoal: "mobility",
-          favoriteActivities: "Hiking, Running, Climbing",
-          prefersMorning: true,
-          prefersEvening: false,
-        },
-      },
-    ],
+    password: UI_PREVIEW_PASSWORD,
+    users: UI_PREVIEW_USERS,
   },
 };
 
@@ -123,6 +75,7 @@ async function request(pathname, { method = "GET", token, body } = {}) {
   }
 
   const response = await fetch(`${API_BASE_URL}${pathname}`, {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -137,20 +90,27 @@ async function request(pathname, { method = "GET", token, body } = {}) {
     return null;
   }
 
-  return response.json();
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 }
 
 async function cleanupPreviewUsers() {
-  await prisma.user.deleteMany({
+  const deleted = await prisma.user.deleteMany({
     where: {
       email: {
         startsWith: "preview.",
       },
     },
   });
+
+  return deleted.count;
 }
 
-async function createUser(definition, password, index) {
+function getAssetUrl(fileName) {
+  return `${API_BASE_URL}/pfps/${fileName}`;
+}
+
+async function createUser(definition, password) {
   const signup = await request("/auth/signup", {
     method: "POST",
     body: {
@@ -187,13 +147,13 @@ async function createUser(definition, password, index) {
     body: definition.fitness,
   });
 
-  await prisma.userPhoto.create({
-    data: {
+  await prisma.userPhoto.createMany({
+    data: definition.photoFiles.map((photoFile, index) => ({
       userId,
-      storageKey: `${ASSET_BASE_URL}/pfps/${definition.photoFile || PHOTO_FILES[index % PHOTO_FILES.length]}`,
-      isPrimary: true,
-      sortOrder: 0,
-    },
+      storageKey: getAssetUrl(photoFile),
+      isPrimary: index === 0,
+      sortOrder: index,
+    })),
   });
 
   return {
@@ -203,20 +163,63 @@ async function createUser(definition, password, index) {
   };
 }
 
+async function expectNotification(userId, predicate, description) {
+  const notifications = await prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const match = notifications.find(predicate);
+  if (!match) {
+    throw new Error(
+      `${description} missing. Notifications for ${userId}: ${JSON.stringify(
+        notifications.map((notification) => ({
+          type: notification.type,
+          title: notification.title,
+          data: notification.data,
+          read: notification.read,
+        })),
+        null,
+        2,
+      )}`,
+    );
+  }
+
+  return match;
+}
+
+async function summarizeNotifications(userId) {
+  const notifications = await prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return notifications.map((notification) => ({
+    type: notification.type,
+    read: notification.read,
+    createdAt: notification.createdAt.toISOString(),
+    data: notification.data,
+  }));
+}
+
 async function prepareUiPreviewScenario() {
   const scenario = SCENARIOS["ui-preview"];
   const createdUsers = {};
+  const scenarioNow = process.env.SCENARIO_NOW_ISO
+    ? new Date(process.env.SCENARIO_NOW_ISO)
+    : new Date();
+  const { startsAt, endsAt } = getUiPreviewEventWindow(scenarioNow);
 
-  for (const [index, definition] of scenario.users.entries()) {
+  for (const definition of scenario.users) {
     createdUsers[definition.key] = await createUser(
       definition,
       scenario.password,
-      index,
     );
   }
 
   const lana = createdUsers.lana;
   const mason = createdUsers.mason;
+  const niko = createdUsers.niko;
 
   await request(`/discovery/like/${mason.userId}`, {
     method: "POST",
@@ -232,6 +235,11 @@ async function prepareUiPreviewScenario() {
   if (!matchId) {
     throw new Error("Expected deterministic match id for ui-preview scenario");
   }
+
+  await request(`/discovery/like/${lana.userId}`, {
+    method: "POST",
+    token: niko.token,
+  });
 
   await request(`/matches/${matchId}/messages`, {
     method: "POST",
@@ -250,11 +258,20 @@ async function prepareUiPreviewScenario() {
     token: lana.token,
     body: {
       title: "Preview Beach Workout",
-      description: "Low-pressure bodyweight session by the water.",
+      description: "Low-pressure bodyweight session by the water with coffee after.",
       location: "Magic Island",
       category: "FITNESS",
-      startsAt: new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString(),
-      endsAt: new Date(Date.now() + 38 * 60 * 60 * 1000).toISOString(),
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+    },
+  });
+
+  await request(`/events/${createdEvent.id}/invite`, {
+    method: "POST",
+    token: lana.token,
+    body: {
+      matchId,
+      message: "Want to turn the chat into an actual plan?",
     },
   });
 
@@ -263,13 +280,71 @@ async function prepareUiPreviewScenario() {
     token: mason.token,
   });
 
+  const lanaLikeNotification = await expectNotification(
+    lana.userId,
+    (notification) =>
+      notification.type === "like_received" &&
+      notification.data?.fromUserId === niko.userId,
+    "Lana like notification",
+  );
+  await expectNotification(
+    lana.userId,
+    (notification) =>
+      notification.type === "message_received" &&
+      notification.data?.matchId === matchId &&
+      notification.data?.senderId === mason.userId,
+    "Lana message notification",
+  );
+  await expectNotification(
+    lana.userId,
+    (notification) =>
+      notification.type === "event_rsvp" &&
+      notification.data?.eventId === createdEvent.id &&
+      notification.data?.attendeeId === mason.userId,
+    "Lana event RSVP notification",
+  );
+  await expectNotification(
+    mason.userId,
+    (notification) =>
+      notification.type === "match_created" &&
+      notification.data?.matchId === matchId &&
+      notification.data?.withUserId === lana.userId,
+    "Mason match notification",
+  );
+  await expectNotification(
+    mason.userId,
+    (notification) =>
+      notification.type === "event_reminder" &&
+      notification.data?.eventId === createdEvent.id,
+    "Mason event notification",
+  );
+
+  await prisma.notification.update({
+    where: { id: lanaLikeNotification.id },
+    data: {
+      read: true,
+      readAt: new Date(startsAt.getTime() - 60 * 60 * 1000),
+    },
+  });
+
   return {
     password: scenario.password,
     matchId,
     eventId: createdEvent.id,
+    deletedPreviewUsers: undefined,
+    eventWindow: {
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+    },
+    notifications: {
+      lana: await summarizeNotifications(lana.userId),
+      mason: await summarizeNotifications(mason.userId),
+    },
     users: Object.values(createdUsers).map((user) => ({
+      key: user.key,
       email: user.email,
       firstName: user.firstName,
+      photoCount: user.photoFiles.length,
     })),
   };
 }
@@ -280,7 +355,7 @@ async function main() {
     throw new Error(`Unsupported scenario: ${scenarioName}`);
   }
 
-  await cleanupPreviewUsers();
+  const deletedPreviewUsers = await cleanupPreviewUsers();
 
   let result;
   if (scenarioName === "ui-preview") {
@@ -292,6 +367,8 @@ async function main() {
       {
         scenario: scenarioName,
         apiBaseUrl: API_BASE_URL,
+        loadedEnvPath,
+        deletedPreviewUsers,
         ...result,
       },
       null,

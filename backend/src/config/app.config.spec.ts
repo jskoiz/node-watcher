@@ -154,4 +154,49 @@ describe('appConfig', () => {
       });
     });
   });
+
+  describe('local URL fallbacks', () => {
+    it('uses the local port for script, seed, and upload URLs when no overrides are set', () => {
+      process.env.JWT_SECRET = 'test-secret';
+      process.env.DATABASE_URL = 'postgresql://localhost:5432/test';
+      process.env.NODE_ENV = 'test';
+      process.env.PORT = '3010';
+      delete process.env.API_BASE_URL;
+      delete process.env.BASE_URL;
+
+      const config = loadConfig();
+      expect(config.scripts.apiBaseUrl).toBe('http://127.0.0.1:3010');
+      expect(config.seed.assetBaseUrl).toBe('http://127.0.0.1:3010');
+      expect(config.uploads.profilePublicBaseUrl).toBe(
+        'http://127.0.0.1:3010/uploads/profile',
+      );
+    });
+
+    it('uses API_BASE_URL for seed assets when BASE_URL is not set', () => {
+      process.env.JWT_SECRET = 'test-secret';
+      process.env.DATABASE_URL = 'postgresql://localhost:5432/test';
+      process.env.NODE_ENV = 'test';
+      process.env.API_BASE_URL = 'http://127.0.0.1:4010';
+      delete process.env.BASE_URL;
+
+      const config = loadConfig();
+      expect(config.scripts.apiBaseUrl).toBe('http://127.0.0.1:4010');
+      expect(config.seed.assetBaseUrl).toBe('http://127.0.0.1:4010');
+    });
+
+    it('lets BASE_URL override asset hosting without changing script API_BASE_URL', () => {
+      process.env.JWT_SECRET = 'test-secret';
+      process.env.DATABASE_URL = 'postgresql://localhost:5432/test';
+      process.env.NODE_ENV = 'test';
+      process.env.API_BASE_URL = 'http://127.0.0.1:4010';
+      process.env.BASE_URL = 'https://assets.brdg.test';
+
+      const config = loadConfig();
+      expect(config.scripts.apiBaseUrl).toBe('http://127.0.0.1:4010');
+      expect(config.seed.assetBaseUrl).toBe('https://assets.brdg.test');
+      expect(config.uploads.profilePublicBaseUrl).toBe(
+        'https://assets.brdg.test/uploads/profile',
+      );
+    });
+  });
 });

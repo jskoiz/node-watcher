@@ -46,11 +46,11 @@ npm run smoke
 
 This verifies:
 1. Backend deterministic bootstrap (`db up -> wait -> migrate -> seed`)
-2. Backend starts and responds on the configured local API URL
-3. The seeded `ui-preview` runtime resets cleanly against the running backend
+2. Backend starts and passes `GET /health` on the configured local API URL
+3. The seeded `ui-preview` runtime resets cleanly against the running backend using one pinned `SMOKE_NOW_ISO` anchor for seed and scenario timing
 4. Mobile launch prerequisites (`expo-doctor` + `typecheck`)
 
-`npm run smoke` expects to own the local backend port for the duration of the run. Stop any existing backend listener on `3010` before invoking it.
+`npm run smoke` expects to own the configured local backend port for the duration of the run. Stop any existing listener on the resolved `API_PORT` or `PORT` value first; if neither is set, smoke defaults to `3010`. The script writes bootstrap, backend, and scenario logs to `/tmp` and will fail fast if the port is already occupied.
 
 ## Validation commands used before ship
 
@@ -100,6 +100,7 @@ npm run dev:scenario -- ui-preview
 ```
 
 This recreates fixed preview users, a mutual match, chat history, notifications, and an event RSVP path.
+Each reset deletes all `preview.*` users, recreates the same preview identities in the same order, and intentionally wipes prior mutations on those accounts. The fixture graph is deterministic in shape and credentials, but IDs and timestamps are regenerated unless you pin `SCENARIO_NOW_ISO`.
 Current seeded credentials:
 
 - `preview.lana@brdg.local` / `PreviewPass123!`
@@ -107,6 +108,7 @@ Current seeded credentials:
 - `preview.niko@brdg.local` / `PreviewPass123!`
 
 Use this seeded runtime path for integrated QA inside the real app navigation.
+The current reset also creates a discovery candidate, a mutual match with message history, a future event invite, an RSVP, and verified notification payloads for the deep-link paths the app uses today.
 
 The current seeded QA path is especially useful for validating:
 - discovery filters and quick filters
@@ -163,6 +165,8 @@ If you need to reset deterministic preview data before opening the app:
 npm run qa:ios:reset
 ```
 
+`npm run qa:ios:reset` is not a standalone bootstrap. It expects `backend/.env` plus a reachable local backend, then reruns the same destructive `ui-preview` reset before opening the simulator loop.
+
 Recommended usage:
 
 1. Run `npm run ios:install` only when native dependencies, Expo config, or iOS-native files changed.
@@ -195,6 +199,11 @@ If you are planning follow-on work, the current recommended next track is event 
 - If smoke run fails, inspect backend logs:
   ```bash
   tail -n 120 /tmp/brdg-backend-smoke.log
+  ```
+- For bootstrap or scenario-reset failures, also inspect:
+  ```bash
+  tail -n 120 /tmp/brdg-bootstrap-smoke.log
+  tail -n 120 /tmp/brdg-ui-preview-smoke.json
   ```
 
 ### Auth/profile/discovery requests failing

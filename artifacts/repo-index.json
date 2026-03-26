@@ -178,6 +178,7 @@
       "common",
       "config",
       "contracts",
+      "dev-preview",
       "discovery",
       "events",
       "matches",

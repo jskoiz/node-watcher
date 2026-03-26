@@ -58,6 +58,18 @@ test('smoke-sensitive changes append smoke validation', () => {
   assert.equal(plan.requiresSmoke, true);
 });
 
+test('scenario reset changes append smoke validation to backend checks', () => {
+  const plan = buildValidationPlan(['backend/scripts/reset-dev-scenario.js']);
+  assert.deepEqual(plan.commands, ['npm run check:backend', 'npm run smoke']);
+  assert.equal(plan.requiresSmoke, true);
+});
+
+test('smoke runner changes append smoke validation to root checks', () => {
+  const plan = buildValidationPlan(['scripts/smoke-e2e.sh']);
+  assert.deepEqual(plan.commands, ['npm run check:root', 'npm run smoke']);
+  assert.equal(plan.requiresSmoke, true);
+});
+
 test('reusable mobile UI changes require a Storybook update in the diff', () => {
   const plan = buildValidationPlan(['mobile/src/components/form/DateField.tsx']);
   assert.equal(plan.storybookViolations.length, 1);

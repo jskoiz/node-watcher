@@ -38,6 +38,7 @@ npm run scaffold:backend-module -- --name moderation
   - full graph: `check:root`, `check:backend`, `check:mobile`, then `check:symphony`
 - `npm run smoke`
   - deterministic bootstrap plus seeded `ui-preview` runtime plus mobile launch prerequisites
+  - smoke owns the backend port for the run, loads backend env defaults, pins one `SMOKE_NOW_ISO` anchor for seed/scenario timing, probes `/health`, and writes bootstrap/backend/scenario logs to `/tmp`
 - `npm run repo:index`
   - regenerates [`../artifacts/repo-index.json`](../artifacts/repo-index.json), the machine-readable repo map used by agents and maintenance
 - `npm run harness:ci-context -- --branch <name>`
@@ -48,6 +49,7 @@ npm run scaffold:backend-module -- --name moderation
   - boots the iOS simulator, opens the installed dev client, and starts Metro on localhost for fast repeat QA
 - `npm run qa:ios:reset`
   - reruns the deterministic `ui-preview` reset before starting the same fast iOS simulator loop
+  - requires `backend/.env` and a reachable local backend before it can reset preview fixtures
 
 ## Policy Rules
 
@@ -68,6 +70,7 @@ npm run scaffold:backend-module -- --name moderation
 - PR lane: run `npm run check:changed`
 - Docs/policy-only edits: run `npm run check:root`
 - Protected branch or release prep: run `npm run check` and add `npm run smoke` when you need bootstrap/runtime confidence
+- The diff-driven lane also appends `npm run smoke` automatically for smoke-sensitive backend/bootstrap/scenario changes.
 - Visual mobile changes: link the relevant Storybook story or attach screenshots in the PR
 - Release-oriented changes: keep build provenance aligned with [`APP_STORE_RELEASE.md`](APP_STORE_RELEASE.md)
 

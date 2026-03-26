@@ -1,4 +1,5 @@
-import { PrismaClient, Gender, AuthProvider, IntensityLevel, EventCategory } from '@prisma/client';
+import { createHash } from 'node:crypto';
+import { PrismaClient, Gender, AuthProvider, IntensityLevel, EventCategory, MessageType } from '@prisma/client';
 import { appConfig } from '../src/config/app.config';
 
 const prisma = new PrismaClient();
@@ -58,6 +59,12 @@ type SeedUser = {
     prefersEvening?: boolean;
   };
   activities: string[];
+  photoCount?: number;
+  showMeMen?: boolean;
+  showMeWomen?: boolean;
+  showMeOther?: boolean;
+  maxDistanceKm?: number;
+  discoveryPaused?: boolean;
 };
 
 type SeedEvent = {
@@ -72,6 +79,40 @@ type SeedEvent = {
   startHour: number;
   durationHours: number;
   attendeeSlugs: string[];
+};
+
+type SeedLike = {
+  slug: string;
+  fromSlug: string;
+  toSlug: string;
+  dayOffset: number;
+  hour: number;
+};
+
+type SeedMatch = {
+  slug: string;
+  userSlugs: [string, string];
+  dayOffset: number;
+  hour: number;
+  isArchived?: boolean;
+  messages: Array<{
+    slug: string;
+    senderSlug: string;
+    body: string;
+    hoursAfterMatch: number;
+    isRead?: boolean;
+  }>;
+};
+
+type SeedEventInvite = {
+  slug: string;
+  eventSlug: string;
+  matchSlug: string;
+  inviterSlug: string;
+  inviteeSlug: string;
+  body: string;
+  dayOffset: number;
+  hour: number;
 };
 
 const activityCatalog = [
@@ -949,6 +990,69 @@ const supplementalSeedUsers: SeedUser[] = [
 
 const seedUsers: SeedUser[] = [...coreSeedUsers, ...supplementalSeedUsers];
 
+const seedLikes: SeedLike[] = [
+  {
+    slug: 'nia-likes-kai',
+    fromSlug: 'nia',
+    toSlug: 'kai',
+    dayOffset: 0,
+    hour: 8,
+  },
+];
+
+const seedMatches: SeedMatch[] = [
+  {
+    slug: 'kai-leilani',
+    userSlugs: ['kai', 'leilani'],
+    dayOffset: 0,
+    hour: 9,
+    messages: [
+      {
+        slug: 'kai-opener',
+        senderSlug: 'kai',
+        body: 'Sunrise run still on if you want a low-pressure first lap.',
+        hoursAfterMatch: 1,
+        isRead: true,
+      },
+      {
+        slug: 'leilani-reply',
+        senderSlug: 'leilani',
+        body: 'Yes. Coffee after if the pace stays conversational.',
+        hoursAfterMatch: 2,
+      },
+    ],
+  },
+  {
+    slug: 'mason-rowan-archived',
+    userSlugs: ['mason', 'rowan'],
+    dayOffset: 1,
+    hour: 18,
+    isArchived: true,
+    messages: [
+      {
+        slug: 'mason-check-in',
+        senderSlug: 'mason',
+        body: 'Good lift. Let me know if you want to repeat it next week.',
+        hoursAfterMatch: 1,
+        isRead: true,
+      },
+    ],
+  },
+];
+
+const seedEventInvites: SeedEventInvite[] = [
+  {
+    slug: 'kai-invites-leilani-to-run',
+    eventSlug: 'ala-moana-sunrise-run',
+    matchSlug: 'kai-leilani',
+    inviterSlug: 'kai',
+    inviteeSlug: 'leilani',
+    body: 'Want to make the chat real and join this one?',
+    dayOffset: 0,
+    hour: 12,
+  },
+];
+
 const coreSeedEvents: SeedEvent[] = [
   {
     slug: 'ala-moana-sunrise-run',
@@ -1423,17 +1527,51 @@ const supplementalSeedEvents: SeedEvent[] = [
   },
 ];
 
-const seedEvents: SeedEvent[] = [...coreSeedEvents, ...supplementalSeedEvents];
+function buildEventImage(index: number) {
+  return `${BASE_URL}/pfps/${PHOTO_FILES[(index + 6) % PHOTO_FILES.length]}`;
+}
+
+const seedEvents: SeedEvent[] = [...coreSeedEvents, ...supplementalSeedEvents].map(
+  (event, index) => ({
+    ...event,
+    imageUrl: buildEventImage(index),
+  }),
+);
 
 function demoEmail(slug: string) {
   return `${slug}@${DEMO_EMAIL_DOMAIN}`;
 }
 
-function buildStartsAt(dayOffset: number, hour: number) {
-  const startsAt = new Date();
-  startsAt.setDate(startsAt.getDate() + dayOffset);
-  startsAt.setHours(hour, 0, 0, 0);
+function stableUuid(...parts: string[]) {
+  const hash = createHash('sha1').update(parts.join(':')).digest('hex').slice(0, 32);
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+}
+
+function buildSeedAnchor(referenceDate = process.env.SEED_NOW_ISO ? new Date(process.env.SEED_NOW_ISO) : new Date()) {
+  return new Date(
+    Date.UTC(
+      referenceDate.getUTCFullYear(),
+      referenceDate.getUTCMonth(),
+      referenceDate.getUTCDate(),
+      12,
+      0,
+      0,
+      0,
+    ),
+  );
+}
+
+const SEED_ANCHOR = buildSeedAnchor();
+
+function buildSeedInstant(dayOffset: number, hour: number, minute = 0) {
+  const startsAt = new Date(SEED_ANCHOR);
+  startsAt.setUTCDate(startsAt.getUTCDate() + dayOffset);
+  startsAt.setUTCHours(hour, minute, 0, 0);
   return startsAt;
+}
+
+function buildStartsAt(dayOffset: number, hour: number) {
+  return buildSeedInstant(dayOffset, hour);
 }
 
 async function seedActivities() {
@@ -1482,6 +1620,7 @@ async function main() {
         const photo = PHOTO_FILES[index % PHOTO_FILES.length];
         const created = await tx.user.create({
           data: {
+            id: stableUuid('seed-user', user.slug),
             email: demoEmail(user.slug),
             firstName: user.firstName,
             birthdate: new Date(user.birthdate),
@@ -1499,10 +1638,11 @@ async function main() {
                 intentWorkout: user.intentWorkout,
                 intentDating: user.intentDating,
                 intentFriends: user.intentFriends,
-                showMeMen: true,
-                showMeWomen: true,
-                showMeOther: true,
-                maxDistanceKm: 50,
+                showMeMen: user.showMeMen ?? true,
+                showMeWomen: user.showMeWomen ?? true,
+                showMeOther: user.showMeOther ?? true,
+                maxDistanceKm: user.maxDistanceKm ?? 50,
+                discoveryPaused: user.discoveryPaused ?? false,
               },
             },
             fitnessProfile: {
@@ -1518,13 +1658,21 @@ async function main() {
               },
             },
             photos: {
-              create: [
-                {
-                  storageKey: `${BASE_URL}/pfps/${photo}`,
-                  isPrimary: true,
-                  sortOrder: 0,
-                },
-              ],
+              create: Array.from({ length: user.photoCount ?? (createdUsers.size < 6 ? 2 : 1) }, (_, photoIndex) => ({
+                storageKey: `${BASE_URL}/pfps/${PHOTO_FILES[(index + photoIndex) % PHOTO_FILES.length]}`,
+                isPrimary: photoIndex === 0,
+                sortOrder: photoIndex,
+              })),
+            },
+            notificationPreferences: {
+              create: {
+                messages: user.slug !== 'rowan',
+                likes: user.slug !== 'nia',
+                matches: true,
+                eventReminders: true,
+                eventRsvps: true,
+                system: true,
+              },
             },
           },
         });
@@ -1557,6 +1705,7 @@ async function main() {
 
   let createdEventCount = 0;
   let createdRsvpCount = 0;
+  const createdEventIds = new Map<string, string>();
 
   for (const event of seedEvents) {
     const host = createdUsers.get(event.hostSlug);
@@ -1569,6 +1718,7 @@ async function main() {
 
     const createdEvent = await prisma.event.create({
       data: {
+        id: stableUuid('seed-event', event.slug),
         title: event.title,
         description: event.description,
         location: event.location,
@@ -1580,6 +1730,7 @@ async function main() {
       },
     });
 
+    createdEventIds.set(event.slug, createdEvent.id);
     createdEventCount += 1;
 
     const attendeeIds = [
@@ -1606,8 +1757,176 @@ async function main() {
     );
   }
 
+  let createdMatchCount = 0;
+  let createdMessageCount = 0;
+  let createdNotificationCount = 0;
+  let createdInviteCount = 0;
+
+  for (const like of seedLikes) {
+    const fromUser = createdUsers.get(like.fromSlug);
+    const toUser = createdUsers.get(like.toSlug);
+    if (!fromUser || !toUser) continue;
+
+    const createdAt = buildSeedInstant(like.dayOffset, like.hour);
+    await prisma.like.create({
+      data: {
+        id: stableUuid('seed-like', like.slug),
+        createdAt,
+        fromUserId: fromUser.id,
+        toUserId: toUser.id,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        id: stableUuid('seed-notification', `${like.slug}-to`),
+        userId: toUser.id,
+        type: 'like_received',
+        title: 'New like',
+        body: `${fromUser.firstName} liked your profile.`,
+        data: { fromUserId: fromUser.id },
+        createdAt,
+        updatedAt: createdAt,
+      },
+    });
+    createdNotificationCount += 1;
+  }
+
+  const createdMatchIds = new Map<string, string>();
+
+  for (const seedMatch of seedMatches) {
+    const users = seedMatch.userSlugs
+      .map((slug) => createdUsers.get(slug))
+      .filter((user): user is { id: string; firstName: string } => Boolean(user));
+    if (users.length !== 2) continue;
+
+    const [userAId, userBId] = [users[0].id, users[1].id].sort();
+    const matchCreatedAt = buildSeedInstant(seedMatch.dayOffset, seedMatch.hour);
+    const matchId = stableUuid('seed-match', seedMatch.slug);
+    createdMatchIds.set(seedMatch.slug, matchId);
+
+    await prisma.match.create({
+      data: {
+        id: matchId,
+        createdAt: matchCreatedAt,
+        updatedAt: matchCreatedAt,
+        userAId,
+        userBId,
+        isDatingMatch: true,
+        isWorkoutMatch: true,
+        isArchived: seedMatch.isArchived ?? false,
+      },
+    });
+    createdMatchCount += 1;
+
+    for (const user of users) {
+      const counterpart = users.find((candidate) => candidate.id !== user.id);
+      if (!counterpart) continue;
+      await prisma.notification.create({
+        data: {
+          id: stableUuid('seed-notification', `${seedMatch.slug}-${user.id}-match`),
+          userId: user.id,
+          type: 'match_created',
+          title: "It's a match!",
+          body: `You matched with ${counterpart.firstName}.`,
+          data: { matchId, withUserId: counterpart.id },
+          createdAt: matchCreatedAt,
+          updatedAt: matchCreatedAt,
+        },
+      });
+      createdNotificationCount += 1;
+    }
+
+    for (const message of seedMatch.messages) {
+      const sender = createdUsers.get(message.senderSlug);
+      if (!sender) continue;
+
+      const createdAt = new Date(
+        matchCreatedAt.getTime() + message.hoursAfterMatch * 60 * 60 * 1000,
+      );
+      await prisma.message.create({
+        data: {
+          id: stableUuid('seed-message', seedMatch.slug, message.slug),
+          matchId,
+          senderId: sender.id,
+          body: message.body,
+          type: MessageType.TEXT,
+          isRead: message.isRead ?? false,
+          readAt: message.isRead ? createdAt : null,
+          createdAt,
+        },
+      });
+      createdMessageCount += 1;
+
+      const recipient = users.find((candidate) => candidate.id !== sender.id);
+      if (!recipient) continue;
+      await prisma.notification.create({
+        data: {
+          id: stableUuid('seed-notification', `${seedMatch.slug}-${message.slug}-message`),
+          userId: recipient.id,
+          type: 'message_received',
+          title: 'New message',
+          body: message.body,
+          data: { matchId, senderId: sender.id },
+          read: message.isRead ?? false,
+          readAt: message.isRead ? createdAt : null,
+          createdAt,
+          updatedAt: createdAt,
+        },
+      });
+      createdNotificationCount += 1;
+    }
+  }
+
+  for (const invite of seedEventInvites) {
+    const eventId = createdEventIds.get(invite.eventSlug);
+    const matchId = createdMatchIds.get(invite.matchSlug);
+    const inviter = createdUsers.get(invite.inviterSlug);
+    const invitee = createdUsers.get(invite.inviteeSlug);
+    if (!eventId || !matchId || !inviter || !invitee) continue;
+
+    const createdAt = buildSeedInstant(invite.dayOffset, invite.hour);
+    await prisma.eventInvite.create({
+      data: {
+        id: stableUuid('seed-event-invite', invite.slug),
+        eventId,
+        inviterId: inviter.id,
+        inviteeId: invitee.id,
+        matchId,
+        status: 'pending',
+        createdAt,
+        updatedAt: createdAt,
+      },
+    });
+    await prisma.message.create({
+      data: {
+        id: stableUuid('seed-message', invite.slug),
+        matchId,
+        senderId: inviter.id,
+        body: `${invite.body}\n[EVENT_INVITE:${eventId}]`,
+        type: MessageType.EVENT_INVITE,
+        createdAt,
+      },
+    });
+    await prisma.notification.create({
+      data: {
+        id: stableUuid('seed-notification', `${invite.slug}-notification`),
+        userId: invitee.id,
+        type: 'event_reminder',
+        title: 'Event invite',
+        body: `${inviter.firstName} invited you to an event.`,
+        data: { eventId, matchId, type: 'event_invite' },
+        createdAt,
+        updatedAt: createdAt,
+      },
+    });
+    createdInviteCount += 1;
+    createdMessageCount += 1;
+    createdNotificationCount += 1;
+  }
+
   console.log(
-    `Seed finished with ${createdUsers.size} demo profiles, ${createdEventCount} events, and ${createdRsvpCount} RSVPs.`,
+    `Seed finished with ${createdUsers.size} demo profiles, ${createdEventCount} events, ${createdRsvpCount} RSVPs, ${createdMatchCount} matches, ${createdMessageCount} messages, ${createdInviteCount} invites, and ${createdNotificationCount} notifications.`,
   );
 }
 
