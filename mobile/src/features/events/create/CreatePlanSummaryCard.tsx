@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { Card, Chip } from '../../../design/primitives';
 import { createStyles as styles } from './create.styles';
+import { formatTimingSummary } from './create.helpers';
 
 export function CreatePlanSummaryCard({
   selectedActivity,
@@ -30,7 +31,7 @@ export function CreatePlanSummaryCard({
         </View>
         <View style={styles.planPill}>
           <Chip
-            label={selectedWhen && selectedTime ? `${selectedWhen} / ${selectedTime}` : 'Choose timing'}
+            label={formatTimingSummary(selectedWhen, selectedTime)}
             active={Boolean(selectedWhen && selectedTime)}
             interactive={false}
           />

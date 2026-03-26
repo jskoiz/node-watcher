@@ -2,6 +2,12 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { createScreenNavigation, createScreenRoute } from '../../lib/testing/screenProps';
 import CreateScreen, { buildStartDate } from '../CreateScreen';
+import {
+  formatPlanDetailsSummary,
+  getPlanDetailsActionLabel,
+  getPlanDetailsHint,
+  formatTimingSummary,
+} from '../../features/events/create/create.helpers';
 
 const mockCreateEvent = jest.fn();
 const mockReset = jest.fn();
@@ -200,5 +206,33 @@ describe('buildStartDate', () => {
     // 9am today has passed (it's 8pm), so it should advance to Tuesday
     expect(result.getDay()).toBe(2); // Tuesday
     expect(result.getHours()).toBe(9);
+  });
+});
+
+describe('create timing summary copy', () => {
+  it('shows the missing day when only a time window is selected', () => {
+    expect(formatTimingSummary('', 'Afternoon')).toBe('Choose day / Afternoon');
+    expect(formatPlanDetailsSummary('', 'Afternoon', '')).toBe('Choose day / Afternoon');
+    expect(getPlanDetailsActionLabel('', 'Afternoon')).toBe('Choose day');
+    expect(getPlanDetailsHint('', 'Afternoon')).toBe('Pick a day to finish the timing.');
+  });
+
+  it('shows the missing time window when only a day is selected', () => {
+    expect(formatTimingSummary('Tomorrow', '')).toBe('Tomorrow / Choose time');
+    expect(formatPlanDetailsSummary('Tomorrow', '', 'Intermediate')).toBe(
+      'Tomorrow / Choose time · Intermediate',
+    );
+    expect(getPlanDetailsActionLabel('Tomorrow', '')).toBe('Choose time');
+    expect(getPlanDetailsHint('Tomorrow', '')).toBe('Pick a time window to finish the timing.');
+  });
+
+  it('uses a generic setup prompt before anything is selected', () => {
+    expect(getPlanDetailsActionLabel('', '')).toBe('Choose day and time');
+    expect(getPlanDetailsHint('', '')).toBe('Choose both a day and a time window before posting.');
+  });
+
+  it('falls back to edit copy once timing is complete', () => {
+    expect(getPlanDetailsActionLabel('Tomorrow', 'Afternoon')).toBe('Edit plan details');
+    expect(getPlanDetailsHint('Tomorrow', 'Afternoon')).toBeNull();
   });
 });

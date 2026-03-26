@@ -117,6 +117,12 @@ export const createStyles = StyleSheet.create({
     fontWeight: '700',
     color: TEXT_PRIMARY,
   },
+  selectionHint: {
+    fontSize: typography.caption,
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    lineHeight: 18,
+  },
 
   /* ── Activity picker (CreateActivityPicker) ─────────────── */
   activitySection: {

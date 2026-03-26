@@ -19,6 +19,11 @@ import { CreateSuccessCard } from './CreateSuccessCard';
 import { CreateTimingSection } from './CreateTimingSection';
 import { createStyles as styles } from './create.styles';
 import {
+  formatPlanDetailsSummary,
+  getPlanDetailsActionLabel,
+  getPlanDetailsHint,
+} from './create.helpers';
+import {
   triggerSelectionHaptic,
   triggerSheetCommitHaptic,
 } from '../../../lib/interaction/feedback';
@@ -82,6 +87,8 @@ export function CreateScreenContent({
 }) {
   const activitySheet = useSheetController();
   const timingSheet = useSheetController();
+  const planDetailsHint = getPlanDetailsHint(selectedWhen, selectedTime);
+  const planDetailsActionLabel = getPlanDetailsActionLabel(selectedWhen, selectedTime);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -122,13 +129,14 @@ export function CreateScreenContent({
           <Card style={styles.selectionCard}>
             <Text style={styles.selectionEyebrow}>Plan details</Text>
             <Text style={styles.selectionValue}>
-              {[selectedWhen, selectedTime, skillLevel].filter(Boolean).join(' · ') || 'Choose timing, pace, and spots'}
+              {formatPlanDetailsSummary(selectedWhen, selectedTime, skillLevel || '')}
             </Text>
             <Button
-              label="Edit plan details"
+              label={planDetailsActionLabel}
               onPress={timingSheet.open}
               variant="secondary"
             />
+            {planDetailsHint ? <Text style={styles.selectionHint}>{planDetailsHint}</Text> : null}
           </Card>
           {timingError ? <Text style={styles.inlineError}>{timingError}</Text> : null}
 

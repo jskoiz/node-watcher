@@ -15,6 +15,63 @@ export const WHEN_OPTIONS = ['Today', 'Tomorrow', 'This Weekend', 'Next Week'] a
 export const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening'] as const;
 export const SKILL_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'] as const;
 
+export function formatTimingSummary(selectedWhen: string, selectedTime: string) {
+  if (selectedWhen && selectedTime) {
+    return `${selectedWhen} / ${selectedTime}`;
+  }
+
+  if (selectedWhen) {
+    return `${selectedWhen} / Choose time`;
+  }
+
+  if (selectedTime) {
+    return `Choose day / ${selectedTime}`;
+  }
+
+  return 'Choose timing';
+}
+
+export function formatPlanDetailsSummary(
+  selectedWhen: string,
+  selectedTime: string,
+  skillLevel: string,
+) {
+  const timingSummary = formatTimingSummary(selectedWhen, selectedTime);
+  return [timingSummary, skillLevel].filter(Boolean).join(' · ');
+}
+
+export function getPlanDetailsActionLabel(selectedWhen: string, selectedTime: string) {
+  if (!selectedWhen && !selectedTime) {
+    return 'Choose day and time';
+  }
+
+  if (!selectedWhen) {
+    return 'Choose day';
+  }
+
+  if (!selectedTime) {
+    return 'Choose time';
+  }
+
+  return 'Edit plan details';
+}
+
+export function getPlanDetailsHint(selectedWhen: string, selectedTime: string) {
+  if (!selectedWhen && selectedTime) {
+    return 'Pick a day to finish the timing.';
+  }
+
+  if (selectedWhen && !selectedTime) {
+    return 'Pick a time window to finish the timing.';
+  }
+
+  if (!selectedWhen && !selectedTime) {
+    return 'Choose both a day and a time window before posting.';
+  }
+
+  return null;
+}
+
 export function buildStartDate(selectedWhen: string, selectedTime: string) {
   const now = new Date();
   const start = new Date(now);
@@ -75,4 +132,3 @@ export function buildDescription({
 
   return parts.join(' ');
 }
-
