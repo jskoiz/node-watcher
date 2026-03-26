@@ -5,7 +5,6 @@ import { handleUnauthorized } from './authSession';
 import { getToken } from './tokenStorage';
 import { showToast } from '../store/toastStore';
 import { parseRetryAfter } from './errors';
-import { devContractInterceptor } from './contractValidator';
 
 const client = axios.create({
     baseURL: env.apiUrl,
@@ -56,7 +55,13 @@ function getRetryDelayMs(error: AxiosError): number {
 }
 
 client.interceptors.response.use(
-    (response) => devContractInterceptor(response),
+    (response) => {
+        if (__DEV__) {
+            const { devContractInterceptor } = require('./contractValidator');
+            return devContractInterceptor(response);
+        }
+        return response;
+    },
     async (error: AxiosError) => {
         const config = error.config as InternalAxiosRequestConfig & {
             [RETRY_COUNT_KEY]?: number;

@@ -82,6 +82,12 @@ export function makeDiscoveryUser(
 
   return {
     ...baseUser,
+    firstName: overrides.firstName ?? baseUser.firstName ?? 'Lana',
+    birthdate: overrides.birthdate ?? '1995-01-01T00:00:00.000Z',
+    age: overrides.age ?? baseUser.age ?? 29,
+    profile: overrides.profile ?? baseUser.profile ?? null,
+    fitnessProfile: overrides.fitnessProfile ?? baseUser.fitnessProfile ?? null,
+    photos: overrides.photos ?? baseUser.photos ?? [],
     distanceKm: overrides.distanceKm ?? 5,
     recommendationScore: overrides.recommendationScore ?? 88,
   };

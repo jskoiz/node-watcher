@@ -1,5 +1,4 @@
 import { useMutation } from '@tanstack/react-query';
-import type { LikeResponse } from '../../../api/types';
 import { discoveryApi } from '../../../services/api';
 
 /**
@@ -12,8 +11,7 @@ export function useDiscoveryActions() {
   });
 
   const like = useMutation({
-    mutationFn: async (userId: string) =>
-      (await discoveryApi.like(userId)).data as LikeResponse,
+    mutationFn: async (userId: string) => (await discoveryApi.like(userId)).data,
   });
 
   return {

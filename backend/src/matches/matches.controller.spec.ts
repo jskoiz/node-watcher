@@ -8,10 +8,7 @@ import {
 import { MatchesController } from './matches.controller';
 import { MatchesService } from './matches.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
-
-function expectSchema<T>(schema: { parse: (value: unknown) => T }, value: unknown) {
-  expect(() => schema.parse(value)).not.toThrow();
-}
+import { expectSchema } from '../../test-support/expect-schema';
 
 describe('MatchesController', () => {
   let controller: MatchesController;

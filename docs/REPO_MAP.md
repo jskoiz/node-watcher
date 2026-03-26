@@ -19,6 +19,7 @@ Use this file when you need to orient quickly and decide where a change belongs.
 - `backend/prisma/`: schema, migrations, seed data
 - `backend/scripts/`: bootstrap and scenario helpers
 - Layer defaults: `config/base -> persistence -> contracts -> domain/service -> transport -> app-shell`
+- `backend/src/contracts/response-shapes.spec.ts`: backend schema-only contract guardrails
 
 Change backend when the task touches API contracts, persistence, seed data, or release/runtime setup.
 
@@ -28,6 +29,7 @@ Change backend when the task touches API contracts, persistence, seed data, or r
 - `mobile/src/features/`: feature-owned hooks and presentational modules
 - `mobile/src/components/`: shared UI building blocks
 - `mobile/src/design/`: design primitives and shared bottom-sheet shell
+- `mobile/src/api/contractValidator.ts`: dev-mode API contract drift warnings
 - `mobile/src/stories/`: Storybook coverage for reusable UI and screen-shell review
 - `mobile/scripts/`: mobile-local harness helpers
 - Layer defaults: `foundation -> data -> shared-ui -> feature -> screen -> app-shell`
@@ -45,6 +47,7 @@ Change mobile when the task touches app UX, feature modules, Storybook coverage,
 - [`STORYBOOK_WORKFLOW.md`](STORYBOOK_WORKFLOW.md): isolated mobile visual workflow
 - [`APP_STORE_RELEASE.md`](APP_STORE_RELEASE.md): mobile release provenance and submission checklist
 - [`../artifacts/repo-index.json`](../artifacts/repo-index.json): machine-readable repo map and layer index
+- [`../shared/contracts/`](../shared/contracts/): shared backend/mobile schemas and response shapes
 
 ## Safe Defaults
 
@@ -52,4 +55,4 @@ Change mobile when the task touches app UX, feature modules, Storybook coverage,
 - Run `npm run pre-submit` before opening a PR or install the repo-managed pre-commit hook with `npm run hooks:install`.
 - Use `npm run check:changed` for a fast diff-driven validation pass.
 - Use `npm run check` for full non-smoke validation.
-- Use `npm run smoke` when backend bootstrap, seed/scenario wiring, or integrated app assumptions changed.
+- Use `npm run smoke` when backend bootstrap, seed/scenario wiring, or integrated app assumptions changed; use it for contract-changing work when you need the runtime boundary verified end to end.

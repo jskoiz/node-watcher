@@ -39,9 +39,36 @@ jest.mock('../../src/services/api', () => ({
 /* ------------------------------------------------------------------ */
 
 const feedUsers: DiscoveryUser[] = [
-  { id: 'u1', firstName: 'Alice', age: 28, distanceKm: 3 },
-  { id: 'u2', firstName: 'Bob', age: 32, distanceKm: 5 },
-  { id: 'u3', firstName: 'Carol', age: 26, distanceKm: 8 },
+  {
+    id: 'u1',
+    firstName: 'Alice',
+    birthdate: '1997-01-01T00:00:00.000Z',
+    age: 28,
+    distanceKm: 3,
+    profile: null,
+    fitnessProfile: null,
+    photos: [],
+  },
+  {
+    id: 'u2',
+    firstName: 'Bob',
+    birthdate: '1993-01-01T00:00:00.000Z',
+    age: 32,
+    distanceKm: 5,
+    profile: null,
+    fitnessProfile: null,
+    photos: [],
+  },
+  {
+    id: 'u3',
+    firstName: 'Carol',
+    birthdate: '1999-01-01T00:00:00.000Z',
+    age: 26,
+    distanceKm: 8,
+    profile: null,
+    fitnessProfile: null,
+    photos: [],
+  },
 ];
 
 const fakeMatch: Match = {

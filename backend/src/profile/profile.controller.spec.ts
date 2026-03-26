@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { CurrentUserSchema } from '@contracts';
 import { ProfileController } from './profile.controller';
 import { ProfileService } from './profile.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
+import { expectSchema } from '../../test-support/expect-schema';
 
 describe('ProfileController', () => {
   let controller: ProfileController;
@@ -36,15 +38,30 @@ describe('ProfileController', () => {
   it('delegates updateFitnessProfile to profile service', async () => {
     const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
     const dto = { intensityLevel: 'ADVANCED' as const };
+    const currentUser = {
+      id: 'user-1',
+      email: 'test@example.com',
+      firstName: 'Jordan',
+      birthdate: null,
+      gender: 'MALE',
+      pronouns: null,
+      isOnboarded: true,
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2024-06-01T00:00:00.000Z'),
+      age: 30,
+      profile: null,
+      fitnessProfile: {
+        intensityLevel: 'ADVANCED',
+      },
+      photos: [],
+    };
 
-    profileServiceMock.updateFitnessProfile.mockResolvedValue({
-      userId: 'user-1',
-      ...dto,
-    });
+    profileServiceMock.updateFitnessProfile.mockResolvedValue(currentUser);
 
-    await expect(
-      controller.updateFitnessProfile(req, dto),
-    ).resolves.toEqual({ userId: 'user-1', ...dto });
+    await expect(controller.updateFitnessProfile(req, dto)).resolves.toEqual(
+      currentUser,
+    );
+    expectSchema(CurrentUserSchema, currentUser);
     expect(profileServiceMock.updateFitnessProfile).toHaveBeenCalledWith(
       'user-1',
       dto,
@@ -128,18 +145,26 @@ describe('ProfileController', () => {
 
   it('delegates getProfile to profile service', async () => {
     const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
-
-    profileServiceMock.getProfile.mockResolvedValue({
+    const currentUser = {
       id: 'user-1',
+      email: 'test@example.com',
       firstName: 'Jordan',
+      birthdate: null,
+      gender: 'MALE',
+      pronouns: null,
+      isOnboarded: true,
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2024-06-01T00:00:00.000Z'),
       age: 30,
-    });
+      profile: null,
+      fitnessProfile: null,
+      photos: [],
+    };
 
-    await expect(controller.getProfile(req)).resolves.toEqual({
-      id: 'user-1',
-      firstName: 'Jordan',
-      age: 30,
-    });
+    profileServiceMock.getProfile.mockResolvedValue(currentUser);
+
+    await expect(controller.getProfile(req)).resolves.toEqual(currentUser);
+    expectSchema(CurrentUserSchema, currentUser);
     expect(profileServiceMock.getProfile).toHaveBeenCalledWith('user-1');
   });
 

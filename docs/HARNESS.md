@@ -31,7 +31,7 @@ npm run scaffold:backend-module -- --name moderation
 - `npm run check:root`
   - root validation lane: `docs:check`, `policy:check`, then `test:root`
 - `npm run pre-submit`
-  - canonical local checklist: `docs:check`, `policy:check`, the new marker guard (`TODO`/`FIXME`/`HACK`), then the same diff-driven validation lane used for PRs
+  - canonical local checklist: docs drift, repo policy, new marker guard (`TODO`/`FIXME`/`HACK`), then the same diff-driven validation lane used for PRs; contract-shape changes should be checked against shared schemas plus backend controller-boundary specs/shared guardrails and the mobile dev validator
 - `npm run check:changed`
   - chooses the smallest reasonable validation set from git diff, promotes mixed or harness-sensitive changes to `check`, appends `smoke` for smoke-sensitive paths, enforces Storybook co-updates for changed reusable mobile UI surfaces, and can emit machine-readable harness artifacts
 - `npm run check`
@@ -54,6 +54,7 @@ npm run scaffold:backend-module -- --name moderation
 - New repo-level scripts in `scripts/` must be reachable through a package script or explicitly documented here.
 - Backend and mobile runtime code should read environment through config layers, not raw `process.env` calls in feature modules.
 - Mobile screens should not import the raw API client directly.
+- Shared payload shape lives in `shared/contracts/`; backend controller-boundary specs plus `backend/src/contracts/response-shapes.spec.ts` guardrails and the mobile dev validator are the enforcement points for drift.
 - Backend imports follow `config/base -> persistence -> contracts -> domain/service -> transport -> app-shell`.
 - Mobile imports follow `foundation -> data -> shared-ui -> feature -> screen -> app-shell`.
 - [`../artifacts/repo-index.json`](../artifacts/repo-index.json) must stay in sync with the source tree.

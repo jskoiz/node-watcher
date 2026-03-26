@@ -1,12 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 import { Alert } from 'react-native';
-import type { ReportPayload, ReportResponse } from '../../../api/types';
+import type { ReportPayload } from '../../../api/types';
 import { moderationApi } from '../../../services/api';
 
 export function useReport(options?: { onSuccess?: () => void }) {
   const mutation = useMutation({
-    mutationFn: async (payload: ReportPayload) =>
-      (await moderationApi.report(payload)).data as ReportResponse,
+    mutationFn: async (payload: ReportPayload) => (await moderationApi.report(payload)).data,
     onSuccess: () => {
       Alert.alert(
         'Report submitted',

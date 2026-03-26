@@ -20,7 +20,7 @@ describe('useBlock', () => {
   });
 
   it('calls moderationApi.block with the correct payload', async () => {
-    mockBlock.mockResolvedValue({ data: { status: 'blocked' } });
+    mockBlock.mockResolvedValue({ data: { success: true, matchId: 'match-1' } });
 
     const { wrapper } = createQueryTestHarness();
     const { result } = renderHook(() => useBlock(), { wrapper });
@@ -34,7 +34,7 @@ describe('useBlock', () => {
   });
 
   it('invalidates matches query on success', async () => {
-    mockBlock.mockResolvedValue({ data: { status: 'blocked' } });
+    mockBlock.mockResolvedValue({ data: { success: true, matchId: 'match-1' } });
 
     const { wrapper, queryClient } = createQueryTestHarness();
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
@@ -52,7 +52,7 @@ describe('useBlock', () => {
   });
 
   it('shows success alert on block', async () => {
-    mockBlock.mockResolvedValue({ data: { status: 'blocked' } });
+    mockBlock.mockResolvedValue({ data: { success: true, matchId: 'match-1' } });
 
     const { wrapper } = createQueryTestHarness();
     const { result } = renderHook(() => useBlock(), { wrapper });
@@ -69,7 +69,7 @@ describe('useBlock', () => {
   });
 
   it('calls onSuccess callback after blocking', async () => {
-    mockBlock.mockResolvedValue({ data: { status: 'blocked' } });
+    mockBlock.mockResolvedValue({ data: { success: true, matchId: 'match-1' } });
     const onSuccess = jest.fn();
 
     const { wrapper } = createQueryTestHarness();
@@ -105,7 +105,7 @@ describe('useBlock', () => {
   });
 
   it('passes matchId when provided', async () => {
-    mockBlock.mockResolvedValue({ data: { status: 'blocked' } });
+    mockBlock.mockResolvedValue({ data: { success: true, matchId: 'match-1' } });
 
     const { wrapper } = createQueryTestHarness();
     const { result } = renderHook(() => useBlock(), { wrapper });

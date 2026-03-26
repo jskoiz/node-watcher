@@ -2,6 +2,13 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "types": ["jest", "react", "react-native"]
+    "types": ["jest", "react", "react-native"],
+    "baseUrl": ".",
+    "paths": {
+      "zod": ["node_modules/zod"],
+      "zod/*": ["node_modules/zod/*"],
+      "@contracts/*": ["../shared/contracts/*"],
+      "@contracts": ["../shared/contracts/index"]
+    }
   }
 }

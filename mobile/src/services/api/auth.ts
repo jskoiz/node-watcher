@@ -1,5 +1,5 @@
 import client from '../../api/client';
-import type { AuthenticatedUser, AuthResponse } from '../../api/types';
+import type { AuthResponse, CurrentUser } from '../../api/types';
 import { withErrorLogging } from './shared';
 
 export const authApi = {
@@ -21,7 +21,7 @@ export const authApi = {
     ),
   me: async (token: string) =>
     withErrorLogging('auth', 'me', () =>
-      client.get<AuthenticatedUser>('/auth/me', {
+      client.get<CurrentUser>('/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       }),
     ),

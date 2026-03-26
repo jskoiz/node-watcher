@@ -17,6 +17,8 @@
     "incremental": true,
     "skipLibCheck": true,
     "paths": {
+      "zod": ["node_modules/zod"],
+      "zod/*": ["node_modules/zod/*"],
       "@contracts/*": ["../shared/contracts/*"],
       "@contracts": ["../shared/contracts/index"]
     },

@@ -1,9 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type {
-  DiscoveryUser,
-  LikeResponse,
-  UndoSwipeResponse,
-} from '../../../api/types';
+import type { DiscoveryUser } from '../../../api/types';
 import {
   discoveryApi,
   type DiscoveryFiltersInput,
@@ -44,8 +40,7 @@ export function useDiscoveryFeed(filters?: DiscoveryFiltersInput) {
   });
 
   const like = useMutation({
-    mutationFn: async (userId: string) =>
-      (await discoveryApi.like(userId)).data as LikeResponse,
+    mutationFn: async (userId: string) => (await discoveryApi.like(userId)).data,
     onMutate: removeFromFeed,
     onSuccess: (data) => {
       if (data.status === 'match') {
@@ -60,7 +55,7 @@ export function useDiscoveryFeed(filters?: DiscoveryFiltersInput) {
   });
 
   const undo = useMutation({
-    mutationFn: async () => (await discoveryApi.undo()).data as UndoSwipeResponse,
+    mutationFn: async () => (await discoveryApi.undo()).data,
     onSuccess: () => {
       void invalidateDiscoverySurfaces(queryClient);
     },

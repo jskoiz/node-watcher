@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { AuthResponseSchema, CurrentUserSchema } from '@contracts';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import type { LoginDto } from './auth.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
 import { Gender } from '../common/enums';
+import { expectSchema } from '../../test-support/expect-schema';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -35,11 +37,19 @@ describe('AuthController', () => {
 
   it('delegates login to auth service', async () => {
     const dto: LoginDto = { email: 'test@example.com', password: 'pw' };
-    authServiceMock.login.mockResolvedValue({ access_token: 'token' });
-
-    await expect(controller.login(dto)).resolves.toEqual({
+    const authResult = {
       access_token: 'token',
-    });
+      user: {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        isOnboarded: false,
+      },
+    };
+    authServiceMock.login.mockResolvedValue(authResult);
+
+    await expect(controller.login(dto)).resolves.toEqual(authResult);
+    expectSchema(AuthResponseSchema, authResult);
     expect(authServiceMock.login).toHaveBeenCalledWith(dto);
   });
 
@@ -59,29 +69,43 @@ describe('AuthController', () => {
       birthdate: '1995-01-01',
       gender: Gender.Woman,
     };
-    authServiceMock.signup.mockResolvedValue({
+    const authResult = {
       access_token: 'token',
-      user: { id: 'user-1', email: 'new@example.com', isOnboarded: false },
-    });
+      user: {
+        id: 'user-1',
+        email: 'new@example.com',
+        firstName: 'New',
+        isOnboarded: false,
+      },
+    };
+    authServiceMock.signup.mockResolvedValue(authResult);
 
-    await expect(controller.signup(dto)).resolves.toEqual({
-      access_token: 'token',
-      user: { id: 'user-1', email: 'new@example.com', isOnboarded: false },
-    });
+    await expect(controller.signup(dto)).resolves.toEqual(authResult);
+    expectSchema(AuthResponseSchema, authResult);
     expect(authServiceMock.signup).toHaveBeenCalledWith(dto);
   });
 
   it('delegates getProfile to auth service', async () => {
     const req = { user: { id: 'user-1' } } as AuthenticatedRequest;
-    authServiceMock.getCurrentUser.mockResolvedValue({
+    const currentUser = {
       id: 'user-1',
       email: 'test@example.com',
-    });
+      firstName: 'Test',
+      birthdate: null,
+      gender: 'FEMALE',
+      pronouns: null,
+      isOnboarded: true,
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2024-06-01T00:00:00.000Z'),
+      age: 30,
+      profile: null,
+      fitnessProfile: null,
+      photos: [],
+    };
+    authServiceMock.getCurrentUser.mockResolvedValue(currentUser);
 
-    await expect(controller.getProfile(req)).resolves.toEqual({
-      id: 'user-1',
-      email: 'test@example.com',
-    });
+    await expect(controller.getProfile(req)).resolves.toEqual(currentUser);
+    expectSchema(CurrentUserSchema, currentUser);
     expect(authServiceMock.getCurrentUser).toHaveBeenCalledWith('user-1');
   });
 

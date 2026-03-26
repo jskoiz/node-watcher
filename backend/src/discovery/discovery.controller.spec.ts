@@ -11,10 +11,7 @@ import { DiscoveryController } from './discovery.controller';
 import { DiscoveryService } from './discovery.service';
 import { ProfileService } from '../profile/profile.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
-
-function expectSchema<T>(schema: { parse: (value: unknown) => T }, value: unknown) {
-  expect(() => schema.parse(value)).not.toThrow();
-}
+import { expectSchema } from '../../test-support/expect-schema';
 
 describe('DiscoveryController', () => {
   let controller: DiscoveryController;

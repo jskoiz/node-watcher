@@ -61,8 +61,8 @@ export function useProfileEditor({
     setBio(source.profile?.bio || '');
     setCity(source.profile?.city || '');
     setCitySelection({
-      latitude: source.profile?.latitude,
-      longitude: source.profile?.longitude,
+      latitude: source.profile?.latitude ?? undefined,
+      longitude: source.profile?.longitude ?? undefined,
     });
     setIntensityLevel(normalizeIntensityLevelForForm(source.fitnessProfile?.intensityLevel));
     setIntentDating(Boolean(source.profile?.intentDating));

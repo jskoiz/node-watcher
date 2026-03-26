@@ -96,6 +96,7 @@
     },
     "moduleNameMapper": {
       "^expo-server-sdk$": "<rootDir>/test-support/expo-server-sdk.mock.ts",
+      "^zod$": "<rootDir>/../node_modules/zod",
       "^@contracts/(.*)$": "<rootDir>/../../shared/contracts/$1",
       "^@contracts$": "<rootDir>/../../shared/contracts/index"
     },

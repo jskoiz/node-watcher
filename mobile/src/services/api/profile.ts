@@ -1,9 +1,9 @@
 import client from '../../api/client';
 import type {
+  CurrentUser,
   UpdateFitnessPayload,
   UpdatePhotoPayload,
   UpdateProfilePayload,
-  User,
   UserPhoto,
   UserProfile,
   UploadPhotoPayload,
@@ -26,11 +26,11 @@ type UserProfileRecord = UserProfile & { userId: string };
 export const profileApi = {
   getProfile: async () =>
     withErrorLogging('profile', 'getProfile', () =>
-      client.get<User>('/profile'),
+      client.get<CurrentUser>('/profile'),
     ),
   updateFitness: async (payload: UpdateFitnessPayload) =>
     withErrorLogging('profile', 'updateFitness', () =>
-      client.patch<User>('/profile/fitness', {
+      client.patch<CurrentUser>('/profile/fitness', {
         ...payload,
         intensityLevel: normalizeIntensityLevelForApi(payload.intensityLevel),
       }),
@@ -64,12 +64,12 @@ export const profileApi = {
   },
   updatePhoto: async (photoId: string, payload: UpdatePhotoPayload) =>
     withErrorLogging('profile', 'updatePhoto', () =>
-      client.patch<UserPhoto | null>(`/profile/photos/${photoId}`, payload),
+      client.patch<UserPhoto>(`/profile/photos/${photoId}`, payload),
       { photoId },
     ),
   deletePhoto: async (photoId: string) =>
     withErrorLogging('profile', 'deletePhoto', () =>
-      client.delete<UserPhoto | null>(`/profile/photos/${photoId}`),
+      client.delete<UserPhoto>(`/profile/photos/${photoId}`),
       { photoId },
     ),
 };

@@ -3,3 +3,4 @@ export * from "./auth";
 export * from "./discovery";
 export * from "./matches";
 export * from "./events";
+export * from "./http";

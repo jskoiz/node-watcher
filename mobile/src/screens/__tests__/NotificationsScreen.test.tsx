@@ -80,7 +80,7 @@ describe('NotificationsScreen', () => {
   it('loads notifications and marks an item as read', async () => {
     render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
 
-    const title = await screen.findByText('New message');
+    const title = screen.getByText('New message');
     fireEvent.press(title);
 
     await waitFor(() => {
@@ -91,7 +91,7 @@ describe('NotificationsScreen', () => {
   it('navigates match notifications to chat', async () => {
     render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
 
-    const title = await screen.findByText('New message');
+    const title = screen.getByText('New message');
     fireEvent.press(title);
 
     await waitFor(() => {
@@ -121,7 +121,7 @@ describe('NotificationsScreen', () => {
 
     render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
 
-    const title = await screen.findByText('New message');
+    const title = screen.getByText('New message');
     fireEvent.press(title);
 
     await waitFor(() => {
@@ -151,7 +151,7 @@ describe('NotificationsScreen', () => {
 
     render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
 
-    const title = await screen.findByText('Event RSVP');
+    const title = screen.getByText('Event RSVP');
     fireEvent.press(title);
 
     await waitFor(() => {
@@ -178,7 +178,7 @@ describe('NotificationsScreen', () => {
 
     render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
 
-    const title = await screen.findByText('Someone likes you');
+    const title = screen.getByText('Someone likes you');
     fireEvent.press(title);
 
     await waitFor(() => {
@@ -207,7 +207,7 @@ describe('NotificationsScreen', () => {
 
     render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
 
-    fireEvent.press(await screen.findByText('Could not route'));
+    fireEvent.press(screen.getByText('Could not route'));
 
     await waitFor(() => {
       expect(screen.getByText('Like notification is missing navigation details.')).toBeTruthy();
