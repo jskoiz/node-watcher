@@ -18,33 +18,76 @@ export const FAILURE_CATEGORIES = {
   unknown: 'unknown',
 };
 
+export const HARNESS_COMMANDS = Object.freeze({
+  check: 'npm run check',
+  checkRoot: 'npm run check:root',
+  checkBackend: 'npm run check:backend',
+  checkMobile: 'npm run check:mobile',
+  checkSymphony: 'npm run check:symphony',
+  smoke: 'npm run smoke',
+});
+
 const executionStepCatalog = {
-  'npm run check': [
-    ['npm run check:root', FAILURE_CATEGORIES.docsDrift, 'Root harness checks'],
-    ['npm run check:backend', FAILURE_CATEGORIES.typecheck, 'Backend validation'],
-    ['npm run check:mobile', FAILURE_CATEGORIES.typecheck, 'Mobile validation'],
-    ['npm run check:symphony', FAILURE_CATEGORIES.typecheck, 'Symphony validation'],
+  [HARNESS_COMMANDS.check]: [
+    [HARNESS_COMMANDS.checkRoot, FAILURE_CATEGORIES.docsDrift, 'Root harness checks'],
+    [HARNESS_COMMANDS.checkBackend, FAILURE_CATEGORIES.typecheck, 'Backend validation'],
+    [HARNESS_COMMANDS.checkMobile, FAILURE_CATEGORIES.typecheck, 'Mobile validation'],
+    [HARNESS_COMMANDS.checkSymphony, FAILURE_CATEGORIES.typecheck, 'Symphony validation'],
   ],
-  'npm run check:root': [
+  [HARNESS_COMMANDS.checkRoot]: [
     ['npm run docs:check', FAILURE_CATEGORIES.docsDrift, 'Docs drift check'],
     ['npm run policy:check', FAILURE_CATEGORIES.policyViolation, 'Repo policy check'],
     ['npm run test:root', FAILURE_CATEGORIES.tests, 'Root harness tests'],
   ],
-  'npm run check:backend': [
+  [HARNESS_COMMANDS.checkBackend]: [
     ['node ./scripts/check-prisma-migration-safety.mjs', FAILURE_CATEGORIES.policyViolation, 'Prisma migration safety'],
     ['npm --prefix backend run typecheck', FAILURE_CATEGORIES.typecheck, 'Backend typecheck'],
     ['npm --prefix backend run check:boundaries', FAILURE_CATEGORIES.policyViolation, 'Backend policy check'],
     ['npm --prefix backend run test', FAILURE_CATEGORIES.tests, 'Backend tests'],
   ],
-  'npm run check:mobile': [
+  [HARNESS_COMMANDS.checkMobile]: [
     ['npm --prefix mobile run typecheck', FAILURE_CATEGORIES.typecheck, 'Mobile typecheck'],
     ['npm --prefix mobile run check:boundaries', FAILURE_CATEGORIES.policyViolation, 'Mobile policy check'],
     ['npm --prefix mobile run test', FAILURE_CATEGORIES.tests, 'Mobile tests'],
   ],
 };
 
+const smokeSensitivePatterns = [
+  /^backend\/prisma\//,
+  /^backend\/scripts\//,
+  /^backend\/src\/config\//,
+  /^backend\/src\/main\.ts$/,
+  /^docker-compose\.yml$/,
+  /^scripts\/smoke-e2e\.sh$/,
+];
+
+const harnessSensitivePatterns = [
+  /^package\.json$/,
+  /^backend\/package\.json$/,
+  /^mobile\/package\.json$/,
+  /^symphony\/package\.json$/,
+  /^scripts\/.+\.mjs$/,
+  /^\.github\/workflows\//,
+];
+
 export function normalizeList(items) {
   return [...new Set(items.map((value) => value.trim()).filter(Boolean))].toSorted();
+}
+
+export function dedupePreservingOrder(items) {
+  const seen = new Set();
+  const deduped = [];
+
+  for (const value of items.map((item) => item.trim()).filter(Boolean)) {
+    if (seen.has(value)) {
+      continue;
+    }
+
+    seen.add(value);
+    deduped.push(value);
+  }
+
+  return deduped;
 }
 
 export function ensureDir(absoluteDir) {
@@ -80,6 +123,57 @@ export function buildArtifactPaths(artifactsDir) {
     summary: path.join(absoluteDir, 'harness-summary.md'),
     historyEntry: path.join(absoluteDir, 'harness-history-entry.json'),
   };
+}
+
+export function includesMatch(files, patterns) {
+  return files.some((filePath) => patterns.some((pattern) => pattern.test(filePath)));
+}
+
+export function requiresSmokeValidation(changedFiles) {
+  return includesMatch(changedFiles, smokeSensitivePatterns);
+}
+
+export function hasHarnessSensitiveChanges(changedFiles) {
+  return includesMatch(changedFiles, harnessSensitivePatterns);
+}
+
+export function selectValidationCommands({
+  changedFiles,
+  hasDocs,
+  hasBackend,
+  hasMobile,
+  hasSymphony,
+}) {
+  if (changedFiles.length === 0) {
+    return [HARNESS_COMMANDS.checkRoot];
+  }
+
+  if (
+    hasHarnessSensitiveChanges(changedFiles) ||
+    [hasBackend, hasMobile, hasSymphony].filter(Boolean).length > 1
+  ) {
+    return [HARNESS_COMMANDS.check];
+  }
+
+  const commands = [];
+
+  if (hasDocs) {
+    commands.push(HARNESS_COMMANDS.checkRoot);
+  }
+  if (hasBackend) {
+    commands.push(HARNESS_COMMANDS.checkBackend);
+  }
+  if (hasMobile) {
+    commands.push(HARNESS_COMMANDS.checkMobile);
+  }
+  if (hasSymphony) {
+    commands.push(HARNESS_COMMANDS.checkSymphony);
+  }
+  if (!hasDocs && !hasBackend && !hasMobile && !hasSymphony) {
+    commands.push(HARNESS_COMMANDS.checkRoot);
+  }
+
+  return commands;
 }
 
 export function expandSelectedCommand(command) {

@@ -75,9 +75,9 @@ This Symphony build polls Linear directly for scheduling and also injects a `lin
 3. Reproduce first. Record the concrete failure signal before changing code.
 4. Prefer the harness workflow over ad hoc commands:
    - `npm run harness:doctor` when the environment looks uncertain
-   - `npm run check:changed` for diff-scoped validation
-   - `npm run pre-submit` before handoff
-   - `npm run check` and `npm run smoke` when integration breadth warrants them
+   - `npm run pre-submit` before handoff; it runs `docs:check`, `policy:check`, the TODO/FIXME/HACK guard, and then `npm run check:changed`
+   - `npm run check:changed` for diff-scoped validation; it chooses `check:root`, backend/mobile/symphony lanes, or `check` based on the diff
+   - `npm run check` for the full graph, then `npm run smoke` when bootstrap/runtime confidence is needed
 5. Visual mobile work should update Storybook in the same diff unless the issue explicitly justifies otherwise.
 6. Do not ship local workarounds, debug edits, or temporary proof changes. Revert any temporary instrumentation before commit/push.
 7. Keep docs in sync when commands, workflow expectations, or validation behavior change.

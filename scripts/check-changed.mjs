@@ -2,11 +2,15 @@ import { fileURLToPath } from 'node:url';
 import {
   buildArtifactPaths,
   expandSelectedCommand,
+  dedupePreservingOrder,
+  HARNESS_COMMANDS,
   normalizeList,
+  requiresSmokeValidation,
   renderHarnessSummary,
   repoRoot,
   runGit,
   runHarnessSteps,
+  selectValidationCommands,
   writeJsonFile,
   writeTextFile,
   FAILURE_CATEGORIES,
@@ -14,28 +18,6 @@ import {
 import { collectStorybookCoverageViolations } from './check-repo-policies.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
-
-const smokeSensitivePatterns = [
-  /^backend\/prisma\//,
-  /^backend\/scripts\//,
-  /^backend\/src\/config\//,
-  /^backend\/src\/main\.ts$/,
-  /^docker-compose\.yml$/,
-  /^scripts\/smoke-e2e\.sh$/,
-];
-
-const harnessSensitivePatterns = [
-  /^package\.json$/,
-  /^backend\/package\.json$/,
-  /^mobile\/package\.json$/,
-  /^symphony\/package\.json$/,
-  /^scripts\/.+\.mjs$/,
-  /^\.github\/workflows\//,
-];
-
-function includesMatch(files, patterns) {
-  return files.some((filePath) => patterns.some((pattern) => pattern.test(filePath)));
-}
 
 export function listStagedChangedFiles() {
   const staged = runGit(['diff', '--cached', '--name-only', '--diff-filter=ACMR']).split('\n');
@@ -56,51 +38,29 @@ export function listRangeChangedFiles(base, head) {
 
 export function buildValidationPlan(files) {
   const changedFiles = normalizeList(files);
-  const hasBackend = changedFiles.some((filePath) => filePath.startsWith('backend/'));
-  const hasMobile = changedFiles.some((filePath) => filePath.startsWith('mobile/'));
-  const hasSymphony = changedFiles.some((filePath) => filePath.startsWith('symphony/'));
-  const hasHarness = includesMatch(changedFiles, harnessSensitivePatterns);
-  const hasDocs = changedFiles.some((filePath) =>
-    filePath === 'AGENTS.md' ||
-    filePath.endsWith('/AGENTS.md') ||
-    filePath === 'code_review.md' ||
-    filePath.startsWith('docs/') ||
-    filePath.startsWith('.github/'),
-  );
-  const requiresSmoke = includesMatch(changedFiles, smokeSensitivePatterns);
+  const requiresSmoke = requiresSmokeValidation(changedFiles);
   const storybookViolations = collectStorybookCoverageViolations(changedFiles);
-
-  const commands = [];
-
-  if (changedFiles.length === 0) {
-    commands.push('npm run check:root');
-  } else if (hasHarness || [hasBackend, hasMobile, hasSymphony].filter(Boolean).length > 1) {
-    commands.push('npm run check');
-  } else {
-    if (hasDocs) {
-      commands.push('npm run check:root');
-    }
-    if (hasBackend) {
-      commands.push('npm run check:backend');
-    }
-    if (hasMobile) {
-      commands.push('npm run check:mobile');
-    }
-    if (hasSymphony) {
-      commands.push('npm run check:symphony');
-    }
-    if (!hasDocs && !hasBackend && !hasMobile && !hasSymphony) {
-      commands.push('npm run check:root');
-    }
-  }
+  const commands = selectValidationCommands({
+    changedFiles,
+    hasDocs: changedFiles.some((filePath) =>
+      filePath === 'AGENTS.md' ||
+      filePath.endsWith('/AGENTS.md') ||
+      filePath === 'code_review.md' ||
+      filePath.startsWith('docs/') ||
+      filePath.startsWith('.github/'),
+    ),
+    hasBackend: changedFiles.some((filePath) => filePath.startsWith('backend/')),
+    hasMobile: changedFiles.some((filePath) => filePath.startsWith('mobile/')),
+    hasSymphony: changedFiles.some((filePath) => filePath.startsWith('symphony/')),
+  });
 
   if (requiresSmoke) {
-    commands.push('npm run smoke');
+    commands.push(HARNESS_COMMANDS.smoke);
   }
 
   return {
     changedFiles,
-    commands: normalizeList(commands),
+    commands: dedupePreservingOrder(commands),
     requiresSmoke,
     storybookViolations,
   };

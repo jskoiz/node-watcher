@@ -5,6 +5,7 @@ This repo treats the harness as the source of truth for how work gets validated.
 ## Canonical Commands
 
 ```bash
+npm run check:root
 npm run harness:doctor
 npm run pre-submit
 npm run check:changed
@@ -27,12 +28,14 @@ npm run scaffold:backend-module -- --name moderation
 
 - `npm run harness:doctor`
   - quick local sanity: git state, Node version, dependency install presence, env files, Docker availability
+- `npm run check:root`
+  - root validation lane: `docs:check`, `policy:check`, then `test:root`
 - `npm run pre-submit`
-  - canonical local checklist: docs drift, repo policy, new marker guard (`TODO`/`FIXME`/`HACK`), then the same diff-driven validation lane used for PRs
+  - canonical local checklist: `docs:check`, `policy:check`, the new marker guard (`TODO`/`FIXME`/`HACK`), then the same diff-driven validation lane used for PRs
 - `npm run check:changed`
-  - chooses the smallest reasonable validation set from git diff, enforces Storybook co-updates for changed reusable mobile UI surfaces, and can emit machine-readable harness artifacts
+  - chooses the smallest reasonable validation set from git diff, promotes mixed or harness-sensitive changes to `check`, appends `smoke` for smoke-sensitive paths, enforces Storybook co-updates for changed reusable mobile UI surfaces, and can emit machine-readable harness artifacts
 - `npm run check`
-  - full root, backend, mobile, and Symphony validation
+  - full graph: `check:root`, `check:backend`, `check:mobile`, then `check:symphony`
 - `npm run smoke`
   - deterministic bootstrap plus seeded `ui-preview` runtime plus mobile launch prerequisites
 - `npm run repo:index`
@@ -61,6 +64,7 @@ npm run scaffold:backend-module -- --name moderation
 
 - Local PR readiness: run `npm run pre-submit`
 - PR lane: run `npm run check:changed`
+- Docs/policy-only edits: run `npm run check:root`
 - Protected branch or release prep: run `npm run check` and add `npm run smoke` when you need bootstrap/runtime confidence
 - Visual mobile changes: link the relevant Storybook story or attach screenshots in the PR
 - Release-oriented changes: keep build provenance aligned with [`APP_STORE_RELEASE.md`](APP_STORE_RELEASE.md)

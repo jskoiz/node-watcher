@@ -7,25 +7,44 @@ const scriptDir = path.dirname(scriptPath);
 
 export const repoRoot = path.resolve(scriptDir, '..');
 
-export const GOVERNED_MARKDOWN_FILES = [
-  'AGENTS.md',
-  'backend/AGENTS.md',
-  'mobile/AGENTS.md',
-  'backend/README.md',
-  'WORKFLOW.md',
-];
+export const DOCUMENTATION_DISCOVERY_ROOTS = Object.freeze(['docs', '.github']);
 
-export const ACTIVE_DOCS = [
-  ...GOVERNED_MARKDOWN_FILES,
-  'docs/HARNESS.md',
-  'docs/REPO_MAP.md',
-  'docs/DEV_LOOP.md',
-  'docs/ARCHITECTURE.md',
-  'docs/STORYBOOK_WORKFLOW.md',
-  'docs/FUNCTIONAL_MATRIX.md',
-  'docs/APP_STORE_RELEASE.md',
-  'docs/DEPLOY_LIGHTSAIL.md',
-];
+export const GOVERNED_DOC_GROUPS = Object.freeze({
+  workflow: Object.freeze([
+    'AGENTS.md',
+    'backend/AGENTS.md',
+    'mobile/AGENTS.md',
+    'backend/README.md',
+    'WORKFLOW.md',
+  ]),
+  activeGuides: Object.freeze([
+    'docs/HARNESS.md',
+    'docs/REPO_MAP.md',
+    'docs/DEV_LOOP.md',
+    'docs/ARCHITECTURE.md',
+    'docs/STORYBOOK_WORKFLOW.md',
+    'docs/FUNCTIONAL_MATRIX.md',
+    'docs/APP_STORE_RELEASE.md',
+    'docs/DEPLOY_LIGHTSAIL.md',
+  ]),
+});
+
+export const GOVERNED_MARKDOWN_FILES = GOVERNED_DOC_GROUPS.workflow;
+
+export const ACTIVE_DOCS = Object.freeze([
+  ...GOVERNED_DOC_GROUPS.workflow,
+  ...GOVERNED_DOC_GROUPS.activeGuides,
+]);
+
+const GOVERNED_MARKDOWN_FILE_SET = new Set(GOVERNED_MARKDOWN_FILES);
+const ACTIVE_DOC_SET = new Set(ACTIVE_DOCS);
+
+export const DOC_POLICY = Object.freeze({
+  discoveryRoots: DOCUMENTATION_DISCOVERY_ROOTS,
+  governedDocGroups: GOVERNED_DOC_GROUPS,
+  governedMarkdownFiles: GOVERNED_MARKDOWN_FILES,
+  activeDocs: ACTIVE_DOCS,
+});
 
 function walkMarkdownFiles(rootDir, relativeDir) {
   const absoluteDir = path.join(rootDir, relativeDir);
@@ -51,11 +70,23 @@ function walkMarkdownFiles(rootDir, relativeDir) {
   return results;
 }
 
-export function listMarkdownFiles(rootDir = repoRoot) {
-  const discovered = ['docs', '.github'].flatMap((dir) => walkMarkdownFiles(rootDir, dir));
-  const portable = [...discovered, ...GOVERNED_MARKDOWN_FILES].filter((filePath) =>
+export function isGovernedMarkdownFile(filePath) {
+  return GOVERNED_MARKDOWN_FILE_SET.has(filePath);
+}
+
+export function isActiveDocFile(filePath) {
+  return ACTIVE_DOC_SET.has(filePath);
+}
+
+export function listGovernedMarkdownFiles(rootDir = repoRoot) {
+  return GOVERNED_MARKDOWN_FILES.filter((filePath) =>
     fs.existsSync(path.join(rootDir, filePath)),
   );
+}
+
+export function listMarkdownFiles(rootDir = repoRoot) {
+  const discovered = DOCUMENTATION_DISCOVERY_ROOTS.flatMap((dir) => walkMarkdownFiles(rootDir, dir));
+  const portable = [...discovered, ...listGovernedMarkdownFiles(rootDir)];
   return [...new Set(portable)].toSorted();
 }
 

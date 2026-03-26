@@ -51,14 +51,22 @@ This verifies:
 
 ```bash
 # repo root
+npm run pre-submit
 npm run check:changed
 npm run check
 
 # or package-local when narrowing failures
+npm run check:root
 npm run check:backend
 npm run check:mobile
 npm run docs:check
 ```
+
+`npm run pre-submit` is the local handoff gate: it runs `docs:check`, `policy:check`, the TODO/FIXME/HACK guard, and then the diff-driven lane from `npm run check:changed`.
+
+`npm run check:changed` is the narrow PR-scoped lane. It picks `check:root` for docs-only changes, backend/mobile/symphony lanes for single-stack changes, promotes mixed or harness-sensitive edits to `npm run check`, and appends `npm run smoke` when the diff touches smoke-sensitive paths.
+
+`npm run check:root` is the root-only lane for docs, policy, and root test coverage. Use it when you are narrowing failures outside backend/mobile runtime changes.
 
 The current shipped mobile surface is on `main`. New work should generally branch from clean `main` and stay narrow rather than continuing to accumulate broad cleanup in one branch.
 

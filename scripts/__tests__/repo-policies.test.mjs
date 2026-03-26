@@ -5,7 +5,7 @@ import {
   collectCoverageAudit,
   collectStorybookCoverageViolations,
 } from '../check-repo-policies.mjs';
-import { ACTIVE_DOCS } from '../doc-policy.mjs';
+import { ACTIVE_DOCS, isActiveDocFile } from '../doc-policy.mjs';
 
 test('flags raw env access outside config layers', () => {
   const violations = collectRepoPolicyViolations({
@@ -76,6 +76,7 @@ test('allows workflow-only harness entrypoints', () => {
 
 test('treats WORKFLOW.md as a governed doc for script reachability', () => {
   assert.ok(ACTIVE_DOCS.includes('WORKFLOW.md'));
+  assert.equal(isActiveDocFile('WORKFLOW.md'), true);
 
   const violations = collectRepoPolicyViolations({
     files: {

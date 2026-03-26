@@ -1,14 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildRepoIndex } from './generate-repo-index.mjs';
-import { ACTIVE_DOCS } from './doc-policy.mjs';
 import {
   classifyRepoLayer,
   describeLayer,
   getAllowedLayerImports,
   resolveLocalImportTarget,
 } from './repo-layers.mjs';
+import { collectRootPolicyViolations } from './root-policy.mjs';
+import { ACTIVE_DOCS } from './doc-policy.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptPath);
@@ -27,13 +27,6 @@ const allowedEnvFiles = new Set([
   'backend/src/config/app.config.spec.ts',
   'mobile/src/config/env.ts',
 ]);
-
-const bannedPreviewPatterns = [
-  /open the preview (tab|screen)/i,
-  /navigate to (the )?preview/i,
-  /preview navigator/i,
-  /preview stack/i,
-];
 
 const storybookRequiredPatterns = [
   /^mobile\/src\/components\/.+\.tsx$/,
@@ -161,10 +154,7 @@ export function loadRepoPolicyContext(rootDir = repoRoot) {
     ...walkFiles(rootDir, '.github'),
     ...walkFiles(rootDir, 'scripts'),
     ...walkFiles(rootDir, 'artifacts'),
-    'AGENTS.md',
-    'backend/AGENTS.md',
-    'mobile/AGENTS.md',
-    'backend/README.md',
+    ...ACTIVE_DOCS,
   ].filter((filePath) => shouldInspectFile(filePath) && fs.existsSync(path.join(rootDir, filePath)));
 
   const files = {};
@@ -265,71 +255,6 @@ function collectMobileViolations(files) {
   return violations;
 }
 
-function collectRootViolations(files, rootPackage) {
-  const violations = [];
-  const scriptFiles = Object.keys(files)
-    .filter((filePath) => filePath.startsWith('scripts/') && !filePath.startsWith('scripts/__tests__/'))
-    .toSorted();
-  const workflowText = Object.entries(files)
-    .filter(([filePath]) => filePath.startsWith('.github/workflows/'))
-    .map(([, content]) => content);
-  const externallyReachableText = [
-    ...ACTIVE_DOCS.map((filePath) => files[filePath] ?? ''),
-    ...Object.values(rootPackage.scripts ?? {}),
-    ...workflowText,
-  ].join('\n');
-
-  const referenceTokensForScript = (filePath) => [
-    filePath,
-    `./${filePath}`,
-    `./${path.basename(filePath)}`,
-  ];
-  const textReferencesScript = (content, filePath) =>
-    referenceTokensForScript(filePath).some((token) => content.includes(token));
-  const reachableScripts = new Set(
-    scriptFiles.filter((filePath) => textReferencesScript(externallyReachableText, filePath)),
-  );
-
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const filePath of scriptFiles) {
-      if (reachableScripts.has(filePath)) {
-        continue;
-      }
-
-      const isReferencedByReachableScript = [...reachableScripts].some((reachableScriptPath) =>
-        textReferencesScript(files[reachableScriptPath] ?? '', filePath),
-      );
-      if (isReferencedByReachableScript) {
-        reachableScripts.add(filePath);
-        changed = true;
-      }
-    }
-  }
-
-  for (const filePath of scriptFiles) {
-    if (!reachableScripts.has(filePath)) {
-      violations.push(`${filePath}: top-level script is not reachable through a package script, workflow, or active docs`);
-    }
-  }
-
-  for (const filePath of ACTIVE_DOCS) {
-    const content = files[filePath];
-    if (!content) {
-      continue;
-    }
-
-    for (const pattern of bannedPreviewPatterns) {
-      if (pattern.test(content)) {
-        violations.push(`${filePath}: active doc references legacy preview-route workflow`);
-      }
-    }
-  }
-
-  return violations;
-}
-
 function resolveImportTarget(filePath, importPath, files) {
   const baseTarget = resolveLocalImportTarget(filePath, importPath);
   if (!baseTarget) {
@@ -401,17 +326,6 @@ function collectLayerViolations(files, scope) {
   return violations;
 }
 
-function collectRepoIndexViolations(rootDir) {
-  const repoIndexPath = path.join(rootDir, 'artifacts', 'repo-index.json');
-  const next = `${JSON.stringify(buildRepoIndex(rootDir), null, 2)}\n`;
-  const current = fs.existsSync(repoIndexPath) ? fs.readFileSync(repoIndexPath, 'utf8') : null;
-  if (current !== next) {
-    return [`${path.relative(rootDir, repoIndexPath)}: generated repo index is out of sync; run "npm run repo:index"`];
-  }
-
-  return [];
-}
-
 function isStoryCovered(filePath, storyFiles) {
   const aliases = storyCoverageAliases[filePath] ?? [];
   const baseName = path.basename(filePath, path.extname(filePath));
@@ -453,10 +367,14 @@ export function collectRepoPolicyViolations({
   }
 
   if (scope === 'all') {
-    violations.push(...collectRootViolations(files, rootPackage));
-    if (checkRepoIndexSync) {
-      violations.push(...collectRepoIndexViolations(rootDir));
-    }
+    violations.push(
+      ...collectRootPolicyViolations({
+        files,
+        rootPackage,
+        rootDir,
+        checkRepoIndexSync,
+      }),
+    );
   }
 
   return violations;

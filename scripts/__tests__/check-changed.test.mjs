@@ -8,9 +8,22 @@ test('docs-only changes select root checks', () => {
   assert.equal(plan.requiresSmoke, false);
 });
 
+test('empty change sets still select root checks', () => {
+  const plan = buildValidationPlan([]);
+  assert.deepEqual(plan.commands, ['npm run check:root']);
+});
+
 test('backend-only changes select backend checks', () => {
   const plan = buildValidationPlan(['backend/src/profile/profile.service.ts']);
   assert.deepEqual(plan.commands, ['npm run check:backend']);
+});
+
+test('docs-plus-backend changes keep root checks ahead of backend checks', () => {
+  const plan = buildValidationPlan([
+    'docs/HARNESS.md',
+    'backend/src/profile/profile.service.ts',
+  ]);
+  assert.deepEqual(plan.commands, ['npm run check:root', 'npm run check:backend']);
 });
 
 test('cross-stack changes select the full check lane', () => {
@@ -18,6 +31,11 @@ test('cross-stack changes select the full check lane', () => {
     'backend/src/profile/profile.service.ts',
     'mobile/src/features/profile/hooks/useProfile.ts',
   ]);
+  assert.deepEqual(plan.commands, ['npm run check']);
+});
+
+test('harness-sensitive root script changes select the full check lane', () => {
+  const plan = buildValidationPlan(['scripts/harness-shared.mjs']);
   assert.deepEqual(plan.commands, ['npm run check']);
 });
 
