@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { Button } from '../../../design/primitives';
 import { summaryStyles, styles } from '../onboarding.styles';
 import { ENVIRONMENTS, FREQUENCY_OPTIONS, SCHEDULE_OPTIONS, formatActivitySummary, getIntentLabel } from './constants';
+import { OnboardingStepFooter, OnboardingStepIntro } from './OnboardingStepLayout';
 import type { SummaryStepProps } from './types';
 
 function SummaryRow({
@@ -35,12 +36,7 @@ export function SummaryStep({ data, insets, onNext, theme }: SummaryStepProps) {
 
   return (
     <ScrollView contentContainerStyle={[styles.stepContent, { paddingBottom: 120 + insets.bottom }]} showsVerticalScrollIndicator={false}>
-      <Text style={[styles.stepHeadline, { color: theme.textPrimary }]}>
-        Your profile
-      </Text>
-      <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-        Here's a summary of what you told us.
-      </Text>
+      <OnboardingStepIntro title="Your profile" subtitle="Here's a summary of what you told us." theme={theme} />
 
       <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <SummaryRow label="Intent" value={getIntentLabel(data.intent)} textMuted={theme.textMuted} textPrimary={theme.textPrimary} />
@@ -68,9 +64,9 @@ export function SummaryStep({ data, insets, onNext, theme }: SummaryStepProps) {
           textPrimary={theme.textPrimary}
         />
       </View>
-      <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, 32) }]}>
+      <OnboardingStepFooter insetsBottom={insets.bottom} minimumBottomPadding={32}>
         <Button label="Looks good" onPress={onNext} />
-      </View>
+      </OnboardingStepFooter>
     </ScrollView>
   );
 }

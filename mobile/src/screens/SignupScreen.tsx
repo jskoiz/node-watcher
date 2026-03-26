@@ -1,36 +1,170 @@
-import React, { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useMemo } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import {
   Controller,
   useForm,
+  useWatch,
   type Control,
   type FieldErrors,
 } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/authStore';
 import { normalizeApiError } from '../api/errors';
+import { ControlledInputField } from '../components/form/ControlledInputField';
 import { DateField } from '../components/form/DateField';
 import { SheetSelectField } from '../components/form/SheetSelectField';
-import AppBackButton from '../components/ui/AppBackButton';
-import AppBackdrop from '../components/ui/AppBackdrop';
-import { Button, GlassView, Input } from '../design/primitives';
+import { useStepFlow } from '../components/form/useStepFlow';
+import { Button, GlassView } from '../design/primitives';
 import { GENDER_OPTIONS } from '../constants/signup';
+import { AuthFooterLinkRow, AuthScreenShell } from '../features/auth/components/AuthScreenShell';
+import { SignupStepHeader } from '../features/auth/components/SignupStepHeader';
 import { useTheme } from '../theme/useTheme';
-import { radii, spacing, typography } from '../theme/tokens';
+import { radii, spacing } from '../theme/tokens';
 import {
   signupSchema,
   type SignupFormValues,
 } from '../features/auth/schema';
 import type { RootStackScreenProps } from '../core/navigation/types';
 
-const STEPS = 3;
-const STEP_LABELS = ['Account', 'Profile', 'Done'];
-const STEP_TITLES = ["What's your name?", 'Create your login', 'Almost done'];
-const STEP_SUBTITLES = [
-  "We'll use this on your profile.",
-  "You'll use these to sign in.",
-  'Helps us personalize your experience.',
+type SignupStepViewContext = {
+  control: Control<SignupFormValues>;
+  errors: FieldErrors<SignupFormValues>;
+  isSubmitting: boolean;
+  onSubmitStep: () => void;
+};
+
+type SignupStepDefinition = {
+  key: string;
+  title: string;
+  subtitle: string;
+  submitLabel: string;
+  formLabel: string;
+  fields: Array<keyof SignupFormValues>;
+  canProceed: (values: SignupFormValues) => boolean;
+  renderFields: (context: SignupStepViewContext) => React.ReactNode;
+};
+
+const SIGNUP_STEPS: SignupStepDefinition[] = [
+  {
+    key: 'account',
+    title: "What's your name?",
+    subtitle: "We'll use this on your profile.",
+    submitLabel: 'Continue',
+    formLabel: 'Account',
+    fields: ['firstName'],
+    canProceed: (values) => values.firstName.trim().length > 0,
+    renderFields: ({ control, isSubmitting, onSubmitStep }) => (
+      <ControlledInputField
+        control={control}
+        name="firstName"
+        label="First name"
+        placeholder="Alex"
+        disabled={isSubmitting}
+        autoFocus
+        autoCapitalize="words"
+        autoComplete="name-given"
+        textContentType="givenName"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => {
+          void onSubmitStep();
+        }}
+      />
+    ),
+  },
+  {
+    key: 'profile',
+    title: 'Create your login',
+    subtitle: "You'll use these to sign in.",
+    submitLabel: 'Continue',
+    formLabel: 'Profile',
+    fields: ['email', 'password'],
+    canProceed: (values) => values.email.trim().length > 0 && values.password.trim().length > 0,
+    renderFields: ({ control, isSubmitting, onSubmitStep }) => (
+      <>
+        <ControlledInputField
+          control={control}
+          name="email"
+          label="Email"
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          disabled={isSubmitting}
+          autoFocus
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => {
+            void onSubmitStep();
+          }}
+        />
+        <ControlledInputField
+          control={control}
+          name="password"
+          label="Password"
+          placeholder="At least 8 characters"
+          secureTextEntry
+          disabled={isSubmitting}
+          autoCapitalize="none"
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="done"
+          submitBehavior="submit"
+          onSubmitEditing={() => {
+            void onSubmitStep();
+          }}
+        />
+      </>
+    ),
+  },
+  {
+    key: 'done',
+    title: 'Almost done',
+    subtitle: 'Helps us personalize your experience.',
+    submitLabel: 'Create my account',
+    formLabel: 'Done',
+    fields: ['birthdate', 'gender'],
+    canProceed: (values) => values.birthdate.length > 0 && values.gender.trim().length > 0,
+    renderFields: ({ control, errors, isSubmitting }) => (
+      <>
+        <Controller
+          control={control}
+          name="birthdate"
+          render={({ field: { onChange, value } }) => (
+            <DateField
+              label="Birthday"
+              placeholder="Choose your birthdate"
+              value={value}
+              onChange={onChange}
+              error={errors.birthdate?.message}
+              disabled={isSubmitting}
+              maximumDate={new Date()}
+              sheetTitle="Choose your birthdate"
+              sheetSubtitle="You must be 18 or older."
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="gender"
+          render={({ field: { onChange, value } }) => (
+            <SheetSelectField
+              label="I identify as"
+              placeholder="Choose a gender"
+              options={[...GENDER_OPTIONS]}
+              value={value}
+              onSelect={onChange}
+              disabled={isSubmitting}
+              error={errors.gender?.message}
+              sheetTitle="Choose a gender"
+              sheetSubtitle=""
+            />
+          )}
+        />
+      </>
+    ),
+  },
 ];
 
 export type SignupScreenViewProps = {
@@ -55,224 +189,64 @@ export function SignupScreenView({
   step,
 }: SignupScreenViewProps) {
   const theme = useTheme();
-  const birthdateError = errors.birthdate?.message;
+  const currentStep = SIGNUP_STEPS[step];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <AppBackdrop />
-
-          <AppBackButton
-            onPress={onBack}
-            disabled={isSubmitting}
+    <AuthScreenShell
+      leading={(
+        <SignupStepHeader
+          currentStep={step}
+          disabled={isSubmitting}
+          onBack={onBack}
+          stepLabels={SIGNUP_STEPS.map((signupStep) => signupStep.formLabel)}
+          subtitle={currentStep.subtitle}
+          title={currentStep.title}
+          totalSteps={SIGNUP_STEPS.length}
+        />
+      )}
+      card={(
+        <GlassView tier="frosted" borderRadius={radii.xxl} specularHighlight style={styles.formCard}>
+          <Text style={[styles.formKicker, { color: theme.textMuted }]}>{currentStep.formLabel.toUpperCase()}</Text>
+          {currentStep.renderFields({
+            control,
+            errors,
+            isSubmitting,
+            onSubmitStep,
+          })}
+          <Button
+            label={currentStep.submitLabel}
+            onPress={() => {
+              void onSubmitStep();
+            }}
+            loading={isSubmitting}
+            disabled={!canProceed || isSubmitting}
+            style={styles.ctaButton}
           />
-
-          <GlassView tier="light" tint={theme.accentSubtle} borderRadius={999} style={styles.brandStrip}>
-            <Text style={[styles.brandStripText, { color: theme.accent }]}>CREATE ACCOUNT</Text>
-          </GlassView>
-
-          <View style={styles.progressRow}>
-            {Array.from({ length: STEPS }).map((_, i) => (
-              <View key={i} style={styles.progressItem}>
-                <View
-                  style={[
-                    styles.dot,
-                    {
-                      backgroundColor: i < step ? theme.primary : i === step ? theme.primary : theme.border,
-                      width: i === step ? 28 : 8,
-                      opacity: i < step ? 0.5 : 1,
-                    },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.dotLabel,
-                    {
-                      color: i === step ? theme.primary : theme.textMuted,
-                      fontWeight: i === step ? '700' : '500',
-                    },
-                  ]}
-                >
-                  {STEP_LABELS[i]}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.stepHeader}>
-            <Text style={[styles.stepNum, { color: theme.accent }]}>
-              Step {step + 1} of {STEPS}
-            </Text>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>{STEP_TITLES[step]}</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{STEP_SUBTITLES[step]}</Text>
-          </View>
-
-          <GlassView tier="frosted" borderRadius={radii.xxl} specularHighlight style={styles.formCard}>
-            <Text style={[styles.formKicker, { color: theme.textMuted }]}>{STEP_LABELS[step].toUpperCase()}</Text>
-            {step === 0 && (
-              <Controller
-                control={control}
-                name="firstName"
-                render={({ field: { onBlur, onChange, value } }) => (
-                  <Input
-                    label="First name"
-                    placeholder="Alex"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    editable={!isSubmitting}
-                    error={errors.firstName?.message}
-                    autoFocus
-                    autoCapitalize="words"
-                    autoComplete="given-name"
-                    textContentType="givenName"
-                    returnKeyType="next"
-                    submitBehavior="submit"
-                    onSubmitEditing={() => {
-                      void onSubmitStep();
-                    }}
-                  />
-                )}
-              />
-            )}
-            {step === 1 && (
-              <>
-                <Controller
-                  control={control}
-                  name="email"
-                  render={({ field: { onBlur, onChange, value } }) => (
-                    <Input
-                      label="Email"
-                      placeholder="you@example.com"
-                      value={value}
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      autoCapitalize="none"
-                      autoComplete="email"
-                      keyboardType="email-address"
-                      textContentType="emailAddress"
-                      editable={!isSubmitting}
-                      error={errors.email?.message}
-                      autoFocus
-                      returnKeyType="next"
-                      submitBehavior="submit"
-                      onSubmitEditing={() => {
-                        void onSubmitStep();
-                      }}
-                    />
-                  )}
-                />
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onBlur, onChange, value } }) => (
-                    <Input
-                      label="Password"
-                      placeholder="At least 8 characters"
-                      value={value}
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      secureTextEntry
-                      editable={!isSubmitting}
-                      error={errors.password?.message}
-                      autoCapitalize="none"
-                      autoComplete="new-password"
-                      textContentType="newPassword"
-                      returnKeyType="done"
-                      submitBehavior="submit"
-                      onSubmitEditing={() => {
-                        void onSubmitStep();
-                      }}
-                    />
-                  )}
-                />
-              </>
-            )}
-            {step === 2 && (
-              <>
-                <Controller
-                  control={control}
-                  name="birthdate"
-                  render={({ field: { onChange, value } }) => (
-                    <DateField
-                      label="Birthday"
-                      placeholder="Choose your birthdate"
-                      value={value}
-                      onChange={onChange}
-                      error={birthdateError}
-                      disabled={isSubmitting}
-                      maximumDate={new Date()}
-                      sheetTitle="Choose your birthdate"
-                      sheetSubtitle="You must be 18 or older."
-                    />
-                  )}
-                />
-                <Controller
-                  control={control}
-                  name="gender"
-                  render={({ field: { onChange, value } }) => (
-                    <SheetSelectField
-                      label="I identify as"
-                      placeholder="Choose a gender"
-                      options={[...GENDER_OPTIONS]}
-                      value={value}
-                      onSelect={onChange}
-                      disabled={isSubmitting}
-                      error={errors.gender?.message}
-                      sheetTitle="Choose a gender"
-                      sheetSubtitle=""
-                    />
-                  )}
-                />
-              </>
-            )}
-
-            <Button
-              label={step < STEPS - 1 ? 'Continue' : 'Create my account'}
-              onPress={() => {
-                void onSubmitStep();
-              }}
-              loading={isSubmitting}
-              disabled={!canProceed || isSubmitting}
-              style={styles.ctaButton}
-            />
-          </GlassView>
-
-          {step === 0 && (
-            <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: theme.textMuted }]}>Already have an account? </Text>
-              <Pressable
-                onPress={onNavigateLogin}
-                accessibilityRole="link"
-                accessibilityLabel="Sign in"
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                style={{ minHeight: 44, justifyContent: 'center' }}
-              >
-                <Text style={[styles.footerLink, { color: theme.accent }]}>Sign in</Text>
-              </Pressable>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </GlassView>
+      )}
+      footer={step === 0 ? (
+        <AuthFooterLinkRow
+          prompt="Already have an account? "
+          linkLabel="Sign in"
+          onPress={onNavigateLogin}
+          accessibilityLabel="Sign in"
+          style={styles.footer}
+        />
+      ) : undefined}
+      contentContainerStyle={styles.content}
+    />
   );
 }
 
 export default function SignupScreen({
   navigation,
 }: RootStackScreenProps<'Signup'>) {
-  const [step, setStep] = useState(0);
   const signup = useAuthStore((state) => state.signup);
+  const { goBack, goNext, isLastStep, step } = useStepFlow({ totalSteps: SIGNUP_STEPS.length });
   const {
     control,
     handleSubmit,
     trigger,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<SignupFormValues>({
     defaultValues: {
@@ -283,49 +257,52 @@ export default function SignupScreen({
       password: '',
     },
     resolver: zodResolver(signupSchema),
+    shouldUnregister: false,
   });
-  const firstName = watch('firstName');
-  const email = watch('email');
-  const password = watch('password');
-  const birthdate = watch('birthdate');
-  const gender = watch('gender');
-
-  const fieldsByStep: Array<Array<keyof SignupFormValues>> = [
-    ['firstName'],
-    ['email', 'password'],
-    ['birthdate', 'gender'],
-  ];
+  const currentStep = SIGNUP_STEPS[step];
+  const watchedFields = useWatch({ control, name: currentStep.fields });
 
   const handleNext = async () => {
-    const isValid = await trigger(fieldsByStep[step], { shouldFocus: true });
+    const isValid = await trigger(currentStep.fields, { shouldFocus: true });
     if (!isValid) return;
-    if (step < STEPS - 1) {
-      setStep((current) => current + 1);
+    if (!isLastStep) {
+      goNext();
     } else {
-      await handleSubmit(async (values) => {
-        try {
-          await signup({
-            email: values.email.trim().toLowerCase(),
-            password: values.password,
-            firstName: values.firstName.trim(),
-            birthdate: values.birthdate,
-            gender: values.gender,
-          });
-        } catch (error) {
-          Alert.alert("Couldn't create account", normalizeApiError(error).message);
-        }
-      })();
+      await handleSubmit(
+        async (values) => {
+          try {
+            await signup({
+              email: values.email.trim().toLowerCase(),
+              password: values.password,
+              firstName: values.firstName.trim(),
+              birthdate: values.birthdate,
+              gender: values.gender,
+            });
+          } catch (error) {
+            Alert.alert("Couldn't create account", normalizeApiError(error).message);
+          }
+        },
+        () => undefined,
+      )();
     }
   };
 
   const canProceed = useMemo(() => {
-    if (step === 0) return !!firstName.trim();
-    if (step === 1) return !!email.trim() && !!password.trim();
-    if (step === 2) {
-      return !!birthdate && !!gender.trim();
-    }
-    return false;
-  }, [step, firstName, email, password, birthdate, gender]);
+    // Build a partial values object from the watched fields for the current step
+    const stepValues = Object.fromEntries(
+      currentStep.fields.map((field, i) => [field, (watchedFields[i] as string) ?? '']),
+    );
+    // Fill in defaults for fields not in the current step
+    const fullValues: SignupFormValues = {
+      birthdate: '',
+      email: '',
+      firstName: '',
+      gender: '',
+      password: '',
+      ...stepValues,
+    };
+    return currentStep.canProceed(fullValues);
+  }, [currentStep, watchedFields]);
 
   return (
     <SignupScreenView
@@ -333,7 +310,7 @@ export default function SignupScreen({
       control={control}
       errors={errors}
       isSubmitting={isSubmitting}
-      onBack={() => (step > 0 ? setStep(step - 1) : navigation.goBack())}
+      onBack={() => (step > 0 ? goBack() : navigation.goBack())}
       onNavigateLogin={() => navigation.goBack()}
       onSubmitStep={handleNext}
       step={step}
@@ -342,64 +319,9 @@ export default function SignupScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.xxl,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxxl,
-  },
-  brandStrip: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    marginTop: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  brandStripText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.8,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.lg,
-    marginBottom: spacing.xxl,
-  },
-  progressItem: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-  },
-  dotLabel: {
-    fontSize: 10,
-    letterSpacing: 0.3,
-  },
-  stepHeader: {
-    marginBottom: spacing.xxl,
-  },
-  stepNum: {
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.8,
-    marginBottom: spacing.sm,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -1,
-    marginBottom: spacing.sm,
-    lineHeight: 34,
-  },
-  subtitle: {
-    fontSize: typography.body,
-    lineHeight: 24,
-    maxWidth: 300,
   },
   formCard: {
     padding: spacing.xxl,
@@ -414,46 +336,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     width: '100%',
   },
-  selectGroupLabel: {
-    marginBottom: spacing.sm,
-    marginLeft: 2,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  birthdateRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  birthdateMonthField: {
-    flex: 1.35,
-    marginBottom: 0,
-  },
-  birthdateField: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  birthdateTrigger: {
-    minHeight: 56,
-  },
-  inlineErrorText: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.lg,
-    marginLeft: 2,
-    fontSize: typography.caption,
-    fontWeight: '600',
-  },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     marginTop: spacing.xxxl,
-  },
-  footerText: {
-    fontSize: typography.body,
-  },
-  footerLink: {
-    fontSize: typography.body,
-    fontWeight: '700',
   },
 });

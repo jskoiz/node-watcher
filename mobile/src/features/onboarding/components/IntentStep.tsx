@@ -1,9 +1,9 @@
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Button } from '../../../design/primitives';
 import AppIcon from '../../../components/ui/AppIcon';
-import { spacing } from '../../../theme/tokens';
 import { styles } from '../onboarding.styles';
+import { OnboardingFullscreenStep, OnboardingStepIntro } from './OnboardingStepLayout';
 import type { OnboardingStepProps } from './types';
 
 const INTENT_OPTIONS = [
@@ -14,16 +14,12 @@ const INTENT_OPTIONS = [
 
 export function IntentStep({ data, goNext, insets, setValue, theme }: OnboardingStepProps) {
   return (
-    <View style={[styles.fullScreenStep, { justifyContent: 'flex-start' }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-        <View>
-          <Text style={[styles.stepHeadline, { color: theme.textPrimary }]}>
-            What brings you to BRDG?
-          </Text>
-          <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-            This helps us personalize your feed.
-          </Text>
-        </View>
+    <OnboardingFullscreenStep
+      footer={<Button label="Continue" onPress={goNext} />}
+      insetsBottom={insets.bottom}
+      scrollable
+    >
+      <OnboardingStepIntro title="What brings you to BRDG?" subtitle="This helps us personalize your feed." theme={theme} />
         <View style={styles.intentCards}>
           {INTENT_OPTIONS.map((opt) => {
             const selected = data.intent === opt.key;
@@ -55,10 +51,6 @@ export function IntentStep({ data, goNext, insets, setValue, theme }: Onboarding
             );
           })}
         </View>
-      </ScrollView>
-      <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-        <Button label="Continue" onPress={goNext} />
-      </View>
-    </View>
+    </OnboardingFullscreenStep>
   );
 }

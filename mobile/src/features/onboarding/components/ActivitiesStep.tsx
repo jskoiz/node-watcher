@@ -2,22 +2,18 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Button } from '../../../design/primitives';
 import AppIcon from '../../../components/ui/AppIcon';
-import { spacing } from '../../../theme/tokens';
 import { styles } from '../onboarding.styles';
 import { ACTIVITIES } from './constants';
+import { OnboardingFullscreenStep, OnboardingStepIntro } from './OnboardingStepLayout';
 import type { OnboardingStepProps } from './types';
 
 export function ActivitiesStep({ data, goNext, insets, setValue, theme, toggleArray }: OnboardingStepProps) {
   return (
-    <View style={[styles.fullScreenStep, { justifyContent: 'flex-start' }]}>
-      <View>
-        <Text style={[styles.stepHeadline, { color: theme.textPrimary }]}>
-          How do you like to move?
-        </Text>
-        <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-          Pick all that apply.
-        </Text>
-      </View>
+    <OnboardingFullscreenStep
+      footer={<Button label="Continue" onPress={goNext} disabled={data.activities.length === 0} />}
+      insetsBottom={insets.bottom}
+    >
+      <OnboardingStepIntro title="How do you like to move?" subtitle="Pick all that apply." theme={theme} />
       <View style={styles.activityGrid}>
         {ACTIVITIES.map((act) => {
           const selected = data.activities.includes(act.key);
@@ -47,9 +43,6 @@ export function ActivitiesStep({ data, goNext, insets, setValue, theme, toggleAr
           );
         })}
       </View>
-      <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-        <Button label="Continue" onPress={goNext} disabled={data.activities.length === 0} />
-      </View>
-    </View>
+    </OnboardingFullscreenStep>
   );
 }

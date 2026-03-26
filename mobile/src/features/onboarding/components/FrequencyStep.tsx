@@ -1,22 +1,18 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Button } from '../../../design/primitives';
-import { spacing } from '../../../theme/tokens';
 import { styles } from '../onboarding.styles';
 import { FREQUENCY_OPTIONS } from './constants';
+import { OnboardingFullscreenStep, OnboardingStepIntro } from './OnboardingStepLayout';
 import type { OnboardingStepProps } from './types';
 
 export function FrequencyStep({ data, goNext, insets, setValue, theme }: OnboardingStepProps) {
   return (
-    <View style={[styles.fullScreenStep, { justifyContent: 'flex-start' }]}>
-      <View>
-        <Text style={[styles.stepHeadline, { color: theme.textPrimary }]}>
-          How often do you train?
-        </Text>
-        <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-          We'll match you with similar energy.
-        </Text>
-      </View>
+    <OnboardingFullscreenStep
+      footer={<Button label="Continue" onPress={goNext} />}
+      insetsBottom={insets.bottom}
+    >
+      <OnboardingStepIntro title="How often do you train?" subtitle="We'll match you with similar energy." theme={theme} />
       <View style={styles.largeCards}>
         {FREQUENCY_OPTIONS.map((opt) => {
           const selected = data.frequencyLabel === opt.key;
@@ -49,9 +45,6 @@ export function FrequencyStep({ data, goNext, insets, setValue, theme }: Onboard
           );
         })}
       </View>
-      <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-        <Button label="Continue" onPress={goNext} />
-      </View>
-    </View>
+    </OnboardingFullscreenStep>
   );
 }

@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, Text, View } from 'react-native';
 import {
-  Controller,
   useForm,
   type Control,
-  type FieldErrors,
 } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/authStore';
 import { normalizeApiError } from '../api/errors';
-import AppBackdrop from '../components/ui/AppBackdrop';
-import { Button, GlassView, Input } from '../design/primitives';
+import { ControlledInputField } from '../components/form/ControlledInputField';
+import { Button, GlassView } from '../design/primitives';
+import { AuthFooterLinkRow, AuthScreenShell } from '../features/auth/components/AuthScreenShell';
 import { useTheme } from '../theme/useTheme';
 import { lightTheme, radii, spacing, typography } from '../theme/tokens';
 import { fontFamily } from '../lib/fonts';
@@ -21,7 +19,6 @@ import type { RootStackScreenProps } from '../core/navigation/types';
 
 export type LoginScreenViewProps = {
   control: Control<LoginFormValues>;
-  errors: FieldErrors<LoginFormValues>;
   isSubmitting: boolean;
   onClearSubmitError: () => void;
   onNavigateSignup: () => void;
@@ -31,7 +28,6 @@ export type LoginScreenViewProps = {
 
 export function LoginScreenView({
   control,
-  errors,
   isSubmitting,
   onClearSubmitError,
   onNavigateSignup,
@@ -39,126 +35,103 @@ export function LoginScreenView({
   submitError,
 }: LoginScreenViewProps) {
   const theme = useTheme();
+  const hero = (
+    <View style={styles.hero}>
+      <GlassView tier="light" tint={theme.accentSubtle} borderRadius={999} style={styles.wordmarkPill}>
+        <Text style={[styles.eyebrow, { color: theme.accent }]}>BRDG</Text>
+      </GlassView>
+      <Text style={styles.wordmark}>BRDG</Text>
+      <Text style={[styles.headline, { color: theme.textPrimary }]}>
+        Connect through movement.
+      </Text>
+      <Text style={[styles.tagline, { color: theme.textMuted }]}>
+        Find your people through shared activities.
+      </Text>
+      <View style={styles.heroMetaRow}>
+        <GlassView tier="light" borderRadius={radii.lg} style={styles.heroMetaCard}>
+          <Text style={styles.heroMetaLabel}>DISCOVERY</Text>
+          <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Based on what you do</Text>
+        </GlassView>
+        <GlassView tier="light" borderRadius={radii.lg} style={styles.heroMetaCard}>
+          <Text style={styles.heroMetaLabel}>PACE</Text>
+          <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Quality over quantity</Text>
+        </GlassView>
+      </View>
+    </View>
+  );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <AppBackdrop />
+    <AuthScreenShell
+      hero={hero}
+      card={(
+        <GlassView tier="frosted" borderRadius={radii.xxl} specularHighlight style={styles.formCard}>
+          <Text style={[styles.formEyebrow, { color: theme.textMuted }]}>SIGN IN</Text>
+          <Text style={[styles.formTitle, { color: theme.textPrimary }]}>Welcome back</Text>
+          <ControlledInputField
+            control={control}
+            name="email"
+            testID="login-email-input"
+            label="Email"
+            placeholder="you@example.com"
+            onChangeTextTransform={(nextValue, onChange) => {
+              onClearSubmitError();
+              onChange(nextValue);
+            }}
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            disabled={isSubmitting}
+            returnKeyType="next"
+            submitBehavior="submit"
+          />
+          <ControlledInputField
+            control={control}
+            name="password"
+            testID="login-password-input"
+            label="Password"
+            placeholder="••••••••"
+            onChangeTextTransform={(nextValue, onChange) => {
+              onClearSubmitError();
+              onChange(nextValue);
+            }}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="current-password"
+            textContentType="password"
+            disabled={isSubmitting}
+            returnKeyType="done"
+            submitBehavior="submit"
+            onSubmitEditing={onSubmit}
+          />
 
-          <View style={styles.hero}>
-            <GlassView tier="light" tint={theme.accentSubtle} borderRadius={999} style={styles.wordmarkPill}>
-              <Text style={[styles.eyebrow, { color: theme.accent }]}>BRDG</Text>
-            </GlassView>
-            <Text style={styles.wordmark}>BRDG</Text>
-            <Text style={[styles.headline, { color: theme.textPrimary }]}>
-              Connect through movement.
-            </Text>
-            <Text style={[styles.tagline, { color: theme.textMuted }]}>
-              Find your people through shared activities.
-            </Text>
-            <View style={styles.heroMetaRow}>
-              <GlassView tier="light" borderRadius={radii.lg} style={styles.heroMetaCard}>
-                <Text style={styles.heroMetaLabel}>DISCOVERY</Text>
-                <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Based on what you do</Text>
-              </GlassView>
-              <GlassView tier="light" borderRadius={radii.lg} style={styles.heroMetaCard}>
-                <Text style={styles.heroMetaLabel}>PACE</Text>
-                <Text style={[styles.heroMetaValue, { color: theme.textPrimary }]}>Quality over quantity</Text>
-              </GlassView>
+          {submitError ? (
+            <View style={[styles.errorBanner, { backgroundColor: theme.dangerSubtle, borderColor: theme.danger }]}>
+              <Text style={[styles.errorBannerText, { color: theme.danger }]}>{submitError}</Text>
             </View>
-          </View>
+          ) : null}
 
-          <GlassView tier="frosted" borderRadius={radii.xxl} specularHighlight style={styles.formCard}>
-            <Text style={[styles.formEyebrow, { color: theme.textMuted }]}>SIGN IN</Text>
-            <Text style={[styles.formTitle, { color: theme.textPrimary }]}>Welcome back</Text>
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <Input
-                  testID="login-email-input"
-                  label="Email"
-                  placeholder="you@example.com"
-                  value={value}
-                  onBlur={onBlur}
-                  onChangeText={(nextValue) => {
-                    onClearSubmitError();
-                    onChange(nextValue);
-                  }}
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                  editable={!isSubmitting}
-                  error={errors.email?.message}
-                  returnKeyType="next"
-                  submitBehavior="submit"
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <Input
-                  testID="login-password-input"
-                  label="Password"
-                  placeholder="••••••••"
-                  value={value}
-                  onBlur={onBlur}
-                  onChangeText={(nextValue) => {
-                    onClearSubmitError();
-                    onChange(nextValue);
-                  }}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoComplete="current-password"
-                  textContentType="password"
-                  editable={!isSubmitting}
-                  error={errors.password?.message}
-                  returnKeyType="done"
-                  submitBehavior="submit"
-                  onSubmitEditing={onSubmit}
-                />
-              )}
-            />
-
-            {submitError ? (
-              <View style={[styles.errorBanner, { backgroundColor: theme.dangerSubtle, borderColor: theme.danger }]}>
-                <Text style={[styles.errorBannerText, { color: theme.danger }]}>{submitError}</Text>
-              </View>
-            ) : null}
-
-            <Button
-              testID="login-submit-button"
-              label="Sign in"
-              onPress={onSubmit}
-              loading={isSubmitting}
-              style={styles.ctaButton}
-            />
-          </GlassView>
-
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: theme.textMuted }]}>Don't have an account? </Text>
-            <Pressable
-              onPress={onNavigateSignup}
-              disabled={isSubmitting}
-              accessibilityRole="link"
-              accessibilityLabel="Join BRDG"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              style={{ minHeight: 44, justifyContent: 'center' }}
-            >
-              <Text style={[styles.footerLink, { color: theme.accent }]}>Join BRDG</Text>
-            </Pressable>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          <Button
+            testID="login-submit-button"
+            label="Sign in"
+            onPress={onSubmit}
+            loading={isSubmitting}
+            style={styles.ctaButton}
+          />
+        </GlassView>
+      )}
+      footer={(
+        <AuthFooterLinkRow
+          prompt={"Don't have an account? "}
+          linkLabel="Join BRDG"
+          onPress={onNavigateSignup}
+          disabled={isSubmitting}
+          accessibilityLabel="Join BRDG"
+          style={styles.footer}
+        />
+      )}
+      contentContainerStyle={styles.content}
+    />
   );
 }
 
@@ -170,7 +143,7 @@ export default function LoginScreen({
   const {
     control,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<LoginFormValues>({
     defaultValues: {
       email: '',
@@ -194,7 +167,6 @@ export default function LoginScreen({
   return (
     <LoginScreenView
       control={control}
-      errors={errors}
       isSubmitting={isSubmitting}
       onClearSubmitError={() => setSubmitError('')}
       onNavigateSignup={() => navigation.navigate('Signup')}
@@ -306,16 +278,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
     marginTop: spacing.xxxxl,
-  },
-  footerText: {
-    fontSize: typography.body,
-  },
-  footerLink: {
-    fontSize: typography.body,
-    fontWeight: '700',
   },
 });

@@ -2,8 +2,8 @@ import React from 'react';
 import { Animated, Text, View } from 'react-native';
 import { Button } from '../../../design/primitives';
 import AppIcon from '../../../components/ui/AppIcon';
-import { spacing } from '../../../theme/tokens';
 import { styles } from '../onboarding.styles';
+import { OnboardingStepFooter } from './OnboardingStepLayout';
 import type { ReadyStepProps } from './types';
 
 export function ReadyStep({ insets, isSubmitting, pulseAnim, submitOnboarding, theme }: ReadyStepProps) {
@@ -40,14 +40,14 @@ export function ReadyStep({ insets, isSubmitting, pulseAnim, submitOnboarding, t
         </View>
       </View>
 
-      <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
+      <OnboardingStepFooter insetsBottom={insets.bottom}>
         <Button
           label={isSubmitting ? 'Setting up your profile…' : 'Meet them now'}
           onPress={submitOnboarding}
           loading={isSubmitting}
           disabled={isSubmitting}
         />
-      </View>
+      </OnboardingStepFooter>
     </View>
   );
 }

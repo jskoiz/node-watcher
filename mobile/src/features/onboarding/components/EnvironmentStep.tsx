@@ -2,22 +2,18 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Button } from '../../../design/primitives';
 import AppIcon from '../../../components/ui/AppIcon';
-import { spacing } from '../../../theme/tokens';
 import { styles } from '../onboarding.styles';
 import { ENVIRONMENTS } from './constants';
+import { OnboardingFullscreenStep, OnboardingStepIntro } from './OnboardingStepLayout';
 import type { OnboardingStepProps } from './types';
 
 export function EnvironmentStep({ data, goNext, insets, setValue, theme, toggleArray }: OnboardingStepProps) {
   return (
-    <View style={[styles.fullScreenStep, { justifyContent: 'flex-start' }]}>
-      <View>
-        <Text style={[styles.stepHeadline, { color: theme.textPrimary }]}>
-          Where do you like to train?
-        </Text>
-        <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-          Pick all that apply.
-        </Text>
-      </View>
+    <OnboardingFullscreenStep
+      footer={<Button label="Continue" onPress={goNext} disabled={data.environment.length === 0} />}
+      insetsBottom={insets.bottom}
+    >
+      <OnboardingStepIntro title="Where do you like to train?" subtitle="Pick all that apply." theme={theme} />
       <View style={styles.activityGrid}>
         {ENVIRONMENTS.map((env) => {
           const selected = data.environment.includes(env.key);
@@ -47,9 +43,6 @@ export function EnvironmentStep({ data, goNext, insets, setValue, theme, toggleA
           );
         })}
       </View>
-      <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-        <Button label="Continue" onPress={goNext} disabled={data.environment.length === 0} />
-      </View>
-    </View>
+    </OnboardingFullscreenStep>
   );
 }

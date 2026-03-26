@@ -49,7 +49,6 @@ function LoginScreenStory({
   return (
     <LoginScreenView
       control={form.control}
-      errors={form.formState.errors}
       isSubmitting={isSubmitting}
       onClearSubmitError={() => undefined}
       onNavigateSignup={() => undefined}

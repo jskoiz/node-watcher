@@ -1,31 +1,20 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useEffect, useRef } from 'react';
+import { Alert, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/authStore';
 import { useProfile } from '../features/profile/hooks/useProfile';
 import { normalizeApiError } from '../api/errors';
-import AppBackButton from '../components/ui/AppBackButton';
-import AppBackdrop from '../components/ui/AppBackdrop';
+import { useStepFlow } from '../components/form/useStepFlow';
 import { useTheme } from '../theme/useTheme';
 import type { RootStackScreenProps } from '../core/navigation/types';
 import { onboardingSchema } from '../features/onboarding/schema';
-import { styles } from '../features/onboarding/onboarding.styles';
 import {
   ACTIVITIES,
-  ActivitiesStep,
-  EnvironmentStep,
-  FrequencyStep,
-  IntentStep,
-  ReadyStep,
-  ScheduleStep,
-  STEP_CHAPTERS,
-  SocialStep,
-  SummaryStep,
-  TOTAL_STEPS,
-  WelcomeStep,
+  OnboardingFlowShell,
 } from '../features/onboarding/components';
+import { ONBOARDING_STEP_DEFINITIONS } from '../features/onboarding/components/stepDefinitions';
 import type { OnboardingData } from '../features/onboarding/components';
 
 export default function OnboardingScreen({
@@ -36,8 +25,8 @@ export default function OnboardingScreen({
   const setUser = useAuthStore((state) => state.setUser);
   const user = useAuthStore((state) => state.user);
   const { updateFitness } = useProfile();
-
-  const [step, setStep] = useState(0);
+  const totalSteps = ONBOARDING_STEP_DEFINITIONS.length;
+  const { goToStep, isFirstStep, isLastStep, step } = useStepFlow({ totalSteps });
   const {
     handleSubmit,
     setValue,
@@ -61,8 +50,9 @@ export default function OnboardingScreen({
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const currentStep = ONBOARDING_STEP_DEFINITIONS[step];
 
-  const progress = (step + 1) / TOTAL_STEPS;
+  const progress = (step + 1) / totalSteps;
 
   const toggleArray = (arr: string[], key: string): string[] =>
     arr.includes(key) ? arr.filter((item) => item !== key) : [...arr, key];
@@ -73,7 +63,7 @@ export default function OnboardingScreen({
       duration: 150,
       useNativeDriver: true,
     }).start(() => {
-      setStep(nextStep);
+      goToStep(nextStep);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 200,
@@ -83,11 +73,11 @@ export default function OnboardingScreen({
   };
 
   const goNext = () => {
-    if (step < TOTAL_STEPS - 1) transitionToStep(step + 1);
+    if (!isLastStep) transitionToStep(step + 1);
   };
 
   const goBack = () => {
-    if (step > 0) transitionToStep(step - 1);
+    if (!isFirstStep) transitionToStep(step - 1);
     else if (navigation.canGoBack()) navigation.goBack();
   };
 
@@ -127,7 +117,7 @@ export default function OnboardingScreen({
     pulseLoopRef.current = null;
     pulseAnim.setValue(1);
 
-    if (step !== TOTAL_STEPS - 1) {
+    if (!isLastStep) {
       return undefined;
     }
 
@@ -148,62 +138,28 @@ export default function OnboardingScreen({
       }
       pulseAnim.setValue(1);
     };
-  }, [pulseAnim, step]);
+  }, [isLastStep, pulseAnim, step]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      <AppBackdrop />
-      <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
-        <Animated.View
-          style={[
-            styles.progressFill,
-            {
-              backgroundColor: theme.primary,
-              width: `${progress * 100}%`,
-            },
-          ]}
-        />
-      </View>
-
-      {step > 0 && (
-        <View style={styles.backButtonRow}>
-          <AppBackButton onPress={goBack} disabled={isSubmitting} style={{ marginBottom: 0 }} />
-        </View>
-      )}
-
-      <View style={styles.shellHeader}>
-        <Text style={[styles.chapterLabel, { color: theme.accent }]}>{STEP_CHAPTERS[step]}</Text>
-      </View>
-
-      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        {step === 0 ? (
-          <WelcomeStep goNext={goNext} insets={insets} theme={theme} />
-        ) : step === 1 ? (
-          <IntentStep data={data} goNext={goNext} insets={insets} setValue={setValue} theme={theme} toggleArray={toggleArray} />
-        ) : step === 2 ? (
-          <ActivitiesStep data={data} goNext={goNext} insets={insets} setValue={setValue} theme={theme} toggleArray={toggleArray} />
-        ) : step === 3 ? (
-          <FrequencyStep data={data} goNext={goNext} insets={insets} setValue={setValue} theme={theme} toggleArray={toggleArray} />
-        ) : step === 4 ? (
-          <EnvironmentStep data={data} goNext={goNext} insets={insets} setValue={setValue} theme={theme} toggleArray={toggleArray} />
-        ) : step === 5 ? (
-          <ScheduleStep data={data} goNext={goNext} insets={insets} setValue={setValue} theme={theme} toggleArray={toggleArray} />
-        ) : step === 6 ? (
-          <SocialStep data={data} goNext={goNext} insets={insets} setValue={setValue} theme={theme} toggleArray={toggleArray} />
-        ) : step === 7 ? (
-          <SummaryStep data={data} insets={insets} onNext={goNext} theme={theme} />
-        ) : step === 8 ? (
-          <ReadyStep
-            insets={insets}
-            isSubmitting={isSubmitting}
-            pulseAnim={pulseAnim}
-            submitOnboarding={submitOnboarding}
-            theme={theme}
-          />
-        ) : (
-          <View />
-        )}
-      </Animated.View>
-    </SafeAreaView>
+    <OnboardingFlowShell
+      chapter={currentStep.chapter}
+      contentOpacity={fadeAnim}
+      isSubmitting={isSubmitting}
+      onBack={goBack}
+      progress={progress}
+      showBackButton={currentStep.showBackButton}
+    >
+      {currentStep.render({
+        data,
+        goNext,
+        insets,
+        isSubmitting,
+        pulseAnim,
+        setValue,
+        submitOnboarding,
+        theme,
+        toggleArray,
+      })}
+    </OnboardingFlowShell>
   );
 }

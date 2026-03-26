@@ -2,22 +2,18 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Button } from '../../../design/primitives';
 import AppIcon from '../../../components/ui/AppIcon';
-import { spacing } from '../../../theme/tokens';
 import { styles } from '../onboarding.styles';
 import { SOCIAL_OPTIONS } from './constants';
+import { OnboardingFullscreenStep, OnboardingStepIntro } from './OnboardingStepLayout';
 import type { OnboardingStepProps } from './types';
 
 export function SocialStep({ data, goNext, insets, setValue, theme }: OnboardingStepProps) {
   return (
-    <View style={[styles.fullScreenStep, { justifyContent: 'flex-start' }]}>
-      <View>
-        <Text style={[styles.stepHeadline, { color: theme.textPrimary }]}>
-          How do you prefer to meet?
-        </Text>
-        <Text style={[styles.stepSubtitle, { color: theme.textSecondary }]}>
-          How you prefer to connect.
-        </Text>
-      </View>
+    <OnboardingFullscreenStep
+      footer={<Button label="Continue" onPress={goNext} disabled={!data.socialComfort} />}
+      insetsBottom={insets.bottom}
+    >
+      <OnboardingStepIntro title="How do you prefer to meet?" subtitle="How you prefer to connect." theme={theme} />
       <View style={styles.socialCards}>
         {SOCIAL_OPTIONS.map((opt) => {
           const selected = data.socialComfort === opt.key;
@@ -56,9 +52,6 @@ export function SocialStep({ data, goNext, insets, setValue, theme }: Onboarding
           );
         })}
       </View>
-      <View style={[styles.stepFooter, { paddingBottom: Math.max(insets.bottom + 8, spacing.xxl) }]}>
-        <Button label="Continue" onPress={goNext} disabled={!data.socialComfort} />
-      </View>
-    </View>
+    </OnboardingFullscreenStep>
   );
 }
