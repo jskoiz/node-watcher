@@ -27,8 +27,14 @@ describe('resolveNotificationNavigation', () => {
     const result = resolveNotificationNavigation(notification);
 
     expect(result).toEqual({
-      ok: false,
-      error: 'This conversation is no longer available.',
+      ok: true,
+      target: {
+        route: 'Chat',
+        params: {
+          matchId: 'match-1',
+          user: { id: 'user-2', firstName: 'Match' },
+        },
+      },
     });
   });
 
@@ -49,8 +55,13 @@ describe('resolveNotificationNavigation', () => {
     const result = resolveNotificationNavigation(notification);
 
     expect(result).toEqual({
-      ok: false,
-      error: 'This profile is no longer available.',
+      ok: true,
+      target: {
+        route: 'ProfileDetail',
+        params: {
+          user: { id: 'user-3', firstName: 'Profile' },
+        },
+      },
     });
   });
 });

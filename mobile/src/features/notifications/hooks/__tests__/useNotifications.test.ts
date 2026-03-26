@@ -133,9 +133,14 @@ describe('useNotifications', () => {
       { id: 'n1', title: 'Match!', readAt: null },
       { id: 'n2', title: 'Like', readAt: null },
     ];
+    const readAt = '2026-01-01T00:00:00Z';
     const { queryClient, wrapper } = createQueryTestHarness();
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
-    mockList.mockResolvedValueOnce({ data: notifications });
+    mockList
+      .mockResolvedValueOnce({ data: notifications })
+      .mockResolvedValueOnce({
+        data: notifications.map((item) => ({ ...item, readAt })),
+      });
     mockMarkAllRead.mockResolvedValue({ data: { updated: 2 } });
 
     const { result } = renderHook(() => useNotifications(), { wrapper });
@@ -146,8 +151,10 @@ describe('useNotifications', () => {
       await result.current.markAllRead();
     });
 
-    await waitFor(() => expect(result.current.unreadCount).toBe(0));
-    expect(result.current.notifications.every((item) => Boolean(item.readAt))).toBe(true);
+    await waitFor(() =>
+      expect(result.current.notifications.every((item) => Boolean(item.readAt))).toBe(true),
+    );
+    expect(result.current.unreadCount).toBe(0);
 
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: queryKeys.notifications.list(),
