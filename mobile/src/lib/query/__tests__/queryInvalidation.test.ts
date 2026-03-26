@@ -1,12 +1,14 @@
 import { createTestQueryClient } from '../../testing/queryTestHarness';
 import {
-  invalidateDiscoverySurfaces,
-  invalidateEventSurfaces,
-  invalidateProfileSurfaces,
+  invalidateQueryScopes,
+  queryInvalidationScopes,
 } from '../queryInvalidation';
 import { queryKeys } from '../queryKeys';
 
-function isInvalidated(queryClient: ReturnType<typeof createTestQueryClient>, queryKey: readonly unknown[]) {
+function isInvalidated(
+  queryClient: ReturnType<typeof createTestQueryClient>,
+  queryKey: readonly unknown[],
+) {
   return queryClient.getQueryState(queryKey as never)?.isInvalidated ?? false;
 }
 
@@ -15,45 +17,64 @@ describe('query invalidation helpers', () => {
     const queryClient = createTestQueryClient();
     const defaultFeedKey = queryKeys.discovery.feed();
     const filteredFeedKey = queryKeys.discovery.feed({ distanceKm: 10 });
+    const completenessKey = queryKeys.discovery.profileCompleteness();
 
     queryClient.setQueryData(defaultFeedKey, []);
     queryClient.setQueryData(filteredFeedKey, []);
-    queryClient.setQueryData(queryKeys.matches.list, []);
+    queryClient.setQueryData(completenessKey, {
+      score: 3,
+      total: 5,
+      earned: 3,
+      prompts: [],
+      missing: [],
+    });
+    queryClient.setQueryData(queryKeys.matches.list(), []);
 
-    await invalidateDiscoverySurfaces(queryClient);
+    await invalidateQueryScopes(queryClient, queryInvalidationScopes.discoveryAction);
 
     expect(isInvalidated(queryClient, defaultFeedKey)).toBe(true);
     expect(isInvalidated(queryClient, filteredFeedKey)).toBe(true);
-    expect(isInvalidated(queryClient, queryKeys.matches.list)).toBe(true);
+    expect(isInvalidated(queryClient, queryKeys.matches.list())).toBe(true);
+    expect(isInvalidated(queryClient, completenessKey)).toBe(false);
   });
 
   it('invalidates profile, discovery, and matches caches together', async () => {
     const queryClient = createTestQueryClient();
     const defaultFeedKey = queryKeys.discovery.feed();
-    const profileKey = queryKeys.profile.current;
+    const filteredFeedKey = queryKeys.discovery.feed({ distanceKm: 10 });
+    const profileKey = queryKeys.profile.current();
 
     queryClient.setQueryData(profileKey, { id: 'u1' });
     queryClient.setQueryData(defaultFeedKey, []);
-    queryClient.setQueryData(queryKeys.matches.list, []);
+    queryClient.setQueryData(filteredFeedKey, []);
+    queryClient.setQueryData(queryKeys.discovery.profileCompleteness(), {
+      score: 1,
+      total: 5,
+      earned: 1,
+      prompts: [],
+      missing: [],
+    });
+    queryClient.setQueryData(queryKeys.matches.list(), []);
 
-    await invalidateProfileSurfaces(queryClient);
+    await invalidateQueryScopes(queryClient, queryInvalidationScopes.profileWrite);
 
     expect(isInvalidated(queryClient, profileKey)).toBe(true);
     expect(isInvalidated(queryClient, defaultFeedKey)).toBe(true);
-    expect(isInvalidated(queryClient, queryKeys.matches.list)).toBe(true);
+    expect(isInvalidated(queryClient, filteredFeedKey)).toBe(true);
+    expect(isInvalidated(queryClient, queryKeys.matches.list())).toBe(true);
   });
 
-  it('invalidates all event caches with one family key', async () => {
+  it('invalidates all event caches with one family key and keeps the refetch type narrow', async () => {
     const queryClient = createTestQueryClient();
-    const listKey = queryKeys.events.list;
-    const mineKey = queryKeys.events.mine;
+    const listKey = queryKeys.events.list();
+    const mineKey = queryKeys.events.mine();
     const detailKey = queryKeys.events.detail('event-1');
 
     queryClient.setQueryData(listKey, []);
     queryClient.setQueryData(mineKey, []);
     queryClient.setQueryData(detailKey, { id: 'event-1' });
 
-    await invalidateEventSurfaces(queryClient);
+    await invalidateQueryScopes(queryClient, queryInvalidationScopes.eventWrite);
 
     expect(isInvalidated(queryClient, listKey)).toBe(true);
     expect(isInvalidated(queryClient, mineKey)).toBe(true);

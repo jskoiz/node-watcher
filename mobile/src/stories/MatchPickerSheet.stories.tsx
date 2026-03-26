@@ -33,7 +33,7 @@ function MatchPickerSheetStory({ matches }: { matches: Match[] }) {
     <QuerySeededSheetStory
       buttonLabel="Open match picker"
       queryData={matches}
-      queryKey={queryKeys.matches.list}
+      queryKey={queryKeys.matches.list()}
     >
       {({ close, controller }) => (
         <MatchPickerSheet

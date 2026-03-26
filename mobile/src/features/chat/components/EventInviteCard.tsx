@@ -1,13 +1,10 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { StyleSheet, Text, View } from 'react-native';
 import AppIcon from '../../../components/ui/AppIcon';
 import { Button, Card } from '../../../design/primitives';
 import { useTheme } from '../../../theme/useTheme';
 import { radii, spacing, typography } from '../../../theme/tokens';
-import { eventsApi } from '../../../services/api';
-import { invalidateEventSurfaces } from '../../../lib/query/queryInvalidation';
-import type { EventInviteResponse } from '../../../api/types';
+import { useJoinEvent } from '../../events/hooks/useEventDetail';
 
 export type EventInviteCardStatus = 'pending' | 'accepted' | 'expired';
 
@@ -39,13 +36,11 @@ export function EventInviteCard({
   title,
   location,
   startsAt,
-  endsAt,
   status: initialStatus,
   isMe,
   onNavigateToEvent,
 }: EventInviteCardProps) {
   const theme = useTheme();
-  const queryClient = useQueryClient();
   const { effectiveStatus, formattedStartsAt } = React.useMemo(() => {
     const expired = isEventExpired(startsAt);
     return {
@@ -54,12 +49,7 @@ export function EventInviteCard({
     };
   }, [initialStatus, startsAt]);
 
-  const rsvpMutation = useMutation({
-    mutationFn: async () => (await eventsApi.rsvp(eventId)).data,
-    onSuccess: () => {
-      void invalidateEventSurfaces(queryClient);
-    },
-  });
+  const rsvpMutation = useJoinEvent(eventId);
 
   const accepted = effectiveStatus === 'accepted' || rsvpMutation.isSuccess;
 

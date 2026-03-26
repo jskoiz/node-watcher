@@ -24,7 +24,7 @@ export default function OnboardingScreen({
   const insets = useSafeAreaInsets();
   const setUser = useAuthStore((state) => state.setUser);
   const user = useAuthStore((state) => state.user);
-  const { updateFitness } = useProfile();
+  const { profile, updateFitness } = useProfile();
   const totalSteps = ONBOARDING_STEP_DEFINITIONS.length;
   const { goToStep, isFirstStep, isLastStep, step } = useStepFlow({ totalSteps });
   const {
@@ -99,7 +99,11 @@ export default function OnboardingScreen({
           prefersMorning: values.schedule.includes('morning'),
           prefersEvening: values.schedule.includes('evening'),
         });
-        if (user) setUser({ ...user, isOnboarded: true });
+        if (profile) {
+          setUser({ ...profile, isOnboarded: true });
+        } else if (user) {
+          setUser({ ...user, isOnboarded: true });
+        }
         navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
       } catch (error) {
         Alert.alert('Could not save profile', normalizeApiError(error).message);

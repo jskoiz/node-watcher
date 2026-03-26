@@ -18,12 +18,10 @@ function toggleValue(values: string[], nextValue: string) {
 
 export function useProfileEditor({
   profile,
-  refetch,
   updateFitness,
   updateProfile,
 }: {
   profile: User | null;
-  refetch: () => Promise<unknown>;
   updateFitness: (payload: {
     intensityLevel: string;
     weeklyFrequencyBand: string;
@@ -110,11 +108,9 @@ export function useProfileEditor({
       void triggerSuccessHaptic();
       showToast('Profile saved', 'success');
       setEditMode(false);
-      await refetch();
     } catch (err) {
       void triggerErrorHaptic();
       if (basicsSaved && !fitnessSaved) {
-        await refetch().catch(() => undefined);
         setError(PARTIAL_SAVE_ERROR);
         return;
       }

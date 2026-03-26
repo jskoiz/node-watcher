@@ -1,5 +1,8 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
+import type { User } from '../../../../api/types';
+import { queryKeys } from '../../../../lib/query/queryKeys';
 import { createQueryTestHarness } from '../../../../lib/testing/queryTestHarness';
+import { useAuthStore } from '../../../../store/authStore';
 import { useProfile } from '../useProfile';
 
 const mockGetProfile = jest.fn();
@@ -20,9 +23,65 @@ jest.mock('../../../../services/api', () => ({
   },
 }));
 
+function createProfileUser(
+  overrides: Partial<User> & {
+    profile?: Partial<NonNullable<User['profile']>>;
+    fitnessProfile?: Partial<NonNullable<User['fitnessProfile']>>;
+  } = {},
+): User {
+  const base: User = {
+    id: 'u1',
+    email: 'alice@example.com',
+    firstName: 'Alice',
+    isOnboarded: true,
+    profile: {
+      bio: 'Original bio',
+      intentDating: false,
+      intentWorkout: true,
+      intentFriends: false,
+    },
+    fitnessProfile: {
+      intensityLevel: 'moderate',
+      weeklyFrequencyBand: '3-4',
+      primaryGoal: 'connection',
+      favoriteActivities: 'Running',
+    },
+    photos: [
+      {
+        id: 'photo-1',
+        storageKey: 'photo-1',
+        isPrimary: true,
+        isHidden: false,
+        sortOrder: 0,
+      },
+      {
+        id: 'photo-2',
+        storageKey: 'photo-2',
+        isPrimary: false,
+        isHidden: false,
+        sortOrder: 1,
+      },
+    ],
+  };
+
+  return {
+    ...base,
+    ...overrides,
+    profile: {
+      ...base.profile,
+      ...(overrides.profile ?? {}),
+    },
+    fitnessProfile: {
+      ...base.fitnessProfile,
+      ...(overrides.fitnessProfile ?? {}),
+    },
+  };
+}
+
 describe('useProfile', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useAuthStore.setState({ token: null, user: null, isLoading: false });
   });
 
   it('returns profile data on success', async () => {
@@ -71,5 +130,150 @@ describe('useProfile', () => {
     expect(typeof result.current.uploadPhoto).toBe('function');
     expect(typeof result.current.updatePhoto).toBe('function');
     expect(typeof result.current.deletePhoto).toBe('function');
+  });
+
+  it('syncs fitness updates into the auth store and invalidates the profile write scope', async () => {
+    const fullUser = createProfileUser();
+    mockGetProfile.mockResolvedValue({ data: fullUser });
+    mockUpdateFitness.mockResolvedValue({
+      data: createProfileUser({
+        fitnessProfile: {
+          intensityLevel: 'high',
+          weeklyFrequencyBand: '5+',
+          primaryGoal: 'strength',
+        },
+      }),
+    });
+
+    const { queryClient, wrapper } = createQueryTestHarness();
+    queryClient.setQueryData(queryKeys.discovery.feed(), []);
+    queryClient.setQueryData(queryKeys.discovery.profileCompleteness(), {
+      score: 1,
+      total: 5,
+      earned: 1,
+      prompts: [],
+      missing: [],
+    });
+    queryClient.setQueryData(queryKeys.matches.list(), []);
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+
+    const { result } = renderHook(() => useProfile(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    await act(async () => {
+      await result.current.updateFitness({
+        intensityLevel: 'high',
+        weeklyFrequencyBand: '5+',
+        primaryGoal: 'strength',
+        favoriteActivities: 'Running',
+        prefersMorning: true,
+      });
+    });
+
+    expect(useAuthStore.getState().user).toEqual({
+      id: 'u1',
+      email: 'alice@example.com',
+      firstName: 'Alice',
+      isOnboarded: true,
+      profile: {
+        intentDating: false,
+        intentWorkout: true,
+        intentFriends: false,
+      },
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.profile.all(),
+      refetchType: 'active',
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.discovery.all(),
+      refetchType: undefined,
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.matches.list(),
+      refetchType: undefined,
+    });
+  });
+
+  it('merges profile updates into the cached user and auth store projection', async () => {
+    const fullUser = createProfileUser();
+    mockGetProfile.mockResolvedValue({ data: fullUser });
+    mockUpdateProfile.mockResolvedValue({
+      data: {
+        userId: 'u1',
+        bio: 'New bio',
+        city: 'Honolulu',
+        intentDating: true,
+      },
+    });
+
+    const { queryClient, wrapper } = createQueryTestHarness();
+    const { result } = renderHook(() => useProfile(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    await act(async () => {
+      await result.current.updateProfile({
+        bio: 'New bio',
+        city: 'Honolulu',
+        intentDating: true,
+      });
+    });
+
+    await waitFor(() =>
+      expect(useAuthStore.getState().user).toEqual({
+        id: 'u1',
+        email: 'alice@example.com',
+        firstName: 'Alice',
+        isOnboarded: true,
+        profile: {
+          intentDating: true,
+          intentWorkout: true,
+          intentFriends: false,
+        },
+      }),
+    );
+  });
+
+  it('invalidates the profile write scope for photo mutations', async () => {
+    mockGetProfile.mockResolvedValue({ data: createProfileUser() });
+    mockUploadPhoto.mockResolvedValue({ data: undefined });
+    mockUpdatePhoto.mockResolvedValue({ data: undefined });
+    mockDeletePhoto.mockResolvedValue({ data: undefined });
+
+    const { queryClient, wrapper } = createQueryTestHarness();
+    queryClient.setQueryData(queryKeys.discovery.feed(), []);
+    queryClient.setQueryData(queryKeys.discovery.profileCompleteness(), {
+      score: 1,
+      total: 5,
+      earned: 1,
+      prompts: [],
+      missing: [],
+    });
+    queryClient.setQueryData(queryKeys.matches.list(), []);
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+
+    const { result } = renderHook(() => useProfile(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    await act(async () => {
+      await result.current.uploadPhoto({
+        uri: 'file://photo.jpg',
+        mimeType: 'image/jpeg',
+        fileName: 'photo.jpg',
+      });
+    });
+
+    await act(async () => {
+      await result.current.updatePhoto({
+        photoId: 'photo-1',
+        payload: { isPrimary: true },
+      });
+    });
+
+    await act(async () => {
+      await result.current.deletePhoto('photo-2');
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledTimes(9);
   });
 });

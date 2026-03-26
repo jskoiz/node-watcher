@@ -22,7 +22,6 @@ describe('useProfileEditor', () => {
   it('keeps the user honest when basics save but fitness fails', async () => {
     const updateProfile = jest.fn().mockResolvedValue(undefined);
     const updateFitness = jest.fn().mockRejectedValue(new Error('Fitness save failed'));
-    const refetch = jest.fn().mockResolvedValue(undefined);
 
     const profile = {
       id: 'user-1',
@@ -46,7 +45,6 @@ describe('useProfileEditor', () => {
     const { result } = renderHook(() =>
       useProfileEditor({
         profile: profile as never,
-        refetch,
         updateProfile,
         updateFitness,
       }),
@@ -94,7 +92,6 @@ describe('useProfileEditor', () => {
       prefersMorning: true,
       prefersEvening: true,
     });
-    expect(refetch).toHaveBeenCalled();
     expect(result.current.error).toBe(
       'Profile basics were saved, but fitness settings could not be saved. Please try again.',
     );
@@ -104,10 +101,9 @@ describe('useProfileEditor', () => {
     expect(mockShowToast).not.toHaveBeenCalled();
   });
 
-  it('does not blame fitness settings when refresh fails after both saves succeed', async () => {
+  it('shows success feedback and exits edit mode when both profile and fitness saves succeed', async () => {
     const updateProfile = jest.fn().mockResolvedValue(undefined);
     const updateFitness = jest.fn().mockResolvedValue(undefined);
-    const refetch = jest.fn().mockRejectedValue(new Error('Refresh failed'));
 
     const profile = {
       id: 'user-1',
@@ -131,7 +127,6 @@ describe('useProfileEditor', () => {
     const { result } = renderHook(() =>
       useProfileEditor({
         profile: profile as never,
-        refetch,
         updateProfile,
         updateFitness,
       }),
@@ -151,12 +146,11 @@ describe('useProfileEditor', () => {
 
     expect(updateProfile).toHaveBeenCalledTimes(1);
     expect(updateFitness).toHaveBeenCalledTimes(1);
-    expect(refetch).toHaveBeenCalledTimes(1);
-    expect(result.current.error).toBe('Refresh failed');
+    expect(result.current.error).toBeNull();
     expect(result.current.editMode).toBe(false);
     expect(mockTriggerSuccessHaptic).toHaveBeenCalled();
     expect(mockShowToast).toHaveBeenCalledWith('Profile saved', 'success');
-    expect(mockTriggerErrorHaptic).toHaveBeenCalled();
+    expect(mockTriggerErrorHaptic).not.toHaveBeenCalled();
     expect(result.current.error).not.toBe(
       'Profile basics were saved, but fitness settings could not be saved. Please try again.',
     );

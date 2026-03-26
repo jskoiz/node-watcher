@@ -1,20 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { normalizeApiError } from '../../../api/errors';
 import type { CreateEventPayload, EventSummary } from '../../../api/types';
-import { queryKeys } from '../../../lib/query/queryKeys';
-import { invalidateEventSurfaces } from '../../../lib/query/queryInvalidation';
+import { prependCreatedEvent } from '../../../lib/query/queryData';
+import { invalidateQueryScopes, queryInvalidationScopes } from '../../../lib/query/queryInvalidation';
 import { eventsApi } from '../../../services/api';
 
 export function useCreateEvent() {
   const queryClient = useQueryClient();
   const createEvent = useMutation({
-    mutationFn: async (payload: CreateEventPayload) => (await eventsApi.create(payload)).data,
+    mutationFn: async (payload: CreateEventPayload) =>
+      (await eventsApi.create(payload) as { data: EventSummary }).data,
     onSuccess: (createdEvent: EventSummary) => {
-      queryClient.setQueryData<EventSummary[]>(queryKeys.events.list, (current = []) => [
-        createdEvent,
-        ...current,
-      ]);
-      void invalidateEventSurfaces(queryClient);
+      prependCreatedEvent(queryClient, createdEvent);
+      void invalidateQueryScopes(queryClient, queryInvalidationScopes.eventWrite);
     },
   });
 

@@ -47,7 +47,7 @@ describe('useBlock', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: queryKeys.matches.list }),
+      expect.objectContaining({ queryKey: queryKeys.matches.list() }),
     );
   });
 

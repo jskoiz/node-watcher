@@ -10,7 +10,7 @@ export function useBlock(options?: { onSuccess?: () => void }) {
   const mutation = useMutation({
     mutationFn: async (payload: BlockPayload) => (await moderationApi.block(payload)).data,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.matches.list });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.matches.list() });
       Alert.alert('User blocked', 'They will no longer be able to see your profile or message you.');
       options?.onSuccess?.();
     },

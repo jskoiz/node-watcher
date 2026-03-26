@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ChatMessage } from '../../../api/types';
 import { matchesApi } from '../../../services/api';
 import { connectMatchMessageStream } from '../../../services/matchRealtime';
+import { beginOptimisticUpdate } from '../../../lib/query/optimisticUpdates';
 import { queryKeys } from '../../../lib/query/queryKeys';
 import { connectSocket, getSocket } from '../../../lib/socket';
 
@@ -10,32 +11,32 @@ type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnec
 
 const TYPING_DEBOUNCE_MS = 2000;
 
-function upsertMessage(
+function reconcileMessageList(
   current: ChatMessage[] | undefined,
-  nextMessage: ChatMessage,
+  serverMessage: ChatMessage,
   tempId?: string,
 ) {
   const messages = current ?? [];
-  let replacedTemp = false;
-  const updated = messages.reduce<ChatMessage[]>((accumulator, item) => {
-    if (tempId && item.id === tempId) {
-      accumulator.push(nextMessage);
-      replacedTemp = true;
-      return accumulator;
-    }
 
-    if (item.id !== nextMessage.id) {
-      accumulator.push(item);
-    }
+  let next = messages;
 
-    return accumulator;
-  }, []);
-
-  if (!replacedTemp) {
-    updated.unshift(nextMessage);
+  if (tempId && messages.some((message) => message.id === tempId)) {
+    next = messages.map((message) =>
+      message.id === tempId ? serverMessage : message,
+    );
+  } else if (!messages.some((message) => message.id === serverMessage.id)) {
+    next = [serverMessage, ...messages];
   }
 
-  return updated;
+  const seen = new Set<string>();
+  return next.filter((message) => {
+    if (seen.has(message.id)) {
+      return false;
+    }
+
+    seen.add(message.id);
+    return true;
+  });
 }
 
 export function useChatThread(matchId: string) {
@@ -59,7 +60,9 @@ export function useChatThread(matchId: string) {
   const query = useQuery({
     enabled: Boolean(matchId),
     queryKey: messageKey,
-    queryFn: async () => (await matchesApi.getMessages(matchId)).data || [],
+    queryFn: async () =>
+      (await matchesApi.getMessages(matchId) as { data: ChatMessage[] | null }).data || [],
+    staleTime: 0,
   });
 
   const refetchRef = useRef(query.refetch);
@@ -187,7 +190,7 @@ export function useChatThread(matchId: string) {
           setIsTyping(false);
           queryClient.setQueryData<ChatMessage[]>(
             messageKey,
-            (current) => upsertMessage(current, data.message),
+            (current) => reconcileMessageList(current, data.message),
           );
         };
 
@@ -275,12 +278,10 @@ export function useChatThread(matchId: string) {
   const sendMessage = useMutation({
     mutationFn: async (text: string) => {
       stopTypingEmit();
-      return (await matchesApi.sendMessage(matchId, text)).data;
+      return (await matchesApi.sendMessage(matchId, text) as { data: ChatMessage }).data;
     },
     onMutate: async (text) => {
-      await queryClient.cancelQueries({ queryKey: messageKey });
-      const previous = queryClient.getQueryData<ChatMessage[]>(messageKey) || [];
-      const tempId = `temp-${Date.now()}`;
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const tempMessage: ChatMessage = {
         id: tempId,
         text,
@@ -288,19 +289,32 @@ export function useChatThread(matchId: string) {
         timestamp: new Date().toISOString(),
       };
 
-      queryClient.setQueryData<ChatMessage[]>(messageKey, [tempMessage, ...previous]);
+      const optimistic = await beginOptimisticUpdate(queryClient, [
+        {
+          queryKey: messageKey,
+          exact: true,
+          updater: (current) => [
+            tempMessage,
+            ...(Array.isArray(current) ? (current as ChatMessage[]) : []),
+          ],
+        },
+      ]);
 
-      return { previous, tempId };
+      return { rollback: optimistic.rollback, tempId };
     },
     onError: (_error, _text, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(messageKey, context.previous);
-      }
+      context?.rollback?.();
     },
     onSuccess: (message, _text, context) => {
-      queryClient.setQueryData<ChatMessage[]>(messageKey, (current = []) =>
-        upsertMessage(current, message, context?.tempId),
+      queryClient.setQueryData<ChatMessage[]>(messageKey, (current) =>
+        reconcileMessageList(current, message, context?.tempId),
       );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: messageKey,
+        refetchType: 'inactive',
+      });
     },
   });
 

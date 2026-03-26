@@ -10,7 +10,6 @@ const mockUpdateProfile = jest.fn();
 const mockUploadPhoto = jest.fn();
 const mockUpdatePhoto = jest.fn();
 const mockDeletePhotoMutation = jest.fn();
-const mockRefetch = jest.fn();
 const mockProfile = {
   id: "user-1",
   firstName: "Jordan",
@@ -54,7 +53,7 @@ jest.mock("../../features/profile/hooks/useProfile", () => ({
     isUpdatingPhoto: false,
     isDeletingPhoto: false,
     profile: mockProfile,
-    refetch: mockRefetch,
+    refetch: jest.fn(),
     updateFitness: mockUpdateFitness,
     updateProfile: mockUpdateProfile,
     uploadPhoto: mockUploadPhoto,
@@ -115,7 +114,6 @@ describe("ProfileScreen", () => {
     mockIsSavingProfile = false;
     mockUpdateFitness.mockResolvedValue(undefined);
     mockUpdateProfile.mockResolvedValue(undefined);
-    mockRefetch.mockResolvedValue(undefined);
   });
 
   it("persists hydrated activity and schedule preferences when saving", async () => {
@@ -177,7 +175,6 @@ describe("ProfileScreen", () => {
     });
 
     await waitFor(() => {
-      expect(mockRefetch).toHaveBeenCalled();
       expect(screen.getByText(/Edit Profile/)).toBeTruthy();
     });
   });

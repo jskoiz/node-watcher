@@ -1,48 +1,100 @@
+import type { QueryKey } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { EventDetail, EventRsvpResponse, EventSummary } from '../../../api/types';
+import { beginOptimisticUpdate } from '../../../lib/query/optimisticUpdates';
+import { invalidateQueryScopes, queryInvalidationScopes } from '../../../lib/query/queryInvalidation';
+import { markEventJoined } from '../../../lib/query/queryData';
 import { eventsApi } from '../../../services/api';
-import type { EventDetail } from '../../../api/types';
 import { queryKeys } from '../../../lib/query/queryKeys';
-import { invalidateEventSurfaces } from '../../../lib/query/queryInvalidation';
 import { showToast } from '../../../store/toastStore';
 
-export function useEventDetail(eventId: string) {
+function applyRsvpPatch(
+  current: unknown,
+  queryKey: QueryKey,
+  eventId: string,
+  attendeesCount?: number,
+) {
+  const [family, scope] = queryKey as readonly [string?, string?];
+
+  if (family !== 'events') {
+    return current;
+  }
+
+  if (scope === 'detail') {
+    const event = current as EventDetail | undefined;
+    if (!event || event.id !== eventId || event.joined) {
+      return current;
+    }
+
+    return {
+      ...event,
+      joined: true,
+      attendeesCount: attendeesCount ?? event.attendeesCount + 1,
+    };
+  }
+
+  if (scope === 'list' || scope === 'mine') {
+    const events = current as EventSummary[] | undefined;
+    if (!Array.isArray(events)) {
+      return current;
+    }
+
+    return events.map((event) =>
+      event.id === eventId && !event.joined
+        ? {
+            ...event,
+            joined: true,
+            attendeesCount: attendeesCount ?? event.attendeesCount + 1,
+          }
+        : event,
+    );
+  }
+
+  return current;
+}
+
+export function useJoinEvent(
+  eventId: string,
+  options?: {
+    onSuccess?: (result: EventRsvpResponse) => void;
+  },
+) {
   const queryClient = useQueryClient();
-  const detailKey = queryKeys.events.detail(eventId);
 
-  const query = useQuery({
-    enabled: Boolean(eventId),
-    queryKey: detailKey,
-    queryFn: async () => (await eventsApi.detail(eventId)).data,
-  });
-
-  const rsvp = useMutation({
-    mutationFn: async () => (await eventsApi.rsvp(eventId)).data,
+  return useMutation({
+    mutationFn: async () =>
+      (await eventsApi.rsvp(eventId) as { data: EventRsvpResponse }).data,
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: detailKey });
-      const previous = queryClient.getQueryData<EventDetail>(detailKey);
+      const optimisticUpdate = await beginOptimisticUpdate(queryClient, [
+        {
+          queryKey: queryKeys.events.all(),
+          updater: (current, queryKey) => applyRsvpPatch(current, queryKey, eventId),
+        },
+      ]);
 
-      if (previous && !previous.joined) {
-        queryClient.setQueryData<EventDetail>(detailKey, {
-          ...previous,
-          joined: true,
-          attendeesCount: previous.attendeesCount + 1,
-        });
-      }
-
-      return { previous };
+      return optimisticUpdate;
     },
     onError: (_error, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(detailKey, context.previous);
-      }
+      context?.rollback();
     },
     onSuccess: (result) => {
-      queryClient.setQueryData<EventDetail>(detailKey, (current) =>
-        current
-          ? { ...current, joined: true, attendeesCount: result.attendeesCount }
-          : undefined,
-      );
-      void invalidateEventSurfaces(queryClient);
+      markEventJoined(queryClient, eventId, result.attendeesCount);
+      void invalidateQueryScopes(queryClient, queryInvalidationScopes.eventWrite);
+      options?.onSuccess?.(result);
+    },
+  });
+}
+
+export function useEventDetail(eventId: string) {
+  const query = useQuery({
+    enabled: Boolean(eventId),
+    queryKey: queryKeys.events.detail(eventId),
+    queryFn: async () =>
+      (await eventsApi.detail(eventId) as { data: EventDetail }).data,
+  });
+
+  const rsvp = useJoinEvent(eventId, {
+    onSuccess: () => {
       showToast('RSVP confirmed!', 'success');
     },
   });

@@ -95,12 +95,10 @@ describe('Profile flow integration', () => {
   it('useProfileEditor syncs from profile and saves changes', async () => {
     const mockUpdateProfileFn = jest.fn().mockResolvedValue(undefined);
     const mockUpdateFitnessFn = jest.fn().mockResolvedValue(undefined);
-    const mockRefetch = jest.fn().mockResolvedValue(undefined);
 
     const { result } = renderHook(() =>
       useProfileEditor({
         profile: fakeUser,
-        refetch: mockRefetch,
         updateProfile: mockUpdateProfileFn,
         updateFitness: mockUpdateFitnessFn,
       }),
@@ -145,7 +143,6 @@ describe('Profile flow integration', () => {
         intensityLevel: 'high',
       }),
     );
-    expect(mockRefetch).toHaveBeenCalled();
     expect(result.current.editMode).toBe(false);
   });
 
@@ -154,7 +151,6 @@ describe('Profile flow integration', () => {
     const { result } = renderHook(() =>
       useProfileEditor({
         profile: fakeUser,
-        refetch: jest.fn(),
         updateProfile: jest.fn(),
         updateFitness: jest.fn(),
       }),
@@ -245,10 +241,19 @@ describe('Profile flow integration', () => {
       });
     });
 
-    // AuthStore should have been updated with the new profile data
+    // authStore now keeps only the session projection, not the full profile payload
     const authState = useAuthStore.getState();
-    expect(authState.user?.profile?.bio).toBe('New bio from server');
-    expect(authState.user?.profile?.city).toBe('Boulder');
+    expect(authState.user).toEqual({
+      id: 'u-1',
+      email: 'alice@brdg.local',
+      firstName: 'Alice',
+      isOnboarded: true,
+      profile: {
+        intentDating: true,
+        intentWorkout: false,
+        intentFriends: true,
+      },
+    });
   });
 
   // -- Update fitness syncs user back into authStore ------------------
@@ -277,7 +282,17 @@ describe('Profile flow integration', () => {
     });
 
     const authState = useAuthStore.getState();
-    expect(authState.user?.fitnessProfile?.intensityLevel).toBe('ADVANCED');
+    expect(authState.user).toEqual({
+      id: 'u-1',
+      email: 'alice@brdg.local',
+      firstName: 'Alice',
+      isOnboarded: true,
+      profile: {
+        intentDating: true,
+        intentWorkout: true,
+        intentFriends: false,
+      },
+    });
   });
 
   // -- Toggle activity in editor -----------------------------------------
@@ -285,7 +300,6 @@ describe('Profile flow integration', () => {
     const { result } = renderHook(() =>
       useProfileEditor({
         profile: fakeUser,
-        refetch: jest.fn(),
         updateProfile: jest.fn(),
         updateFitness: jest.fn(),
       }),

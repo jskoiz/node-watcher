@@ -43,8 +43,14 @@ jest.mock('../../src/api/tokenStorage', () => ({
   }),
 }));
 
+const mockQueryClientClear = jest.fn();
+const mockQueryClientSetQueryData = jest.fn();
+
 jest.mock('../../src/lib/query/queryClient', () => ({
-  queryClient: { clear: jest.fn() },
+  queryClient: {
+    clear: (...args: unknown[]) => mockQueryClientClear(...args),
+    setQueryData: (...args: unknown[]) => mockQueryClientSetQueryData(...args),
+  },
 }));
 
 jest.mock('../../src/services/pushRegistration', () => ({
@@ -94,7 +100,12 @@ describe('Auth flow integration', () => {
     expect(mockLogin).toHaveBeenCalledWith({ email: 'alice@brdg.local', password: 'secret' });
     expect(mockTokenBucket.value).toBe('jwt-abc');
     expect(result.current.token).toBe('jwt-abc');
-    expect(result.current.user).toEqual(fakeUser);
+    expect(result.current.user).toEqual({
+      id: 'u-1',
+      email: 'alice@brdg.local',
+      firstName: 'Alice',
+      isOnboarded: true,
+    });
   });
 
   // -- Signup -> store token -> expose user ---------------------------
@@ -132,7 +143,12 @@ describe('Auth flow integration', () => {
 
     expect(mockMe).toHaveBeenCalledWith('jwt-persisted');
     expect(result.current.token).toBe('jwt-persisted');
-    expect(result.current.user).toEqual(fakeUser);
+    expect(result.current.user).toEqual({
+      id: 'u-1',
+      email: 'alice@brdg.local',
+      firstName: 'Alice',
+      isOnboarded: true,
+    });
     expect(result.current.isLoading).toBe(false);
   });
 
@@ -195,8 +211,8 @@ describe('Auth flow integration', () => {
     expect(result.current.user).toBeNull();
     expect(mockTokenBucket.value).toBeNull();
 
-    const { queryClient } = require('../../src/lib/query/queryClient');
-    expect(queryClient.clear).toHaveBeenCalled();
+    expect(mockQueryClientClear).toHaveBeenCalled();
+    expect(mockQueryClientSetQueryData).not.toHaveBeenCalledWith(expect.anything(), undefined);
   });
 
   // -- Login failure propagates error ---------------------------------

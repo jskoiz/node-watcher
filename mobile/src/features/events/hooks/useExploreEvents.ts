@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
+import type { EventSummary } from '../../../api/types';
 import { eventsApi } from '../../../services/api';
 import { queryKeys } from '../../../lib/query/queryKeys';
 
 export function useExploreEvents() {
   const query = useQuery({
-    queryKey: queryKeys.events.list,
-    queryFn: async () => (await eventsApi.list()).data || [],
+    queryKey: queryKeys.events.list(),
+    queryFn: async () =>
+      (await eventsApi.list() as { data: EventSummary[] | null }).data || [],
     staleTime: 60_000,
   });
 

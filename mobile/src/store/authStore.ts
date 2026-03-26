@@ -4,6 +4,7 @@ import { authApi } from "../services/api";
 import { normalizeApiError } from "../api/errors";
 import { getToken, setToken, deleteToken } from "../api/tokenStorage";
 import { queryClient } from "../lib/query/queryClient";
+import { queryKeys } from "../lib/query/queryKeys";
 import { deregisterPushToken } from "../services/pushRegistration";
 import type { User } from "../api/types";
 
@@ -20,13 +21,26 @@ interface SignupPayload {
   gender: string;
 }
 
-// NOTE: `user` is duplicated here and in the React Query profile cache
-// (via useProfile). Several screens (HomeScreen, OnboardingScreen, ExploreScreen,
-// MyEventsScreen) read `authStore.user` for lightweight data like `id` and
-// `firstName`. Ideally screens would read exclusively from useProfile and this
-// store would only hold `token` + auth status, but that migration touches many
-// screens. Until then, profile mutation hooks sync back into this store via
-// `setUser` in their onSuccess callbacks to keep the two sources consistent.
+function toSessionUser(user: User | null): User | null {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    isOnboarded: user.isOnboarded,
+    profile: user.profile
+      ? {
+          intentDating: user.profile.intentDating,
+          intentWorkout: user.profile.intentWorkout,
+          intentFriends: user.profile.intentFriends,
+        }
+      : undefined,
+  };
+}
+
 interface AuthState {
   token: string | null;
   user: User | null;
@@ -37,6 +51,7 @@ interface AuthState {
   deleteAccount: () => Promise<void>;
   logout: () => Promise<void>;
   loadToken: () => Promise<void>;
+  setSession: (token: string, user: User) => void;
   setUser: (user: User | null) => void;
 }
 
@@ -45,17 +60,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: true,
 
-  clearSession: () => set({ token: null, user: null }),
+  clearSession: () => set({ token: null, user: null, isLoading: false }),
 
-  setUser: (user) => set({ user }),
+  setSession: (token, user) => {
+    queryClient.setQueryData(queryKeys.profile.current(), user);
+    set({ token, user: toSessionUser(user), isLoading: false });
+  },
+
+  setUser: (user) => set({ user: toSessionUser(user) }),
 
   login: async (data) => {
     try {
-      const response = await authApi.login(data);
+      const response = await authApi.login(data) as { data: { access_token: string; user: User } };
       const { access_token, user } = response.data;
       await setToken(access_token);
-      set({ token: access_token, user });
-      Sentry.setUser({ id: user.id, email: user.email });
+      get().setSession(access_token, user);
+      Sentry.setUser({ id: user.id, email: user.email ?? undefined });
     } catch (error) {
       throw normalizeApiError(error);
     }
@@ -63,11 +83,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signup: async (data) => {
     try {
-      const response = await authApi.signup(data);
+      const response = await authApi.signup(data) as { data: { access_token: string; user: User } };
       const { access_token, user } = response.data;
       await setToken(access_token);
-      set({ token: access_token, user });
-      Sentry.setUser({ id: user.id, email: user.email });
+      get().setSession(access_token, user);
+      Sentry.setUser({ id: user.id, email: user.email ?? undefined });
     } catch (error) {
       throw normalizeApiError(error);
     }
@@ -108,8 +128,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
-      const response = await authApi.me(token);
-      set({ token, user: response.data, isLoading: false });
+      const response = await authApi.me(token) as { data: User };
+      get().setSession(token, response.data);
     } catch (err: unknown) {
       const normalized = normalizeApiError(err);
       if (normalized.isUnauthorized || normalized.status === 403) {

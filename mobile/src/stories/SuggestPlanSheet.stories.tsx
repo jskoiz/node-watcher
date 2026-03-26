@@ -37,7 +37,7 @@ function SuggestPlanSheetStory({ events }: { events: EventSummary[] }) {
     <QuerySeededSheetStory
       buttonLabel="Open plan picker"
       queryData={events}
-      queryKey={queryKeys.events.mine}
+      queryKey={queryKeys.events.mine()}
     >
       {({ close, controller }) => (
         <SuggestPlanSheet

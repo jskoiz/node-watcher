@@ -72,7 +72,7 @@ export function MatchPickerSheet({
 }) {
   const theme = useTheme();
   const { data: matches, isLoading } = useQuery({
-    queryKey: queryKeys.matches.list,
+    queryKey: queryKeys.matches.list(),
     queryFn: async () => (await matchesApi.list()).data || [],
     enabled: controller.visible,
   });

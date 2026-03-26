@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { createQueryTestHarness } from '../../../../lib/testing/queryTestHarness';
+import { queryKeys } from '../../../../lib/query/queryKeys';
 import { useNotifications } from '../useNotifications';
 
 const mockList = jest.fn();
@@ -93,7 +94,9 @@ describe('useNotifications', () => {
 
     await waitFor(() => expect(result.current.notifications[0]?.readAt).toBe(updatedNotification.readAt));
     expect(result.current.unreadCount).toBe(1);
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.notifications.list(),
+    });
   });
 
   it('rolls back markRead failures without invalidating the list query', async () => {
@@ -120,7 +123,9 @@ describe('useNotifications', () => {
       await expect(markReadPromise!).rejects.toThrow('Network error');
     });
 
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.notifications.list(),
+    });
   });
 
   it('optimistically marks all notifications read without invalidating the list query', async () => {
@@ -144,7 +149,9 @@ describe('useNotifications', () => {
     await waitFor(() => expect(result.current.unreadCount).toBe(0));
     expect(result.current.notifications.every((item) => Boolean(item.readAt))).toBe(true);
 
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.notifications.list(),
+    });
   });
 
   it('rolls back markAllRead failures without invalidating the list query', async () => {
@@ -171,6 +178,8 @@ describe('useNotifications', () => {
       await expect(markAllReadPromise!).rejects.toThrow('Network error');
     });
 
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.notifications.list(),
+    });
   });
 });

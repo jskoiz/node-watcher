@@ -56,6 +56,7 @@ let devAutoLoginDone = false;
 function useDevAutoLogin() {
   const token = useAuthStore((s) => s.token);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const setSession = useAuthStore((s) => s.setSession);
 
   useEffect(() => {
     if (!__DEV__ || isLoading || token || devAutoLoginDone) return;
@@ -79,13 +80,13 @@ function useDevAutoLogin() {
         const { STORAGE_KEYS } = require("../constants/storage");
         const SecureStore = require("expo-secure-store");
         await SecureStore.setItemAsync(STORAGE_KEYS.accessToken, data.access_token);
-        useAuthStore.setState({ token: data.access_token, user: data.user, isLoading: false });
+        setSession(data.access_token, data.user);
       } catch (e: any) {
         devAutoLoginDone = false;
         console.warn("[dev-auto-login]", e?.message || e);
       }
     })();
-  }, [token, isLoading]);
+  }, [isLoading, setSession, token]);
 }
 
 export default function AppNavigator() {

@@ -5,8 +5,9 @@ import { queryKeys } from '../../../lib/query/queryKeys';
 
 export function useUnreadNotificationCount() {
   const query = useQuery({
-    queryKey: queryKeys.notifications.list,
-    queryFn: async () => (await notificationsApi.list()).data || [],
+    queryKey: queryKeys.notifications.list(),
+    queryFn: async () =>
+      (await notificationsApi.list() as { data: AppNotification[] | null }).data || [],
     select: (notifications: AppNotification[]) =>
       notifications.filter((item) => !item.readAt).length,
   });

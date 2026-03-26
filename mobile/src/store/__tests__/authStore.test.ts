@@ -1,6 +1,8 @@
-import { useAuthStore } from '../authStore';
+import type { User } from '../../api/types';
+import { deleteToken, getToken, setToken } from '../../api/tokenStorage';
+import { queryKeys } from '../../lib/query/queryKeys';
 import { authApi } from '../../services/api';
-import { getToken, setToken, deleteToken } from '../../api/tokenStorage';
+import { useAuthStore } from '../authStore';
 
 jest.mock('@sentry/react-native', () => ({
   setUser: jest.fn(),
@@ -18,8 +20,13 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(),
 }));
 
+const mockQueryClientClear = jest.fn();
+const mockQueryClientSetQueryData = jest.fn();
 jest.mock('../../lib/query/queryClient', () => ({
-  queryClient: { clear: jest.fn() },
+  queryClient: {
+    clear: (...args: unknown[]) => mockQueryClientClear(...args),
+    setQueryData: (...args: unknown[]) => mockQueryClientSetQueryData(...args),
+  },
 }));
 
 const mockDeregisterPushToken = jest.fn().mockResolvedValue(undefined);
@@ -41,6 +48,33 @@ const mockSetToken = setToken as jest.MockedFunction<typeof setToken>;
 const mockDeleteToken = deleteToken as jest.MockedFunction<typeof deleteToken>;
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 
+function createUser(
+  overrides: Partial<User> & {
+    profile?: Partial<NonNullable<User['profile']>>;
+  } = {},
+): User {
+  const base: User = {
+    id: 'u1',
+    email: 'alice@example.com',
+    firstName: 'Alice',
+    isOnboarded: true,
+    profile: {
+      intentDating: false,
+      intentWorkout: true,
+      intentFriends: false,
+    },
+  };
+
+  return {
+    ...base,
+    ...overrides,
+    profile: {
+      ...base.profile,
+      ...(overrides.profile ?? {}),
+    },
+  };
+}
+
 describe('authStore', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -48,53 +82,56 @@ describe('authStore', () => {
   });
 
   describe('deleteAccount', () => {
-    it('clears token from secure storage and clears in-memory session on success', async () => {
-      mockAuthApi.deleteAccount.mockResolvedValueOnce({ data: undefined } as any);
+    it('clears token from secure storage, clears the query cache, and clears the session on success', async () => {
+      mockAuthApi.deleteAccount.mockResolvedValueOnce({ data: undefined } as never);
       mockDeleteToken.mockResolvedValueOnce(undefined);
 
-      useAuthStore.setState({ token: 'tok', user: { id: 'u1' } });
+      useAuthStore.setState({ token: 'tok', user: createUser(), isLoading: false });
 
       await useAuthStore.getState().deleteAccount();
 
+      expect(mockQueryClientClear).toHaveBeenCalled();
       expect(mockDeleteToken).toHaveBeenCalled();
       expect(useAuthStore.getState().token).toBeNull();
       expect(useAuthStore.getState().user).toBeNull();
     });
 
     it('throws normalized error and does not clear session when API call fails', async () => {
-      const apiError = Object.assign(new Error('Forbidden'), { response: { status: 403, data: {} } });
+      const apiError = Object.assign(new Error('Forbidden'), {
+        response: { status: 403, data: {} },
+      });
       mockAuthApi.deleteAccount.mockRejectedValueOnce(apiError);
 
-      useAuthStore.setState({ token: 'tok', user: { id: 'u1' } });
+      useAuthStore.setState({ token: 'tok', user: createUser(), isLoading: false });
 
       await expect(useAuthStore.getState().deleteAccount()).rejects.toMatchObject({
         isNetworkError: false,
         isUnauthorized: false,
       });
 
-      // Session should remain intact — the account was not deleted
       expect(useAuthStore.getState().token).toBe('tok');
-      expect(useAuthStore.getState().user).toEqual({ id: 'u1' });
+      expect(useAuthStore.getState().user).toEqual(createUser());
       expect(mockDeleteToken).not.toHaveBeenCalled();
+      expect(mockQueryClientClear).not.toHaveBeenCalled();
     });
 
     it('still clears in-memory session even when secure storage deletion throws', async () => {
-      mockAuthApi.deleteAccount.mockResolvedValueOnce({ data: undefined } as any);
+      mockAuthApi.deleteAccount.mockResolvedValueOnce({ data: undefined } as never);
       mockDeleteToken.mockRejectedValueOnce(new Error('Storage unavailable'));
 
-      useAuthStore.setState({ token: 'tok', user: { id: 'u1' } });
+      useAuthStore.setState({ token: 'tok', user: createUser(), isLoading: false });
 
       await expect(useAuthStore.getState().deleteAccount()).rejects.toThrow(
         'Storage unavailable',
       );
 
-      // But the in-memory session MUST be cleared regardless
+      expect(mockQueryClientClear).toHaveBeenCalled();
       expect(useAuthStore.getState().token).toBeNull();
       expect(useAuthStore.getState().user).toBeNull();
     });
 
     it('does not wait for push-token deregistration before clearing the session', async () => {
-      mockAuthApi.deleteAccount.mockResolvedValueOnce({ data: undefined } as any);
+      mockAuthApi.deleteAccount.mockResolvedValueOnce({ data: undefined } as never);
       mockDeleteToken.mockResolvedValueOnce(undefined);
 
       let resolveDeregister: (() => void) | undefined;
@@ -103,12 +140,13 @@ describe('authStore', () => {
       });
       mockDeregisterPushToken.mockReturnValueOnce(deregisterPromise);
 
-      useAuthStore.setState({ token: 'tok', user: { id: 'u1' } });
+      useAuthStore.setState({ token: 'tok', user: createUser(), isLoading: false });
 
       const deleteAccountPromise = useAuthStore.getState().deleteAccount();
       await Promise.resolve();
       await Promise.resolve();
 
+      expect(mockQueryClientClear).toHaveBeenCalled();
       expect(mockDeleteToken).toHaveBeenCalled();
       expect(useAuthStore.getState().token).toBeNull();
       expect(useAuthStore.getState().user).toBeNull();
@@ -119,13 +157,14 @@ describe('authStore', () => {
   });
 
   describe('logout', () => {
-    it('removes token from secure storage and clears session', async () => {
+    it('removes token from secure storage, clears the query cache, and clears the session', async () => {
       mockDeleteToken.mockResolvedValueOnce(undefined);
 
-      useAuthStore.setState({ token: 'tok', user: { id: 'u1' } });
+      useAuthStore.setState({ token: 'tok', user: createUser(), isLoading: false });
 
       await useAuthStore.getState().logout();
 
+      expect(mockQueryClientClear).toHaveBeenCalled();
       expect(mockDeleteToken).toHaveBeenCalled();
       expect(useAuthStore.getState().token).toBeNull();
       expect(useAuthStore.getState().user).toBeNull();
@@ -134,7 +173,7 @@ describe('authStore', () => {
     it('deregisters push token before clearing session', async () => {
       mockDeleteToken.mockResolvedValueOnce(undefined);
 
-      useAuthStore.setState({ token: 'tok', user: { id: 'u1' } });
+      useAuthStore.setState({ token: 'tok', user: createUser(), isLoading: false });
 
       await useAuthStore.getState().logout();
 
@@ -150,12 +189,13 @@ describe('authStore', () => {
       });
       mockDeregisterPushToken.mockReturnValueOnce(deregisterPromise);
 
-      useAuthStore.setState({ token: 'tok', user: { id: 'u1' } });
+      useAuthStore.setState({ token: 'tok', user: createUser(), isLoading: false });
 
       const logoutPromise = useAuthStore.getState().logout();
       await Promise.resolve();
       await Promise.resolve();
 
+      expect(mockQueryClientClear).toHaveBeenCalled();
       expect(mockDeleteToken).toHaveBeenCalled();
       expect(useAuthStore.getState().token).toBeNull();
       expect(useAuthStore.getState().user).toBeNull();
@@ -165,19 +205,65 @@ describe('authStore', () => {
     });
   });
 
+  describe('session sync', () => {
+    it('seeds the profile cache and stores only the session slice when setSession is used', () => {
+      const user = createUser({
+        profile: {
+          intentDating: true,
+          intentWorkout: false,
+          intentFriends: true,
+        },
+      });
+
+      useAuthStore.getState().setSession('new-token', user);
+
+      expect(mockQueryClientSetQueryData).toHaveBeenCalledWith(
+        queryKeys.profile.current(),
+        user,
+      );
+      expect(useAuthStore.getState().token).toBe('new-token');
+      expect(useAuthStore.getState().user).toEqual({
+        id: 'u1',
+        email: 'alice@example.com',
+        firstName: 'Alice',
+        isOnboarded: true,
+        profile: {
+          intentDating: true,
+          intentWorkout: false,
+          intentFriends: true,
+        },
+      });
+      expect(useAuthStore.getState().isLoading).toBe(false);
+    });
+  });
+
   describe('login', () => {
-    it('persists token and updates store on success', async () => {
-      const user = { id: 'u1', firstName: 'Alice' };
+    it('persists token, seeds the profile cache, and updates the store on success', async () => {
+      const user = createUser();
       mockAuthApi.login.mockResolvedValueOnce({
         data: { access_token: 'new-token', user },
-      } as any);
+      } as never);
       mockSetToken.mockResolvedValueOnce(undefined);
 
       await useAuthStore.getState().login({ email: 'a@b.com', password: 'pass' });
 
       expect(mockSetToken).toHaveBeenCalledWith('new-token');
+      expect(mockQueryClientSetQueryData).toHaveBeenCalledWith(
+        queryKeys.profile.current(),
+        user,
+      );
       expect(useAuthStore.getState().token).toBe('new-token');
-      expect(useAuthStore.getState().user).toEqual(user);
+      expect(useAuthStore.getState().user).toEqual({
+        id: 'u1',
+        email: 'alice@example.com',
+        firstName: 'Alice',
+        isOnboarded: true,
+        profile: {
+          intentDating: false,
+          intentWorkout: true,
+          intentFriends: false,
+        },
+      });
     });
 
     it('throws normalized error on API failure', async () => {
@@ -202,17 +288,32 @@ describe('authStore', () => {
       expect(useAuthStore.getState().isLoading).toBe(false);
       expect(useAuthStore.getState().token).toBeNull();
       expect(useAuthStore.getState().user).toBeNull();
+      expect(mockQueryClientSetQueryData).not.toHaveBeenCalled();
     });
 
-    it('restores token and user when stored token is valid', async () => {
-      const user = { id: 'u1' };
+    it('restores token, seeds the profile cache, and stores the session slice when stored token is valid', async () => {
+      const user = createUser();
       mockGetToken.mockResolvedValueOnce('stored-token');
-      mockAuthApi.me.mockResolvedValueOnce({ data: user } as any);
+      mockAuthApi.me.mockResolvedValueOnce({ data: user } as never);
 
       await useAuthStore.getState().loadToken();
 
+      expect(mockQueryClientSetQueryData).toHaveBeenCalledWith(
+        queryKeys.profile.current(),
+        user,
+      );
       expect(useAuthStore.getState().token).toBe('stored-token');
-      expect(useAuthStore.getState().user).toEqual(user);
+      expect(useAuthStore.getState().user).toEqual({
+        id: 'u1',
+        email: 'alice@example.com',
+        firstName: 'Alice',
+        isOnboarded: true,
+        profile: {
+          intentDating: false,
+          intentWorkout: true,
+          intentFriends: false,
+        },
+      });
       expect(useAuthStore.getState().isLoading).toBe(false);
     });
 
@@ -251,7 +352,6 @@ describe('authStore', () => {
     it('keeps token on network error so the app can retry later', async () => {
       const networkError = Object.assign(new Error('Network Error'), {
         isAxiosError: true,
-        // no response property — indicates a network-level failure
       });
       mockGetToken.mockResolvedValueOnce('valid-token');
       mockAuthApi.me.mockRejectedValueOnce(networkError);

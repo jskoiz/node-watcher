@@ -37,13 +37,11 @@ export default function ProfileScreen({ navigation }: MainTabScreenProps<'You'>)
   const knownLocationSuggestions = useKnownLocationSuggestions();
   const editor = useProfileEditor({
     profile,
-    refetch,
     updateFitness,
     updateProfile,
   });
   const photos = usePhotoManager({
     profile,
-    refetch,
     uploadPhoto,
     updatePhoto,
     deletePhoto,

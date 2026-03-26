@@ -12,14 +12,12 @@ export type PhotoOperationState =
 
 export function usePhotoManager({
   profile,
-  refetch,
   uploadPhoto,
   updatePhoto,
   deletePhoto,
   setError,
 }: {
   profile: User | null;
-  refetch: () => Promise<unknown>;
   uploadPhoto: (payload: {
     uri: string;
     mimeType?: string | null;
@@ -62,7 +60,6 @@ export function usePhotoManager({
         },
       });
       void triggerSuccessHaptic();
-      await refetch();
       setPhotoOperation(null);
     } catch (err) {
       setPhotoOperation(null);
@@ -82,7 +79,6 @@ export function usePhotoManager({
         updatePhoto({ photoId: reorderPlan.targetPhotoId, payload: { sortOrder: reorderPlan.currentSortOrder } }),
       ]);
       void triggerSelectionHaptic();
-      await refetch();
       setPhotoOperation(null);
     } catch (err) {
       setPhotoOperation(null);
@@ -100,7 +96,6 @@ export function usePhotoManager({
         setPhotoOperation({ type: 'primary', photoId, label: 'Setting primary photo\u2026' });
         await updatePhoto({ photoId, payload: { isPrimary: true } });
         void triggerSelectionHaptic();
-        await refetch();
         setPhotoOperation(null);
       } catch (err) {
         setPhotoOperation(null);
@@ -115,7 +110,6 @@ export function usePhotoManager({
         setPhotoOperation({ type: 'delete', photoId, label: 'Removing photo\u2026' });
         await deletePhoto(photoId);
         void triggerSuccessHaptic();
-        await refetch();
         setPhotoOperation(null);
       } catch (err) {
         setPhotoOperation(null);

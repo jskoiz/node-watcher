@@ -4,7 +4,7 @@ import { queryKeys } from '../../../lib/query/queryKeys';
 
 export function useProfileCompleteness() {
   const query = useQuery({
-    queryKey: queryKeys.discovery.profileCompleteness,
+    queryKey: queryKeys.discovery.profileCompleteness(),
     queryFn: async () => (await discoveryApi.profileCompleteness()).data,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

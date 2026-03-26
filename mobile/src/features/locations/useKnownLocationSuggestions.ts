@@ -5,13 +5,13 @@ import { extractKnownLocationSuggestions } from './locationSuggestions';
 
 export function useKnownLocationSuggestions() {
   const eventsList = useQuery({
-    queryKey: queryKeys.events.list,
+    queryKey: queryKeys.events.list(),
     queryFn: () => [] as EventSummary[],
     enabled: false,
   });
 
   const mine = useQuery({
-    queryKey: queryKeys.events.mine,
+    queryKey: queryKeys.events.mine(),
     queryFn: () => [] as EventSummary[],
     enabled: false,
   });

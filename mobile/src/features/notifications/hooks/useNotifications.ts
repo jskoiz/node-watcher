@@ -5,7 +5,7 @@ import type { AppNotification } from '../../../api/types';
 import { queryKeys } from '../../../lib/query/queryKeys';
 
 function getNotificationList() {
-  return queryKeys.notifications.list;
+  return queryKeys.notifications.list();
 }
 
 export function useNotifications() {
@@ -13,12 +13,14 @@ export function useNotifications() {
 
   const query = useQuery({
     queryKey: getNotificationList(),
-    queryFn: async () => (await notificationsApi.list()).data || [],
+    queryFn: async () =>
+      (await notificationsApi.list() as { data: AppNotification[] | null }).data || [],
     staleTime: 60_000,
   });
 
   const markRead = useMutation({
-    mutationFn: async (id: string) => (await notificationsApi.markRead(id)).data,
+    mutationFn: async (id: string) =>
+      (await notificationsApi.markRead(id) as { data: AppNotification }).data,
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: getNotificationList() });
       const previous =
