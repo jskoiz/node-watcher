@@ -1,7 +1,8 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { lightTheme } from '../../../../theme/tokens';
-import { ProfileDetailHero, ProfileDetailInfo } from '../ProfileDetailSections';
+import { ProfileDetailActions, ProfileDetailHero, ProfileDetailInfo } from '../ProfileDetailSections';
 
 const mockLightTheme = lightTheme;
 
@@ -81,5 +82,29 @@ describe('ProfileDetailSections', () => {
     expect(onReport).toHaveBeenCalledTimes(1);
     expect(onBlock).not.toHaveBeenCalled();
     expect(onBack).not.toHaveBeenCalled();
+  });
+
+  it('renders the bottom action rail as a solid surface with safe-area padding', () => {
+    render(
+      <ProfileDetailActions
+        bottomInset={34}
+        onLike={jest.fn()}
+        onPass={jest.fn()}
+        submitting={false}
+      />,
+    );
+
+    const actionBar = screen.getByTestId('profile-detail-actions');
+    const flattenedStyle = StyleSheet.flatten(actionBar.props.style);
+
+    expect(screen.getByLabelText('Like')).toBeTruthy();
+    expect(flattenedStyle).toEqual(
+      expect.objectContaining({
+        backgroundColor: lightTheme.background,
+        borderTopColor: lightTheme.border,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        paddingBottom: 34,
+      }),
+    );
   });
 });

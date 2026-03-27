@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import AppBackButton from '../../../components/ui/AppBackButton';
@@ -271,9 +271,17 @@ export function ProfileDetailActions({
   const theme = useTheme();
 
   return (
-    <LinearGradient
-      colors={['transparent', theme.background, theme.background]}
-      style={[styles.actionBar, { paddingBottom: Math.max(bottomInset, spacing.xxl) }]}
+    <View
+      testID="profile-detail-actions"
+      style={[
+        styles.actionBar,
+        {
+          backgroundColor: theme.background,
+          borderTopColor: theme.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          paddingBottom: Math.max(bottomInset, spacing.xxl),
+        },
+      ]}
     >
       <View style={styles.actionRow}>
         <Button
@@ -292,7 +300,7 @@ export function ProfileDetailActions({
           style={styles.actionBtnPrimary}
         />
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 

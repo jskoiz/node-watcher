@@ -333,7 +333,7 @@ resolve_native_prep() {
       ;;
     auto)
       fast_path_json="$(
-        node "$ROOT_DIR/scripts/release-ios-fast-path.mjs" classify --cwd "$ROOT_DIR"
+        cd "$ROOT_DIR" && node ./scripts/release-ios-fast-path.mjs classify --cwd "$ROOT_DIR"
       )"
       export NATIVE_PREP="$(json_field "$fast_path_json" nativePrep)"
       export NATIVE_PREP_REASON="$(json_field "$fast_path_json" reason)"

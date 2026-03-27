@@ -66,9 +66,9 @@ function ProfileDetailInfoStory() {
 
 function ProfileDetailActionsStory() {
   return (
-    <View style={{ height: 220, width: '100%' }}>
+    <View style={{ height: 240, width: '100%' }}>
       <ProfileDetailActions
-        bottomInset={0}
+        bottomInset={34}
         onLike={() => undefined}
         onPass={() => undefined}
         submitting={false}
