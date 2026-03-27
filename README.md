@@ -22,30 +22,29 @@ If you've ever had multiple projects fighting over ports 3000, 5173, or 8081 and
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- Swift 6.0+ toolchain (Xcode 16+)
 
 ## Install
 
+### Download (recommended)
+
+Grab the latest signed and notarized `.app` from [GitHub Releases](https://github.com/jskoiz/node-watcher/releases/latest), unzip, and drag to Applications.
+
+### Homebrew
+
+```bash
+brew tap jskoiz/nodewatcher
+brew install --cask nodewatcher
+```
+
 ### Build from source
+
+Requires Swift 6.0+ (Xcode 16+):
 
 ```bash
 git clone https://github.com/jskoiz/node-watcher.git
 cd node-watcher
-swift build -c release
-```
-
-### Run the app
-
-```bash
-# As a menu bar app
 ./Scripts/package_app.sh
 open .build/NodeWatcher.app
-
-# Or directly (development mode)
-swift run NodeTrackerApp
-
-# With sample data (no real processes needed)
-swift run NodeTrackerApp --sample-data
 ```
 
 ### CLI
