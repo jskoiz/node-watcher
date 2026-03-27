@@ -1,13 +1,20 @@
-# NodeWatcher
+<p align="center">
+  <h1 align="center">NodeWatcher</h1>
+  <p align="center">
+    A macOS menu bar app that shows which local ports are in use, who owns them, and whether it's your dev server or something blocking it.
+  </p>
+  <p align="center">
+    <a href="https://github.com/jskoiz/node-watcher/actions/workflows/ci.yml"><img src="https://github.com/jskoiz/node-watcher/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/jskoiz/node-watcher/releases/latest"><img src="https://img.shields.io/github/v/release/jskoiz/node-watcher?label=release&color=green" alt="Latest Release"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+    <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-black.svg" alt="macOS 14+"></a>
+    <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift 6.0"></a>
+  </p>
+</p>
 
-[![CI](https://github.com/jskoiz/node-watcher/actions/workflows/ci.yml/badge.svg)](https://github.com/jskoiz/node-watcher/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black.svg)](https://www.apple.com/macos/)
-[![Swift 6.0](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
+---
 
-A macOS menu bar app that answers one question instantly: **which local ports are in use, who owns them, and is it my dev server or something blocking it?**
-
-If you've ever had multiple projects fighting over ports 3000, 5173, or 8081 and resorted to a pile of `lsof` and `ps` commands, NodeWatcher replaces that with a single glance.
+If you've ever had multiple projects fighting over ports 3000, 5173, or 8081 and resorted to a pile of `lsof` and `ps` commands — NodeWatcher replaces all of that with a single glance at your menu bar.
 
 ## Features
 
@@ -19,15 +26,13 @@ If you've ever had multiple projects fighting over ports 3000, 5173, or 8081 and
 - **Configurable** — settings for watched ports, refresh cadence, display modes, hotkeys, and grouping
 - **CLI included** — `nodetracker snapshot --json` for scripting and CI
 
-## Requirements
-
-- macOS 14 (Sonoma) or later
-
 ## Install
 
 ### Download (recommended)
 
-Grab the latest signed and notarized `.app` from [GitHub Releases](https://github.com/jskoiz/node-watcher/releases/latest), unzip, and drag to Applications.
+Grab the latest signed and notarized `.app` from [**Releases**](https://github.com/jskoiz/node-watcher/releases/latest), unzip, and drag to Applications.
+
+Requires macOS 14 (Sonoma) or later.
 
 ### Homebrew
 
@@ -47,16 +52,6 @@ cd node-watcher
 open .build/NodeWatcher.app
 ```
 
-### CLI
-
-```bash
-# Live snapshot of all listening processes
-swift run nodetracker snapshot --json
-
-# Dump test fixtures
-swift run nodetracker fixtures --name mixed --json
-```
-
 ## How It Works
 
 NodeWatcher builds a snapshot of local listening processes in a pipeline:
@@ -70,6 +65,19 @@ NodeWatcher builds a snapshot of local listening processes in a pipeline:
 
 This is why NodeWatcher says "3000 is blocked by Docker" or "8081 is owned by the Expo app in `~/projects/mobile`" instead of just "PID 12345 is using port 3000."
 
+## CLI
+
+```bash
+# Live snapshot of all listening processes
+nodetracker snapshot --json
+
+# Pretty-print with port filtering
+nodetracker snapshot --json | jq '.projects'
+
+# Dump test fixtures
+nodetracker fixtures --name mixed --json
+```
+
 ## Architecture
 
 ```
@@ -82,14 +90,37 @@ Tests/
 Scripts/
   package_app.sh      # Build and wrap into .app bundle
   dev_harness.sh      # Spin up local test listeners for manual testing
-docs/
-  product.md          # Product spec and design philosophy
-  architecture.md     # Module boundaries and data flow
-  ui.md               # Menu bar and popover layout
-  dev-harness.md      # Testing strategy and validation commands
 ```
 
 The core library (`NodeTrackerCore`) is deliberately free of AppKit/SwiftUI so it can be tested independently and reused by both the GUI and CLI.
+
+## Roadmap
+
+NodeWatcher is intentionally narrow — it solves port conflicts for local dev, and it does that well. Future work stays focused on that mission.
+
+### Planned
+
+- [ ] **Notifications** — alert when a watched port becomes blocked or freed
+- [ ] **Port history** — show which project last used a port and when
+- [ ] **Launch at login** — optional auto-start on macOS boot
+- [ ] **Quick-switch ports** — one-click to restart a dev server on a suggested alternate port
+- [ ] **Monorepo awareness** — better grouping for Turborepo/Nx/pnpm workspace projects
+- [ ] **Process tree view** — visualize parent-child relationships (e.g., which `node` spawned which)
+
+### Considering
+
+- [ ] **Menubar widgets** — compact inline port status without opening the popover
+- [ ] **Profiles** — save port configurations per project or workspace
+- [ ] **Export/share** — copy a snapshot as Markdown or JSON for bug reports
+- [ ] **Plugin system** — user-defined classifiers for non-Node dev servers (Python, Go, Ruby)
+
+### Not planned
+
+- General process manager features (use Activity Monitor)
+- Remote server monitoring (this is a local-only tool)
+- Windows/Linux support (macOS-native by design)
+
+Have an idea? [Open a feature request](https://github.com/jskoiz/node-watcher/issues/new?template=feature_request.md).
 
 ## Development
 
@@ -107,7 +138,7 @@ swift run NodeTrackerApp --sample-data
 ./Scripts/dev_harness.sh
 ```
 
-See [`docs/dev-harness.md`](docs/dev-harness.md) for the full testing strategy.
+See [`docs/dev-harness.md`](docs/dev-harness.md) for the full testing strategy and [`docs/architecture.md`](docs/architecture.md) for module boundaries.
 
 ## Contributing
 
