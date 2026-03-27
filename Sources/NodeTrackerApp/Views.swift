@@ -17,7 +17,6 @@ struct PopoverRootView: View {
         let nodeOwnedPorts = self.store.snapshot.watchedPorts
             .filter { $0.isBusy && $0.isNodeOwned && !$0.isConflict }
             .sorted(by: DisplayText.compareWatchedPorts)
-        let freePorts = self.store.snapshot.watchedPorts.filter { !$0.isBusy }
         let allProjects = SnapshotDetails.sortedProjects(self.store.snapshot.projects)
         let visibleOtherProcesses = self.store.visibleOtherProcesses()
 
@@ -28,11 +27,9 @@ struct PopoverRootView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     CompactHeader(
                         snapshot: self.store.snapshot,
-                        isRefreshing: self.store.isRefreshing,
                         useSampleData: self.store.useSampleData,
                         conflictCount: conflicts.count,
-                        projectCount: allProjects.count,
-                        freePortCount: freePorts.count
+                        projectCount: allProjects.count
                     )
 
                     if !conflicts.isEmpty {
@@ -52,9 +49,13 @@ struct PopoverRootView: View {
                         )
                     }
 
-                    if !freePorts.isEmpty {
+                    if !self.store.snapshot.nodeProcessGroups.isEmpty {
                         CompactDivider()
-                        HealthyPortsRow(ports: freePorts.map(\.port))
+                        NodeProcessSection(
+                            store: self.store,
+                            groups: self.store.snapshot.nodeProcessGroups,
+                            summary: self.store.snapshot.summary
+                        )
                     }
 
                     if self.settings.showNonNodeListeners, !visibleOtherProcesses.isEmpty {
@@ -66,7 +67,7 @@ struct PopoverRootView: View {
                 .padding(.vertical, 12)
             }
         }
-        .frame(width: 400)
+        .frame(width: 340)
         .frame(maxHeight: 500)
         .overlay(alignment: .bottomTrailing) {
             if let notice = self.store.clipboardNotice {
@@ -104,7 +105,7 @@ private struct ConflictSection: View {
             if self.conflicts.count > 1 {
                 HStack {
                     Spacer()
-                    InlineAccentButton("Copy all fixes", tone: .warning) {
+                    InlineAccentButton("Copy all fixes", tone: .conflict) {
                         self.store.copyAllSuggestedPorts()
                     }
                 }
@@ -136,7 +137,7 @@ private struct ConflictCard: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            PortBadge(port: self.status.port, tone: .warning)
+            PortBadge(port: self.status.port, tone: .conflict)
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(DisplayText.watchedPortHeadline(self.status))
@@ -158,10 +159,10 @@ private struct ConflictCard: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .background(AccentTone.warning.fill, in: RoundedRectangle(cornerRadius: 7))
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 7))
         .overlay(
             RoundedRectangle(cornerRadius: 7)
-                .stroke(AccentTone.warning.foreground.opacity(0.12), lineWidth: 0.5)
+                .stroke(Palette.mutedRed.opacity(0.30), lineWidth: 0.5)
         )
     }
 
@@ -225,7 +226,7 @@ private struct ProjectDashboardRow: View {
             } label: {
                 HStack(alignment: .center, spacing: 6) {
                     Circle()
-                        .fill(Color(nsColor: .systemGreen))
+                        .fill(Palette.mutedGreen)
                         .frame(width: 6, height: 6)
 
                     Text(self.project.displayName)
@@ -235,7 +236,7 @@ private struct ProjectDashboardRow: View {
                         .lineLimit(1)
 
                     if self.project.isWorktreeLike {
-                        StatusTag(text: "worktree", tone: .warning)
+                        StatusTag(text: "worktree", tone: .neutral)
                     }
 
                     Text(DisplayText.toolsSummary(self.project.processes))
@@ -284,24 +285,92 @@ private struct ProjectDashboardRow: View {
     }
 }
 
-// MARK: - Zone 3: Healthy Ports
+// MARK: - Node Process Groups
 
-private struct HealthyPortsRow: View {
-    let ports: [Int]
+private struct NodeProcessSection: View {
+    @ObservedObject var store: NodeTrackerStore
+    let groups: [NodeProcessGroup]
+    let summary: SnapshotSummary
+    @State private var isExpanded = true
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
-            Text("Ready")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundStyle(Readability.secondaryText)
-            HStack(spacing: 4) {
-                ForEach(self.ports, id: \.self) { port in
-                    PortBadge(port: port, tone: .healthy)
+        VStack(alignment: .leading, spacing: 4) {
+            Button {
+                self.isExpanded.toggle()
+            } label: {
+                HStack(alignment: .center, spacing: 6) {
+                    Text("Node processes")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(Readability.secondaryText)
+                    Text("\(self.summary.nodeProcessTotalCount)")
+                        .font(.caption)
+                        .foregroundStyle(Readability.secondaryText)
+                    Text("\u{00B7}")
+                        .foregroundStyle(Readability.secondaryText)
+                    Text(self.formattedTotalMemory)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(
+                            self.summary.nodeProcessTotalMemoryBytes > 2 * 1024 * 1024 * 1024
+                                ? Palette.mutedRed
+                                : Readability.secondaryText
+                        )
+                    Spacer()
+                    Image(systemName: self.isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(Readability.secondaryText)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if self.isExpanded {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(self.groups) { group in
+                        NodeProcessGroupRow(store: self.store, group: group)
+                    }
                 }
             }
-            Spacer(minLength: 0)
         }
+    }
+
+    private var formattedTotalMemory: String {
+        let mb = Double(self.summary.nodeProcessTotalMemoryBytes) / (1024 * 1024)
+        if mb >= 1024 {
+            return String(format: "%.1f GB", mb / 1024)
+        }
+        return String(format: "%.0f MB", mb)
+    }
+}
+
+private struct NodeProcessGroupRow: View {
+    @ObservedObject var store: NodeTrackerStore
+    let group: NodeProcessGroup
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 6) {
+            Text("\(self.group.count)\u{00D7}")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(Readability.secondaryText)
+                .frame(width: 28, alignment: .trailing)
+
+            Text(self.group.toolLabel)
+                .font(.caption)
+                .fontWeight(.medium)
+                .lineLimit(1)
+
+            Spacer(minLength: 4)
+
+            Text(self.group.formattedMemory)
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(Readability.secondaryText)
+
+            InlineAccentButton("Kill all", tone: .conflict) {
+                self.store.terminateGroup(self.group)
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
@@ -453,11 +522,9 @@ private struct OtherListenerSummaryRow: View {
 
 private struct CompactHeader: View {
     let snapshot: AppSnapshot
-    let isRefreshing: Bool
     let useSampleData: Bool
     let conflictCount: Int
     let projectCount: Int
-    let freePortCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -469,10 +536,6 @@ private struct CompactHeader: View {
                 Text(self.useSampleData ? "Sample data mode" : self.relativeUpdatedText)
                     .font(.caption)
                     .foregroundStyle(Readability.secondaryText)
-                if self.isRefreshing {
-                    ProgressView()
-                        .controlSize(.small)
-                }
             }
 
             self.summaryLine
@@ -494,15 +557,12 @@ private struct CompactHeader: View {
         if self.conflictCount > 0 {
             parts.append(
                 Text("\(self.conflictCount) conflict\(self.conflictCount == 1 ? "" : "s")")
-                    .foregroundColor(Color(nsColor: .systemOrange))
+                    .foregroundColor(Palette.mutedRed)
                     .fontWeight(.medium)
             )
         }
         if self.projectCount > 0 {
             parts.append(Text("\(self.projectCount) running"))
-        }
-        if self.freePortCount > 0 {
-            parts.append(Text("\(self.freePortCount) ready"))
         }
         let separator = Text("  \u{00B7}  ").foregroundColor(Readability.secondaryText)
         var result = Text("")
@@ -611,19 +671,22 @@ private struct CompactRowDivider: View {
 private enum AccentTone {
     case neutral
     case node
+    case conflict
     case warning
     case healthy
 
     var fill: Color {
         switch self {
         case .neutral:
-            return Color.primary.opacity(0.08)
+            return Color.primary.opacity(0.06)
         case .node:
-            return Color(nsColor: .systemBlue).opacity(0.20)
+            return Palette.softGreenFill
+        case .conflict:
+            return Palette.softRedFill
         case .warning:
-            return Color(nsColor: .systemOrange).opacity(0.24)
+            return Color.primary.opacity(0.08)
         case .healthy:
-            return Color(nsColor: .systemGreen).opacity(0.15)
+            return Palette.softGreenFill
         }
     }
 
@@ -632,13 +695,33 @@ private enum AccentTone {
         case .neutral:
             return .primary
         case .node:
-            return Color(nsColor: NSColor(calibratedRed: 0.06, green: 0.33, blue: 0.74, alpha: 1))
+            return Palette.mutedGreen
+        case .conflict:
+            return Palette.mutedRed
         case .warning:
-            return Color(nsColor: NSColor(calibratedRed: 0.70, green: 0.33, blue: 0.04, alpha: 1))
+            return .primary
         case .healthy:
-            return Color(nsColor: NSColor(calibratedRed: 0.14, green: 0.52, blue: 0.21, alpha: 1))
+            return Palette.mutedGreen
         }
     }
+
+    var solidBackground: Color {
+        switch self {
+        case .node, .healthy:
+            return Palette.mutedGreen
+        case .conflict, .warning:
+            return Palette.mutedRed
+        case .neutral:
+            return Color.primary.opacity(0.45)
+        }
+    }
+}
+
+private enum Palette {
+    static let mutedRed = Color(nsColor: NSColor(calibratedRed: 0.68, green: 0.32, blue: 0.30, alpha: 1))
+    static let mutedGreen = Color(nsColor: NSColor(calibratedRed: 0.30, green: 0.52, blue: 0.38, alpha: 1))
+    static let softGreenFill = Color(nsColor: NSColor(calibratedRed: 0.30, green: 0.52, blue: 0.38, alpha: 1)).opacity(0.10)
+    static let softRedFill = Color(nsColor: NSColor(calibratedRed: 0.68, green: 0.32, blue: 0.30, alpha: 1)).opacity(0.10)
 }
 
 private enum Readability {
@@ -720,10 +803,10 @@ private struct InlineAccentButton: View {
             Text(self.title)
                 .font(.caption)
                 .fontWeight(.semibold)
-                .foregroundStyle(self.tone.foreground)
+                .foregroundStyle(Color.white.opacity(0.70))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(self.tone.fill, in: Capsule())
+                .background(self.tone.solidBackground, in: Capsule())
         }
         .buttonStyle(.plain)
     }
@@ -735,15 +818,7 @@ private struct PopoverMaterialBackground: View {
     var body: some View {
         ZStack {
             VisualEffectView(material: .popover, blendingMode: .behindWindow, state: .active)
-            Color.white.opacity(0.18)
-            LinearGradient(
-                colors: [
-                    Color.white.opacity(0.18),
-                    Color.white.opacity(0.06)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            Color.white.opacity(0.10)
         }
         .ignoresSafeArea()
     }
@@ -826,16 +901,16 @@ private enum ResolutionAdvisor {
         }
 
         if tool == "ssh" || lowercasedCommand.hasPrefix("ssh ") {
-            return ResolutionAction(title: "Stop tunnel", tone: .warning, kind: .terminate)
+            return ResolutionAction(title: "Stop tunnel", tone: .conflict, kind: .terminate)
         }
 
         if let bundlePath = self.applicationBundlePath(from: command),
            bundlePath.localizedCaseInsensitiveContains("/Docker.app") {
-            return ResolutionAction(title: "Open Docker", tone: .warning, kind: .openApplication(bundlePath))
+            return ResolutionAction(title: "Open Docker", tone: .neutral, kind: .openApplication(bundlePath))
         }
 
         if ProcessActionPolicy.canTerminate(process) {
-            return ResolutionAction(title: "Stop blocker", tone: .warning, kind: .terminate)
+            return ResolutionAction(title: "Stop blocker", tone: .conflict, kind: .terminate)
         }
 
         return nil

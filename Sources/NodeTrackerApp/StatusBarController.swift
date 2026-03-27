@@ -124,9 +124,32 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
 
     private func updateStatusImage() {
-        let image = StatusChipRenderer.image(for: self.store.snapshot.summary)
-        image.isTemplate = false
-        self.statusItem.button?.image = image
+        let summary = self.store.snapshot.summary
+        guard let button = self.statusItem.button else { return }
+
+        let conflicts = summary.watchedNonNodeConflictCount
+        let hasConflicts = conflicts > 0
+
+        // Build the status text: "3 · 2.1G" or just "N" when idle
+        let statusText = StatusChipRenderer.statusText(for: summary)
+
+        // When there are conflicts, use a non-template image with a badge
+        if hasConflicts {
+            let buttonAppearance = button.effectiveAppearance
+            let image = StatusChipRenderer.imageWithBadge(
+                text: statusText,
+                conflicts: conflicts,
+                summary: summary,
+                buttonAppearance: buttonAppearance
+            )
+            image.isTemplate = false
+            button.image = image
+        } else {
+            // No conflicts: template image for auto light/dark
+            let image = StatusChipRenderer.templateImage(text: statusText, summary: summary)
+            image.isTemplate = true
+            button.image = image
+        }
     }
 
     @objc private func togglePopover(_ sender: AnyObject?) {
@@ -251,56 +274,155 @@ extension StatusBarController: UNUserNotificationCenterDelegate {
 }
 
 enum StatusChipRenderer {
-    static func image(for summary: SnapshotSummary) -> NSImage {
-        let conflicts = summary.watchedNonNodeConflictCount
-        let size = NSSize(width: conflicts > 0 ? 28 : 18, height: 18)
+
+    /// Format memory bytes into compact string: "2.1G", "362M", etc.
+    private static func formatMemory(_ bytes: Int) -> String {
+        let gb = Double(bytes) / (1024 * 1024 * 1024)
+        if gb >= 1.0 {
+            return String(format: "%.1fG", gb)
+        }
+        let mb = Double(bytes) / (1024 * 1024)
+        if mb >= 1.0 {
+            return String(format: "%.0fM", mb)
+        }
+        return "0M"
+    }
+
+    /// Build the status text for the menu bar.
+    /// Active: "3 · 2.1G" (projects · total node memory)
+    /// Idle: "N"
+    static func statusText(for summary: SnapshotSummary) -> String {
+        let projects = summary.nodeProjectCount
+        let memBytes = summary.nodeProcessTotalMemoryBytes
+
+        if projects > 0 || memBytes > 100 * 1024 * 1024 {
+            // Show project count and memory
+            let memStr = formatMemory(memBytes)
+            if projects > 0 {
+                return "\(projects) · \(memStr)"
+            }
+            return memStr
+        }
+        return "N"
+    }
+
+    /// Measure the text width for sizing the image.
+    private static func measureText(_ text: String, font: NSFont) -> CGSize {
+        let attrs: [NSAttributedString.Key: Any] = [.font: font]
+        return (text as NSString).size(withAttributes: attrs)
+    }
+
+    /// Template image (no badge) — macOS auto-inverts for dark/light.
+    static func templateImage(text: String, summary: SnapshotSummary) -> NSImage {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+        let textSize = measureText(text, font: font)
+        let padding: CGFloat = 4
+        let width = max(18, textSize.width + padding * 2)
+        let height: CGFloat = 18
+        let size = NSSize(width: width, height: height)
+
         let image = NSImage(size: size)
         image.lockFocus()
 
-        // Draw "N" glyph
+        let hasActivity = summary.nodeProjectCount > 0 || summary.watchedBusyCount > 0
+        let color: NSColor = hasActivity ? .black : .black.withAlphaComponent(0.45)
+
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
 
-        let hasActivity = summary.nodeProjectCount > 0 || summary.watchedBusyCount > 0
-        let glyphColor: NSColor = hasActivity ? .controlTextColor : .tertiaryLabelColor
-
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 12, weight: .bold),
-            .foregroundColor: glyphColor,
+            .font: font,
+            .foregroundColor: color,
             .paragraphStyle: paragraphStyle,
         ]
-        let glyph = NSAttributedString(string: "N", attributes: attrs)
-        let glyphSize = glyph.size()
-        let glyphRect = NSRect(
-            x: (18 - glyphSize.width) / 2,
-            y: (size.height - glyphSize.height) / 2,
-            width: glyphSize.width,
-            height: glyphSize.height
+        let str = NSAttributedString(string: text, attributes: attrs)
+        let strSize = str.size()
+        let rect = NSRect(
+            x: (size.width - strSize.width) / 2,
+            y: (size.height - strSize.height) / 2,
+            width: strSize.width,
+            height: strSize.height
         )
-        glyph.draw(in: glyphRect)
+        str.draw(in: rect)
 
-        // Draw red badge for conflicts
-        if conflicts > 0 {
-            let badgeSize: CGFloat = 12
-            let badgeRect = NSRect(x: size.width - badgeSize, y: size.height - badgeSize, width: badgeSize, height: badgeSize)
-            NSColor.systemOrange.setFill()
-            NSBezierPath(ovalIn: badgeRect).fill()
+        image.unlockFocus()
+        return image
+    }
 
-            let badgeAttrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 8, weight: .bold),
-                .foregroundColor: NSColor.white,
-                .paragraphStyle: paragraphStyle,
-            ]
-            let badgeText = NSAttributedString(string: "\(min(conflicts, 9))", attributes: badgeAttrs)
-            let badgeTextSize = badgeText.size()
-            let badgeTextRect = NSRect(
-                x: badgeRect.midX - badgeTextSize.width / 2,
-                y: badgeRect.midY - badgeTextSize.height / 2,
-                width: badgeTextSize.width,
-                height: badgeTextSize.height
-            )
-            badgeText.draw(in: badgeTextRect)
+    /// Non-template image with conflict badge — white circle, dark number.
+    static func imageWithBadge(
+        text: String,
+        conflicts: Int,
+        summary: SnapshotSummary,
+        buttonAppearance: NSAppearance? = nil
+    ) -> NSImage {
+        let isDark = buttonAppearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+        let textSize = measureText(text, font: font)
+        let textPadding: CGFloat = 4
+        let textWidth = max(18, textSize.width + textPadding * 2)
+        let badgeSize: CGFloat = 12
+        let badgeGap: CGFloat = 2
+        let totalWidth = textWidth + badgeGap + badgeSize
+        let height: CGFloat = 18
+        let size = NSSize(width: totalWidth, height: height)
+
+        let image = NSImage(size: size)
+        image.lockFocus()
+
+        // Draw text
+        let hasActivity = summary.nodeProjectCount > 0 || summary.watchedBusyCount > 0
+        let textColor: NSColor
+        if isDark {
+            textColor = hasActivity ? .white : .white.withAlphaComponent(0.55)
+        } else {
+            textColor = hasActivity ? .black : .black.withAlphaComponent(0.45)
         }
+
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: textColor,
+            .paragraphStyle: paragraphStyle,
+        ]
+        let str = NSAttributedString(string: text, attributes: attrs)
+        let strSize = str.size()
+        let textRect = NSRect(
+            x: (textWidth - strSize.width) / 2,
+            y: (height - strSize.height) / 2,
+            width: strSize.width,
+            height: strSize.height
+        )
+        str.draw(in: textRect)
+
+        // Draw badge: white circle with dark number
+        let badgeRect = NSRect(
+            x: totalWidth - badgeSize,
+            y: height - badgeSize,
+            width: badgeSize,
+            height: badgeSize
+        )
+        (isDark ? NSColor.white.withAlphaComponent(0.85) : NSColor.black.withAlphaComponent(0.70)).setFill()
+        NSBezierPath(ovalIn: badgeRect).fill()
+
+        let badgeTextColor: NSColor = isDark ? .black : .white
+        let badgeAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 8, weight: .bold),
+            .foregroundColor: badgeTextColor,
+            .paragraphStyle: paragraphStyle,
+        ]
+        let badgeText = NSAttributedString(string: "\(min(conflicts, 9))", attributes: badgeAttrs)
+        let badgeTextSize = badgeText.size()
+        let badgeTextRect = NSRect(
+            x: badgeRect.midX - badgeTextSize.width / 2,
+            y: badgeRect.midY - badgeTextSize.height / 2,
+            width: badgeTextSize.width,
+            height: badgeTextSize.height
+        )
+        badgeText.draw(in: badgeTextRect)
 
         image.unlockFocus()
         return image
