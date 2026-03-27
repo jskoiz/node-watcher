@@ -12,6 +12,12 @@ import type { SwipeDeckCardProps } from './swipeDeck.types';
 export const SwipeDeckCard = React.memo(
   ({ cardHeight, onPress, user }: SwipeDeckCardProps) => {
     const viewModel = buildSwipeDeckCardViewModel(user, cardHeight);
+    const [imageFailed, setImageFailed] = React.useState(false);
+    const shouldShowPhoto = Boolean(viewModel.primaryPhoto) && !imageFailed;
+
+    React.useEffect(() => {
+      setImageFailed(false);
+    }, [user.id, viewModel.primaryPhoto]);
 
     return (
       <Pressable
@@ -27,7 +33,7 @@ export const SwipeDeckCard = React.memo(
         accessibilityHint="Tap to view full profile. Swipe right to like, swipe left to pass."
       >
         <View style={styles.imageContainer}>
-          {viewModel.primaryPhoto ? (
+          {shouldShowPhoto ? (
             <Image
               source={{ uri: viewModel.primaryPhoto }}
               style={styles.image}
@@ -37,6 +43,9 @@ export const SwipeDeckCard = React.memo(
                 top: viewModel.compact ? '38%' : '41%',
               }}
               transition={180}
+              onError={() => {
+                setImageFailed(true);
+              }}
               accessibilityLabel={`Photo of ${user.firstName || 'profile'}`}
             />
           ) : (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import SwipeDeck from '../SwipeDeck';
 import {
   buildSwipeDeckCardViewModel,
@@ -41,6 +41,27 @@ jest.mock('expo-linear-gradient', () => {
 
   return {
     LinearGradient: ({ children }: { children?: React.ReactNode }) => <View>{children}</View>,
+  };
+});
+
+jest.mock('expo-image', () => {
+  const React = require('react');
+  const { Pressable } = require('react-native');
+
+  return {
+    Image: ({
+      accessibilityLabel,
+      onError,
+    }: {
+      accessibilityLabel?: string;
+      onError?: () => void;
+    }) => (
+      <Pressable
+        accessibilityRole="image"
+        accessibilityLabel={accessibilityLabel}
+        onPress={() => onError?.()}
+      />
+    ),
   };
 });
 
@@ -228,6 +249,29 @@ describe('SwipeDeck', () => {
     );
 
     expect(getByText('Kakaako · 0 km away')).toBeTruthy();
+  });
+
+  it('falls back to the placeholder when the primary photo fails to load', () => {
+    const user = {
+      id: 'u7b',
+      firstName: 'Quentin',
+      photos: [
+        {
+          storageKey: 'https://images.example.com/missing.jpg',
+          isPrimary: true,
+          isHidden: false,
+          sortOrder: 0,
+        },
+      ],
+    };
+
+    const { getByLabelText, getByText } = render(
+      <SwipeDeck data={[user]} onSwipeLeft={noop} onSwipeRight={noop} />,
+    );
+
+    fireEvent.press(getByLabelText('Photo of Quentin'));
+
+    expect(getByText('Q')).toBeTruthy();
   });
 
   it('dispatches onSwipeLeft with the correct user', () => {
