@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
-import { Button, Card } from '../../../../design/primitives';
+import { Text, TouchableOpacity } from 'react-native';
+import { Button, Card, SectionBlock } from '../../../../design/primitives';
 import { profileStyles as styles } from '../profile.styles';
 
 export function ProfileAccountDeletionSection({
@@ -11,8 +11,7 @@ export function ProfileAccountDeletionSection({
   onConfirmDeleteAccount: () => void;
 }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>Account deletion</Text>
+    <SectionBlock eyebrow="Account deletion">
       <Card style={styles.dangerCard}>
         <Text style={styles.dangerTitle}>Delete your account</Text>
         <Text style={styles.dangerBody}>
@@ -26,7 +25,7 @@ export function ProfileAccountDeletionSection({
           style={styles.deleteAccountBtn}
         />
       </Card>
-    </View>
+    </SectionBlock>
   );
 }
 
@@ -44,4 +43,3 @@ export function ProfileLogoutButton({ onLogout }: { onLogout: () => void }) {
     </TouchableOpacity>
   );
 }
-

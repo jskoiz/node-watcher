@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ProfileCompletenessMissingItem, User } from '../../../api/types';
+import { ScreenScaffold } from '../../../design/primitives';
+import { useTheme } from '../../../theme/useTheme';
 import { profileStyles as styles } from './profile.styles';
 import type { PhotoOperationState } from '../hooks/usePhotoManager';
 import { isHapticsEnabled, setHapticsEnabled, loadHapticsPreference } from '../../../lib/interaction/feedback';
@@ -118,6 +119,7 @@ export function ProfileScreenContent({
   weeklyFrequencyBand: string;
 }) {
   const [hapticsOn, setHapticsOn] = useState(isHapticsEnabled);
+  const theme = useTheme();
 
   useEffect(() => {
     loadHapticsPreference().then(setHapticsOn).catch(() => {});
@@ -131,11 +133,17 @@ export function ProfileScreenContent({
   const isSaving = isSavingFitness || isSavingProfile;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenScaffold style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor="#C4A882" />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={onRefresh}
+            tintColor={theme.accentPrimary}
+          />
+        }
       >
         <ProfileHero profile={profile} primaryGoal={primaryGoal} />
 
@@ -224,6 +232,6 @@ export function ProfileScreenContent({
 
         <ProfileLogoutButton onLogout={onLogout} />
       </ScrollView>
-    </SafeAreaView>
+    </ScreenScaffold>
   );
 }

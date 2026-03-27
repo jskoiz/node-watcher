@@ -62,8 +62,8 @@ export function SheetSelectField({
         style={[
           fieldStyles.trigger,
           {
-            backgroundColor: theme.surfaceElevated,
-            borderColor: error ? theme.danger : theme.border,
+            backgroundColor: disabled ? theme.subduedSurface : theme.fieldSurface,
+            borderColor: error ? theme.danger : theme.stroke,
             opacity: disabled ? 0.48 : 1,
           },
         ]}
@@ -81,7 +81,7 @@ export function SheetSelectField({
               {selectedOption?.label ?? placeholder}
             </Text>
           </View>
-          <Text style={{ color: theme.textMuted, fontWeight: '700' }}>Select</Text>
+          <Text style={[fieldStyles.trailingAction, { color: theme.textMuted }]}>Select</Text>
         </View>
       </Pressable>
       {error ? <Text style={[fieldStyles.errorText, { color: theme.danger }]}>{error}</Text> : null}
@@ -109,15 +109,16 @@ export function SheetSelectField({
               style={[
                 fieldStyles.optionCard,
                 {
-                  backgroundColor: selected ? theme.primarySubtle : theme.surfaceElevated,
-                  borderColor: selected ? theme.primary : theme.border,
+                  backgroundColor: selected ? theme.selectedFill : theme.surface,
+                  borderColor: selected ? theme.selectedFill : theme.stroke,
                 },
+                selected ? fieldStyles.optionCardSelected : null,
               ]}
             >
               <Text
                 style={[
                   fieldStyles.optionLabel,
-                  { color: selected ? theme.primary : theme.textPrimary },
+                  { color: selected ? theme.selectedText : theme.textPrimary },
                 ]}
               >
                 {option.label}

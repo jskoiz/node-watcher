@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
 import React, { useState } from 'react';
-import { View } from 'react-native';
 import { HomeQuickFilters } from '../features/discovery/components/HomeQuickFilters';
 import type { QuickFilterKey } from '../features/discovery/components/discoveryFilters';
 import { withStoryScreenFrame } from './support';
@@ -30,14 +29,12 @@ export const ActiveFilters: Story = {
     const [activeCount] = useState(3);
 
     return (
-      <View style={{ flex: 1, justifyContent: 'center', padding: 12, backgroundColor: '#FDFBF8' }}>
-        <HomeQuickFilters
-          activeFilterCount={activeCount}
-          activeQuickFilter={activeFilter}
-          onPressFilter={setActiveFilter}
-          onPressRefine={() => undefined}
-        />
-      </View>
+      <HomeQuickFilters
+        activeFilterCount={activeCount}
+        activeQuickFilter={activeFilter}
+        onPressFilter={setActiveFilter}
+        onPressRefine={() => undefined}
+      />
     );
   },
 };

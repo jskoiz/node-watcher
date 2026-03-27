@@ -1,9 +1,12 @@
 import { StyleSheet } from 'react-native';
+import { screenLayout } from '../../../design/primitives';
 import { lightTheme, radii, spacing, typography } from '../../../theme/tokens';
 
 const BASE = lightTheme.background;
+const SURFACE = lightTheme.surface;
 const SURFACE_ELEVATED = lightTheme.surfaceElevated;
-const ACCENT = lightTheme.accent;
+const ACCENT = lightTheme.accentPrimary;
+const CHIP_SURFACE = lightTheme.chipSurface;
 const TEXT_PRIMARY = lightTheme.textPrimary;
 const TEXT_SECONDARY = lightTheme.textSecondary;
 const TEXT_MUTED = lightTheme.textMuted;
@@ -29,93 +32,96 @@ export const createStyles = StyleSheet.create({
   },
   ambientGlow: {
     position: 'absolute',
-    top: 80,
-    right: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    opacity: 0.05,
+    top: 64,
+    right: -140,
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    opacity: 0.08,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 64,
+    paddingBottom: screenLayout.screenBottomPadding,
   },
 
   /* ── Plan summary card (CreatePlanSummaryCard) ──────────── */
   planCard: {
-    marginHorizontal: spacing.xxl,
-    marginBottom: spacing.md,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    padding: spacing.md,
+    borderRadius: 24,
+    backgroundColor: SURFACE,
+    padding: spacing.lg,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.045,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 2,
   },
   planHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  planHeaderCopy: {
+    flex: 1,
   },
   planTitle: {
     color: TEXT_PRIMARY,
     fontSize: typography.body,
     fontWeight: '800',
   },
+  planMeta: {
+    marginTop: 4,
+    fontSize: typography.caption,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
   planStepCount: {
     fontSize: typography.bodySmall,
     fontWeight: '800',
   },
-  planRow: {
+  planStack: {
+    gap: spacing.sm,
+  },
+  planStep: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  planPill: {
+    alignItems: 'center',
+    gap: spacing.md,
+    borderRadius: 18,
     paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingVertical: spacing.md,
   },
-  planPillActive: {
-    backgroundColor: 'rgba(124,106,247,0.14)',
-  },
-  planPillLabel: {
-    color: TEXT_MUTED,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  planPillLabelActive: {
-    color: TEXT_PRIMARY,
-  },
-
-  /* ── Selection cards (CreateScreenContent) ──────────────── */
-  selectionCard: {
-    marginHorizontal: spacing.xxl,
-    marginBottom: spacing.md,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    gap: spacing.sm,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+  planStepActive: {
+    shadowColor: '#B0A89E',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    elevation: 1,
   },
-  selectionEyebrow: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: TEXT_MUTED,
+  planStepMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: CHIP_SURFACE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  selectionValue: {
-    fontSize: typography.body,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
+  planStepNumber: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  planStepCopy: {
+    flex: 1,
+  },
+  planStepLabel: {
+    fontSize: typography.bodySmall,
+    fontWeight: '800',
+  },
+  planStepValue: {
+    marginTop: 2,
+    fontSize: typography.caption,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   selectionHint: {
     fontSize: typography.caption,
@@ -129,10 +135,8 @@ export const createStyles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   selectedPreview: {
-    marginHorizontal: spacing.xxl,
     borderRadius: 20,
     overflow: 'hidden',
-    marginBottom: spacing.md,
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -168,7 +172,6 @@ export const createStyles = StyleSheet.create({
     color: TEXT_PRIMARY,
   },
   activityPrompt: {
-    marginHorizontal: spacing.xxl,
     marginBottom: spacing.md,
     color: TEXT_MUTED,
     fontSize: 13,
@@ -178,7 +181,6 @@ export const createStyles = StyleSheet.create({
   activityGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: spacing.xxl,
     gap: 10,
   },
   activityTileWrap: {
@@ -201,10 +203,7 @@ export const createStyles = StyleSheet.create({
   },
 
   /* ── Shared form primitives ─────────────────────────────── */
-  formSection: {
-    paddingHorizontal: spacing.xxl,
-    marginBottom: spacing.lg,
-  },
+  formSection: { marginBottom: spacing.lg },
   sectionLabel: {
     fontSize: 10,
     fontWeight: '900',
@@ -246,10 +245,18 @@ export const createStyles = StyleSheet.create({
     fontWeight: '700',
     marginTop: spacing.sm,
   },
+  selectionError: {
+    color: ERROR,
+    fontSize: typography.caption,
+    fontWeight: '700',
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
+    paddingHorizontal: screenLayout.gutter,
+  },
 
   /* ── Feedback / submit area (CreateScreenContent) ───────── */
   feedbackWrap: {
-    marginHorizontal: spacing.xxl,
+    paddingHorizontal: screenLayout.gutter,
     marginBottom: spacing.md,
   },
   feedbackError: {
@@ -261,12 +268,8 @@ export const createStyles = StyleSheet.create({
 
   /* ── Success card (CreateSuccessCard) ───────────────────── */
   successCard: {
-    marginHorizontal: spacing.xxl,
-    marginBottom: spacing.md,
     padding: spacing.lg,
     borderRadius: radii.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.20)',
     backgroundColor: SURFACE_ELEVATED,
     gap: spacing.md,
   },
@@ -323,7 +326,8 @@ export const createStyles = StyleSheet.create({
 
   /* ── Post button ────────────────────────────────────────── */
   postBtnWrap: {
-    marginHorizontal: spacing.xxl,
+    marginHorizontal: screenLayout.gutter,
     marginTop: spacing.md,
+    backgroundColor: '#1F1915',
   },
 });

@@ -1,10 +1,9 @@
 import React from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Control, FieldErrors } from 'react-hook-form';
 import type { EventSummary } from '../../../api/types';
 import type { LocationSuggestion } from '../../locations/locationSuggestions';
-import { Button, Card } from '../../../design/primitives';
+import { Button, ScreenScaffold, SectionBlock } from '../../../design/primitives';
 import {
   AppBottomSheet,
   APP_BOTTOM_SHEET_SNAP_POINTS,
@@ -48,7 +47,7 @@ export function CreateScreenContent({
   onViewCreatedEvent,
   resetSuccessState,
   selectedActivity,
-  selectedColor,
+  selectedColor: _selectedColor,
   selectedTime,
   selectedWhen,
   skillLevel,
@@ -91,8 +90,8 @@ export function CreateScreenContent({
   const planDetailsActionLabel = getPlanDetailsActionLabel(selectedWhen, selectedTime);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={[styles.ambientGlow, { backgroundColor: selectedColor }]} pointerEvents="none" />
+    <ScreenScaffold style={styles.container}>
+      <View style={[styles.ambientGlow, { backgroundColor: '#C4A882' }]} pointerEvents="none" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
@@ -108,37 +107,42 @@ export function CreateScreenContent({
           onScrollBeginDrag={Keyboard.dismiss}
         >
           <CreateHeader />
-          <CreatePlanSummaryCard
-            selectedActivity={selectedActivity}
-            selectedColor={selectedColor}
-            selectedTime={selectedTime}
-            selectedWhen={selectedWhen}
-            where={where}
-          />
-          <Card style={styles.selectionCard}>
-            <Text style={styles.selectionEyebrow}>Activity</Text>
-            <Text style={styles.selectionValue}>{selectedActivity || 'Choose an activity'}</Text>
+          <SectionBlock spacingMode="tight">
+            <CreatePlanSummaryCard
+              selectedActivity={selectedActivity}
+              selectedColor={_selectedColor}
+              selectedTime={selectedTime}
+              selectedWhen={selectedWhen}
+              where={where}
+            />
+          </SectionBlock>
+          <SectionBlock
+            eyebrow="Activity"
+            title={selectedActivity || 'Choose an activity'}
+            description="Pick the movement first, then shape the rest of the plan around it."
+            spacingMode="tight"
+          >
             <Button
               label={selectedActivity ? 'Change activity' : 'Choose activity'}
               onPress={activitySheet.open}
               variant="secondary"
             />
-          </Card>
-          {errors.selectedActivity?.message ? <Text style={styles.inlineError}>{errors.selectedActivity.message}</Text> : null}
+          </SectionBlock>
+          {errors.selectedActivity?.message ? <Text style={styles.selectionError}>{errors.selectedActivity.message}</Text> : null}
 
-          <Card style={styles.selectionCard}>
-            <Text style={styles.selectionEyebrow}>Plan details</Text>
-            <Text style={styles.selectionValue}>
-              {formatPlanDetailsSummary(selectedWhen, selectedTime, skillLevel || '')}
-            </Text>
+          <SectionBlock
+            eyebrow="Plan details"
+            title={formatPlanDetailsSummary(selectedWhen, selectedTime, skillLevel || '')}
+            spacingMode="tight"
+          >
             <Button
               label={planDetailsActionLabel}
               onPress={timingSheet.open}
               variant="secondary"
             />
             {planDetailsHint ? <Text style={styles.selectionHint}>{planDetailsHint}</Text> : null}
-          </Card>
-          {timingError ? <Text style={styles.inlineError}>{timingError}</Text> : null}
+          </SectionBlock>
+          {timingError ? <Text style={styles.selectionError}>{timingError}</Text> : null}
 
           <CreateDetailsSection
             control={control}
@@ -159,12 +163,14 @@ export function CreateScreenContent({
           ) : null}
 
           {createdEvent ? (
-            <CreateSuccessCard
-              event={createdEvent}
-              onClear={resetSuccessState}
-              onShare={onShareCreatedEvent}
-              onViewEvent={onViewCreatedEvent}
-            />
+            <SectionBlock spacingMode="tight">
+              <CreateSuccessCard
+                event={createdEvent}
+                onClear={resetSuccessState}
+                onShare={onShareCreatedEvent}
+                onViewEvent={onViewCreatedEvent}
+              />
+            </SectionBlock>
           ) : null}
 
           <Button
@@ -172,7 +178,7 @@ export function CreateScreenContent({
             onPress={onPost}
             loading={isSubmitting}
             disabled={!canPost || isSubmitting}
-            variant="accent"
+            variant="primary"
             style={styles.postBtnWrap}
           />
         </ScrollView>
@@ -230,6 +236,6 @@ export function CreateScreenContent({
           variant="primary"
         />
       </AppBottomSheet>
-    </SafeAreaView>
+    </ScreenScaffold>
   );
 }

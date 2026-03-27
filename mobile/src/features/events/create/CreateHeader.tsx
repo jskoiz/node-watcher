@@ -1,15 +1,20 @@
 import React from 'react';
-import { Text, View } from 'react-native';
-import { fontFamily } from '../../../lib/fonts';
+import { SectionBlock } from '../../../design/primitives';
+import { fontIntent } from '../../../lib/fonts';
 import { createHeaderStyles as styles } from './createHeader.styles';
 
 export function CreateHeader() {
   return (
-    <View style={styles.header}>
-      <Text style={styles.eyebrow}>CREATE</Text>
-      <Text style={[styles.title, { fontFamily: fontFamily.serifBold, letterSpacing: -0.5 }]}>{`Create\nan event`}</Text>
-      <Text style={styles.subtitle}>Choose an activity, set the details, and invite others.</Text>
-    </View>
+    <SectionBlock
+      eyebrow="Create"
+      title={`Create\nan event`}
+      description="Choose an activity, set the details, and invite others."
+      titleVariant="screen"
+      spacingMode="tight"
+      titleStyle={[styles.title, { fontFamily: fontIntent.editorialHeadline }]}
+      eyebrowStyle={styles.eyebrow}
+      descriptionStyle={styles.subtitle}
+      style={styles.header}
+    />
   );
 }
-

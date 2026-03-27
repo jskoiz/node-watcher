@@ -1,7 +1,7 @@
 import React, { PropsWithChildren } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
-import AppBackdrop from '../../components/ui/AppBackdrop';
+import { type Edge } from 'react-native-safe-area-context';
+import { ScreenScaffold } from './ScreenScaffold';
 
 export function Screen({
   children,
@@ -14,10 +14,9 @@ export function Screen({
   padding?: number;
 }>) {
   return (
-    <SafeAreaView edges={edges} style={[styles.container, backgroundColor ? { backgroundColor } : null]}>
-      <AppBackdrop />
+    <ScreenScaffold edges={edges} backgroundColor={backgroundColor} style={styles.container}>
       <View style={[styles.content, { padding }]}>{children}</View>
-    </SafeAreaView>
+    </ScreenScaffold>
   );
 }
 

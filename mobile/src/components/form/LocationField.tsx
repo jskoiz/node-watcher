@@ -115,8 +115,8 @@ export function LocationField({
         style={[
           fieldStyles.trigger,
           {
-            backgroundColor: theme.surfaceElevated,
-            borderColor: error ? theme.danger : theme.border,
+            backgroundColor: disabled ? theme.subduedSurface : theme.fieldSurface,
+            borderColor: error ? theme.danger : theme.stroke,
             opacity: disabled ? 0.48 : 1,
           },
         ]}
@@ -134,7 +134,7 @@ export function LocationField({
               {value || placeholder}
             </Text>
           </View>
-          <Text style={{ color: theme.textMuted, fontWeight: '700' }}>Browse</Text>
+          <Text style={[fieldStyles.trailingAction, { color: theme.textMuted }]}>Browse</Text>
         </View>
       </Pressable>
       {error ? <Text style={[fieldStyles.errorText, { color: theme.danger }]}>{error}</Text> : null}
@@ -166,12 +166,13 @@ export function LocationField({
             style={[
               fieldStyles.optionCard,
               {
-                backgroundColor: theme.primarySubtle,
-                borderColor: theme.primary,
+                backgroundColor: theme.selectedFill,
+                borderColor: theme.selectedFill,
               },
+              fieldStyles.optionCardSelected,
             ]}
           >
-            <Text style={[fieldStyles.optionLabel, { color: theme.primary }]}>
+            <Text style={[fieldStyles.optionLabel, { color: theme.selectedText }]}>
               Use "{normalizedQuery}"
             </Text>
             <Text style={[fieldStyles.optionMeta, { color: theme.textMuted }]}>
@@ -189,8 +190,8 @@ export function LocationField({
             style={[
               fieldStyles.optionCard,
               {
-                backgroundColor: theme.surfaceElevated,
-                borderColor: theme.border,
+                backgroundColor: theme.surface,
+                borderColor: theme.stroke,
               },
             ]}
           >

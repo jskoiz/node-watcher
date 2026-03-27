@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import type { AppNotification } from '../../../api/types';
 import AppIcon from '../../../components/ui/AppIcon';
+import { screenLayout } from '../../../design/primitives';
 import { StatePanel } from '../../../design/primitives';
 import { radii, spacing, typography } from '../../../theme/tokens';
 import type { Theme } from '../../../theme/tokens';
@@ -41,12 +42,11 @@ function NotificationsEmptyState({ theme }: { theme: Theme }) {
         style={[
           styles.emptyIconWrap,
           {
-            backgroundColor: theme.surfaceElevated,
-            borderColor: theme.border,
+            backgroundColor: theme.accentSoft,
           },
         ]}
       >
-        <AppIcon name="bell" size={24} color={theme.primary} />
+        <AppIcon name="bell" size={24} color={theme.accentPrimary} />
       </View>
       <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
         No notifications
@@ -148,9 +148,7 @@ export function NotificationsFeed({
 
 const styles = StyleSheet.create({
   routeError: {
-    backgroundColor: 'rgba(196, 168, 130, 0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(196, 168, 130, 0.32)',
+    backgroundColor: 'rgba(196, 168, 130, 0.12)',
     borderRadius: radii.md,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -160,8 +158,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   scrollContent: {
-    paddingHorizontal: spacing.xxl,
-    paddingBottom: 64,
+    paddingHorizontal: screenLayout.gutter,
+    paddingBottom: screenLayout.screenBottomPadding,
   },
   groupLabel: {
     fontSize: typography.caption,
@@ -169,18 +167,18 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: spacing.sm,
+    marginTop: spacing.sm,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xxxl || 40,
+    paddingHorizontal: spacing.xxxl,
   },
   emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
+    width: 72,
+    height: 72,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,

@@ -95,8 +95,8 @@ export function DateField({
         style={[
           fieldStyles.trigger,
           {
-            backgroundColor: theme.surfaceElevated,
-            borderColor: error ? theme.danger : theme.border,
+            backgroundColor: disabled ? theme.subduedSurface : theme.fieldSurface,
+            borderColor: error ? theme.danger : theme.stroke,
             opacity: disabled ? 0.48 : 1,
           },
         ]}
@@ -114,7 +114,7 @@ export function DateField({
               {displayValue || placeholder}
             </Text>
           </View>
-          <Text style={{ color: theme.textMuted, fontWeight: '700' }}>Pick</Text>
+          <Text style={[fieldStyles.trailingAction, { color: theme.textMuted }]}>Pick</Text>
         </View>
       </Pressable>
       {error ? <Text style={[fieldStyles.errorText, { color: theme.danger }]}>{error}</Text> : null}

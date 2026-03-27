@@ -6,7 +6,8 @@ import {
   APP_BOTTOM_SHEET_SNAP_POINTS,
 } from '../design/sheets/AppBottomSheet';
 import { useSheetController } from '../design/sheets/useSheetController';
-import { Button, Card } from '../design/primitives';
+import { Button, Chip, Input, SectionBlock } from '../design/primitives';
+import { useTheme } from '../theme/useTheme';
 import { withStoryScreenFrame } from './support';
 
 function BottomSheetStory({
@@ -19,6 +20,7 @@ function BottomSheetStory({
   title?: string;
 }) {
   const sheet = useSheetController();
+  const theme = useTheme();
 
   React.useEffect(() => {
     sheet.open();
@@ -33,12 +35,29 @@ function BottomSheetStory({
         subtitle={subtitle}
         snapPoints={snapPoints}
       >
-        <Card>
-          <Text style={{ color: '#2C2420', fontSize: 18, fontWeight: '800' }}>Reusable content</Text>
-          <Text style={{ color: '#7A7068', marginTop: 8 }}>
-            Discovery, create, explore, and chat can all compose this shell.
-          </Text>
-        </Card>
+        <SectionBlock
+          eyebrow="Quick plan"
+          inset={false}
+          spacingMode="tight"
+          title="Shared sheet shell"
+          description="Discovery, create, explore, and chat can all compose this shell."
+        >
+          <View style={{ gap: 12 }}>
+            <Input
+              label="Activity"
+              onChangeText={() => undefined}
+              placeholder="Choose an activity"
+              value="Sunrise run"
+            />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <Chip label="Moderate pace" active onPress={() => undefined} />
+              <Chip label="Coffee after" onPress={() => undefined} />
+            </View>
+            <Text style={{ color: theme.textSecondary, fontSize: 14, lineHeight: 20 }}>
+              Use the same shell for focused decisions, short forms, and layered flows.
+            </Text>
+          </View>
+        </SectionBlock>
       </AppBottomSheet>
     </View>
   );
@@ -66,5 +85,13 @@ export const Compact: Story = {
     snapPoints: APP_BOTTOM_SHEET_SNAP_POINTS.compact,
     subtitle: 'Use this when the content is short and action-led.',
     title: 'Quick action sheet',
+  },
+};
+
+export const FormSheet: Story = {
+  args: {
+    snapPoints: APP_BOTTOM_SHEET_SNAP_POINTS.form,
+    subtitle: 'Longer form content should still use the same shared shell.',
+    title: 'Create details',
   },
 };

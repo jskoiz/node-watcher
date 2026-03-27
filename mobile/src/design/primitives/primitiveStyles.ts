@@ -52,23 +52,19 @@ export const primitiveStyles = StyleSheet.create({
   inputLabel: {
     marginBottom: spacing.sm,
     marginLeft: 2,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1.2,
+    letterSpacing: 1,
     textTransform: 'uppercase',
   },
   inputWrapper: {
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     borderWidth: 1,
     overflow: 'hidden',
   },
-  inputGlow: {
-    borderRadius: radii.md,
-    borderWidth: 2,
-  },
   input: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md + 2,
+    paddingVertical: spacing.md,
     fontSize: typography.body,
     minHeight: 48,
   },
@@ -83,11 +79,12 @@ export const primitiveStyles = StyleSheet.create({
     fontWeight: '600',
   },
   chip: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
     borderRadius: radii.pill,
     minHeight: 44,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   chipText: {
     fontSize: typography.bodySmall,

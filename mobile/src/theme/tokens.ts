@@ -1,33 +1,35 @@
 export const lightTheme = {
-  // Backgrounds
-  background: '#FDFBF8',
-  backgroundSoft: '#F7F4F0',
-
-  // Surfaces
-  surface: '#FFFFFF',
+  // Neutral ladder
+  background: '#FAF6EF',
+  surface: '#FDF9F4',
   surfaceElevated: '#FFFFFF',
-  surfaceGlass: 'rgba(255,255,255,0.82)',
+  stroke: '#DED4C7',
+  strokeStrong: '#BDAF9B',
+  textPrimary: '#261F19',
+  textSecondary: '#544A40',
+  textMuted: '#786C5F',
+  textInverse: '#FFFDF9',
 
-  // Borders
-  border: '#E8E2DA',
-  borderSoft: '#F0EBE4',
-  borderFocus: '#C4A882',
+  // Semantic surfaces and selection
+  selectedFill: '#E8D8C1',
+  selectedText: '#261F19',
+  fieldSurface: '#F6EFE7',
+  chipSurface: '#F1E8DE',
+  subduedSurface: '#F4EDE4',
 
-  // Text
-  textPrimary: '#2C2420',
-  textSecondary: '#5C544C',
-  textMuted: '#6B6159',
-  textInverse: '#FDFBF8',
+  // Editorial emphasis
+  accentPrimary: '#C4A882',
+  accentSoft: '#ECDDCA',
+
+  // Legacy accent family retained for compatibility where warm emphasis
+  // is not yet adopted. Phase 3 should converge usage intentionally.
+  accent: '#8B7A9C',
+  accentSubtle: 'rgba(139,122,156,0.14)',
 
   // Primary — warm gold
   primary: '#C4A882',
   primaryPressed: '#B09672',
-  primarySubtle: 'rgba(196,168,130,0.12)',
-
-  // Accent — muted lavender
-  accent: '#8B7A9C',
-  accentSoft: '#D4C9DB',
-  accentSubtle: 'rgba(184,169,196,0.12)',
+  primarySubtle: '#E8D8C1',
 
   // Energy — soft blush
   energy: '#D4A59A',
@@ -40,7 +42,7 @@ export const lightTheme = {
   warning: '#C4A882',
 
   // Button
-  buttonPrimary: '#1A1A1A',
+  buttonPrimary: '#1F1813',
 
   // Fixed
   white: '#FFFFFF',
@@ -49,30 +51,38 @@ export const lightTheme = {
   // Shadows
   shadowColor: '#000000',
   shadowColorDark: '#000000',
+
+  // Compatibility aliases. Keep these during the token migration so Phase 2
+  // does not force a primitive/screen refactor.
+  backgroundSoft: '#F4EDE4',
+  surfaceGlass: '#F6EFE7',
+  border: '#DED4C7',
+  borderSoft: '#DED4C7',
+  borderFocus: '#C4A882',
 };
 
 export type Theme = typeof lightTheme;
 
 export const gradients = {
-  appBg: ['#FDFBF8', '#F7F4F0'],
-  appBgDark: ['#FDFBF8', '#F0EBE4'],
-  cardChrome: ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.80)'],
-  spotlight: ['rgba(196,168,130,0.06)', 'rgba(184,169,196,0.04)'],
-  photoOverlay: ['transparent', 'rgba(255,255,255,0.92)'],
-  cardOverlay: ['transparent', 'rgba(255,255,255,0.0)', 'rgba(255,255,255,0.94)'],
+  appBg: ['#FAF6EF', '#F4EDE4'],
+  appBgDark: ['#FAF6EF', '#EDE2D4'],
+  cardChrome: ['rgba(255,255,255,0.96)', 'rgba(253,249,244,0.86)'],
+  spotlight: ['rgba(196,168,130,0.08)', 'rgba(139,122,156,0.03)'],
+  photoOverlay: ['transparent', 'rgba(253,249,244,0.94)'],
+  cardOverlay: ['transparent', 'rgba(253,249,244,0.0)', 'rgba(253,249,244,0.96)'],
 };
 
 export const editorialColors = {
   background: lightTheme.background,
   surface: lightTheme.surface,
-  border: lightTheme.border,
+  border: lightTheme.stroke,
   textPrimary: lightTheme.textPrimary,
   textSecondary: lightTheme.textSecondary,
   textMuted: lightTheme.textMuted,
   textOnImage: '#3D352E',
   success: lightTheme.success,
   danger: lightTheme.danger,
-  badgeBg: 'rgba(255,255,255,0.78)',
+  badgeBg: 'rgba(253,249,244,0.86)',
   matchBadgeBg: '#F0E8D8',
   matchBadgeText: '#6B5A40',
 };

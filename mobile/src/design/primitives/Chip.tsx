@@ -27,7 +27,8 @@ export function Chip({
   textStyle?: StyleProp<TextStyle>;
 }) {
   const theme = useTheme();
-  const color = accentColor ?? theme.primary;
+  const fillColor = active ? accentColor ?? theme.selectedFill : theme.chipSurface;
+  const textColor = active ? accentColor ?? theme.selectedText : theme.textSecondary;
   return (
     <Pressable
       onPress={interactive ? onPress : undefined}
@@ -37,13 +38,11 @@ export function Chip({
       accessibilityLabel={label}
       style={[
         primitiveStyles.chip,
-        active
-          ? { backgroundColor: color + '18' }
-          : { backgroundColor: 'rgba(255,255,255,0.5)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
+        { backgroundColor: fillColor, opacity: interactive ? 1 : 0.72 },
         style,
       ]}
     >
-      <Text style={[primitiveStyles.chipText, { color: active ? color : theme.textMuted }, textStyle]}>{label}</Text>
+      <Text style={[primitiveStyles.chipText, { color: textColor }, textStyle]}>{label}</Text>
     </Pressable>
   );
 }

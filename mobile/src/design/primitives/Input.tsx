@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useRef } from 'react';
-import { AccessibilityInfo, Animated, type NativeSyntheticEvent, StyleSheet, type TargetedEvent, Text, TextInput, type TextInputProps, View } from 'react-native';
+import { AccessibilityInfo, Animated, type NativeSyntheticEvent, type TargetedEvent, Text, TextInput, type TextInputProps, View } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { primitiveStyles } from './primitiveStyles';
 
@@ -47,12 +47,12 @@ export const Input = forwardRef<TextInput, InputProps>(function Input({
 
   const borderColor = focusAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [error ? theme.danger : theme.border, error ? theme.danger : theme.primary],
+    outputRange: [error ? theme.danger : theme.stroke, error ? theme.danger : theme.strokeStrong],
   });
 
-  const glowOpacity = focusAnim.interpolate({
+  const focusLift = focusAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 0.12],
+    outputRange: [1, 1.01],
   });
 
   return (
@@ -62,23 +62,13 @@ export const Input = forwardRef<TextInput, InputProps>(function Input({
         style={[
           primitiveStyles.inputWrapper,
           {
-            backgroundColor: theme.surfaceGlass,
+            backgroundColor: props.editable === false ? theme.subduedSurface : theme.fieldSurface,
             borderColor,
+            transform: [{ scale: focusLift }],
+            opacity: props.editable === false ? 0.72 : 1,
           },
         ]}
       >
-        {/* Focus glow effect */}
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            primitiveStyles.inputGlow,
-            {
-              borderColor: theme.primary,
-              opacity: glowOpacity,
-            },
-          ]}
-          pointerEvents="none"
-        />
         <TextInput
           ref={ref}
           {...props}

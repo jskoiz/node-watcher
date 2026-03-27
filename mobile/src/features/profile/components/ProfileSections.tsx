@@ -169,7 +169,7 @@ export function PhotoManager({
           isActive ? styles.photoCardActive : null,
         ]}
       >
-        <View style={styles.photoGalleryCard}>
+        <View style={[styles.photoGalleryCard, isActive ? styles.photoCardActive : null]}>
           <View style={styles.photoMedia}>
             <Image
               source={{ uri: photo.storageKey }}

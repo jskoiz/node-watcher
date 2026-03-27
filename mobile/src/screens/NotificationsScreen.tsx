@@ -1,8 +1,7 @@
 import React, { useCallback } from 'react';
 import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AppNotification } from '../api/types';
-import AppBackdrop from '../components/ui/AppBackdrop';
+import { ScreenScaffold } from '../design/primitives';
 import { useTheme } from '../theme/useTheme';
 import { NotificationsFeed } from '../features/notifications/components/NotificationsFeed';
 import { NotificationsHeader } from '../features/notifications/components/NotificationsHeader';
@@ -49,8 +48,7 @@ export default function NotificationsScreen({
   }, [navigation, setActionError]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <AppBackdrop />
+    <ScreenScaffold style={[styles.container, { backgroundColor: theme.background }]}>
       <NotificationsHeader
         onClearAll={() => {
           void handleMarkAllRead();
@@ -74,7 +72,7 @@ export default function NotificationsScreen({
         }}
         theme={theme}
       />
-    </SafeAreaView>
+    </ScreenScaffold>
   );
 }
 

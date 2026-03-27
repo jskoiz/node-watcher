@@ -1,9 +1,9 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import type { User } from '../../../../api/types';
 import { LocationField } from '../../../../components/form/LocationField';
 import type { LocationSuggestion } from '../../../locations/locationSuggestions';
-import { Card } from '../../../../design/primitives';
+import { Card, SectionBlock } from '../../../../design/primitives';
 import { ACTIVITY_OPTIONS } from '../profile.helpers';
 import { EditableField, PhotoManager, TagPill } from '../ProfileSections';
 import { profileStyles as styles } from '../profile.styles';
@@ -27,8 +27,7 @@ export function ProfileBasicsSection({
   onSetCity: (value: string) => void;
 }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>Profile basics</Text>
+    <SectionBlock eyebrow="Profile basics">
       <Card style={styles.fieldsCard}>
         {editMode ? (
           <LocationField
@@ -67,7 +66,7 @@ export function ProfileBasicsSection({
           }}
         />
       </Card>
-    </View>
+    </SectionBlock>
   );
 }
 
@@ -89,32 +88,28 @@ export function ProfileIntentSection({
   onSetIntentWorkout: (value: boolean) => void;
 }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>Intent</Text>
+    <SectionBlock eyebrow="Intent">
       <View style={styles.tagCloud}>
         <TagPill
           label="Dating"
           selected={intentDating}
           onPress={() => onSetIntentDating(!intentDating)}
-          color="#D4A59A"
           interactive={editMode}
         />
         <TagPill
           label="Workout"
           selected={intentWorkout}
           onPress={() => onSetIntentWorkout(!intentWorkout)}
-          color="#C4A882"
           interactive={editMode}
         />
         <TagPill
           label="Friends"
           selected={intentFriends}
           onPress={() => onSetIntentFriends(!intentFriends)}
-          color="#8BAA7A"
           interactive={editMode}
         />
       </View>
-    </View>
+    </SectionBlock>
   );
 }
 
@@ -140,8 +135,7 @@ export function ProfilePhotosSection({
   profile: User;
 }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>Photos</Text>
+    <SectionBlock eyebrow="Photos">
       <PhotoManager
         canEdit={editMode}
         isBusy={editingPhotos}
@@ -153,7 +147,7 @@ export function ProfilePhotosSection({
         operation={photoOperation}
         photos={profile.photos ?? []}
       />
-    </View>
+    </SectionBlock>
   );
 }
 
@@ -167,21 +161,18 @@ export function ProfileMovementIdentitySection({
   selectedActivities: string[];
 }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>Movement Identity</Text>
+    <SectionBlock eyebrow="Movement identity">
       <View style={styles.tagCloud}>
-        {ACTIVITY_OPTIONS.map(({ label, value, color }) => (
+        {ACTIVITY_OPTIONS.map(({ label, value }) => (
           <TagPill
             key={value}
             label={label}
             selected={selectedActivities.includes(value)}
             onPress={() => editMode && onSetSelectedActivities(value)}
-            color={color}
             interactive={editMode}
           />
         ))}
       </View>
-    </View>
+    </SectionBlock>
   );
 }
-

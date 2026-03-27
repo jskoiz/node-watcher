@@ -31,8 +31,8 @@ export function StepperField({
         style={[
           fieldStyles.trigger,
           {
-            backgroundColor: theme.surfaceElevated,
-            borderColor: theme.border,
+            backgroundColor: disabled ? theme.subduedSurface : theme.fieldSurface,
+            borderColor: theme.stroke,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -43,18 +43,24 @@ export function StepperField({
           accessibilityLabel={`Decrease ${label}`}
           disabled={disabled || atMin}
           onPress={() => onChange(Math.max(min, value - 1))}
-          style={{ opacity: disabled || atMin ? 0.36 : 1, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+          style={[
+            fieldStyles.stepperButton,
+            { opacity: disabled || atMin ? 0.36 : 1, backgroundColor: theme.chipSurface },
+          ]}
         >
-          <Text style={{ color: theme.textPrimary, fontSize: 22, fontWeight: '700' }}>-</Text>
+          <Text style={[fieldStyles.stepperSymbol, { color: theme.textPrimary }]}>-</Text>
         </Pressable>
-        <Text style={[fieldStyles.triggerValue, { color: theme.textPrimary }]}>{value}</Text>
+        <Text style={[fieldStyles.stepperValue, { color: theme.textPrimary }]}>{value}</Text>
         <Pressable
           accessibilityLabel={`Increase ${label}`}
           disabled={disabled || atMax}
           onPress={() => onChange(Math.min(max, value + 1))}
-          style={{ opacity: disabled || atMax ? 0.36 : 1, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+          style={[
+            fieldStyles.stepperButton,
+            { opacity: disabled || atMax ? 0.36 : 1, backgroundColor: theme.selectedFill },
+          ]}
         >
-          <Text style={{ color: theme.textPrimary, fontSize: 22, fontWeight: '700' }}>+</Text>
+          <Text style={[fieldStyles.stepperSymbol, { color: theme.selectedText }]}>+</Text>
         </Pressable>
       </View>
       {helperText ? <Text style={[fieldStyles.helperText, { color: theme.textMuted }]}>{helperText}</Text> : null}

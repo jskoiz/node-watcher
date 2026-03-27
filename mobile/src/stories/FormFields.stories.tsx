@@ -109,3 +109,15 @@ export const EmptyState: Story = {
     initialLocation: '',
   },
 };
+
+export const FilledState: Story = {
+  args: {
+    activityHelperText: 'Current field language should feel consistent across text, selection, and stepper inputs.',
+    birthdayHelperText: 'Date field should read like the same system as the other triggers.',
+    groupSizeHelperText: 'Stepper uses fill and spacing before chrome.',
+    initialActivity: 'yoga',
+    initialBirthday: '1992-08-14',
+    initialGroupSize: 6,
+    initialLocation: 'Honolulu',
+  },
+};

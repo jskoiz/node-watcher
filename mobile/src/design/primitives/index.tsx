@@ -4,6 +4,8 @@ export { GlassView } from './GlassView';
 export type { GlassViewProps } from './GlassView';
 
 export { Screen } from './Screen';
+export { ScreenScaffold, screenLayout } from './ScreenScaffold';
+export { SectionBlock } from './SectionBlock';
 export { Button } from './Button';
 export type { PrimitiveButtonVariant } from './Button';
 export { Card } from './Card';

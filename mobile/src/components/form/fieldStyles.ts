@@ -20,11 +20,6 @@ export const fieldStyles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
   triggerRow: {
     flexDirection: 'row',
@@ -57,16 +52,13 @@ export const fieldStyles = StyleSheet.create({
     fontWeight: '600',
   },
   optionCard: {
-    borderWidth: 1,
     borderRadius: radii.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     marginBottom: spacing.sm,
-    shadowColor: '#000000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+  },
+  optionCardSelected: {
+    borderWidth: 0,
   },
   optionLabel: {
     fontSize: typography.body,
@@ -101,5 +93,26 @@ export const fieldStyles = StyleSheet.create({
   },
   inputGroup: {
     gap: spacing.sm,
+  },
+  trailingAction: {
+    fontSize: typography.caption,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  stepperButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
+  },
+  stepperValue: {
+    fontSize: typography.body,
+    fontWeight: '700',
+  },
+  stepperSymbol: {
+    fontSize: 20,
+    fontWeight: '700',
   },
 });

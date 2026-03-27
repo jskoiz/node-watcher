@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { triggerLightImpactHaptic, triggerSelectionHaptic } from '../../lib/interaction/feedback';
 import { useTheme } from '../../theme/useTheme';
-import { lightTheme, radii, spacing, typography } from '../../theme/tokens';
+import { radii, spacing, typography } from '../../theme/tokens';
 
 export interface AppSelectOption {
   label: string;
@@ -70,7 +70,8 @@ export default function AppSelect({
         style={[
           styles.trigger,
           {
-            borderColor: error ? theme.danger : open ? theme.primary : 'rgba(0,0,0,0.06)',
+            backgroundColor: disabled ? theme.subduedSurface : theme.fieldSurface,
+            borderColor: error ? theme.danger : open ? theme.strokeStrong : theme.stroke,
           },
           triggerStyle,
           disabled && styles.disabled,
@@ -91,7 +92,7 @@ export default function AppSelect({
       </Pressable>
 
       {open ? (
-        <View style={styles.menu}>
+        <View style={[styles.menu, { backgroundColor: theme.surfaceElevated, borderColor: theme.stroke }]}>
           <ScrollView nestedScrollEnabled style={styles.menuScroll}>
             {options.length === 0 ? (
               <View style={styles.option}>
@@ -115,13 +116,13 @@ export default function AppSelect({
                     }}
                     style={[
                       styles.option,
-                      selected && { backgroundColor: theme.primarySubtle },
+                      { backgroundColor: selected ? theme.selectedFill : theme.surface },
                     ]}
                   >
                     <Text
                       style={[
                         styles.optionText,
-                        { color: selected ? theme.primary : theme.textPrimary },
+                        { color: selected ? theme.selectedText : theme.textPrimary },
                       ]}
                     >
                       {option.label}
@@ -161,12 +162,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: lightTheme.surface,
-    shadowColor: lightTheme.shadowColor,
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
   triggerText: {
     flex: 1,
@@ -181,12 +176,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     borderRadius: radii.lg,
     overflow: 'hidden',
-    backgroundColor: lightTheme.surface,
-    shadowColor: lightTheme.shadowColor,
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    borderWidth: 1,
   },
   menuScroll: {
     maxHeight: 220,

@@ -26,9 +26,7 @@ function EventCard({
       style={({ pressed }) => [
         {
           borderRadius: radii.lg,
-          backgroundColor: theme.surfaceElevated,
-          borderWidth: 1,
-          borderColor: theme.border,
+          backgroundColor: theme.surface,
           opacity: pressed ? 0.9 : 1,
           padding: spacing.md,
         },
@@ -119,7 +117,7 @@ function MyEventsScreenStory({ mode }: { mode: ViewMode }) {
       >
         <AppBackButton onPress={() => undefined} />
         <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.accent, fontSize: typography.caption, fontWeight: '800' }}>
+          <Text style={{ color: theme.accentPrimary, fontSize: typography.caption, fontWeight: '800' }}>
             EVENTS
           </Text>
           <Text style={{ color: theme.textPrimary, fontSize: typography.h2, fontWeight: '800' }}>
@@ -134,10 +132,7 @@ function MyEventsScreenStory({ mode }: { mode: ViewMode }) {
           marginHorizontal: spacing.xxl,
           marginBottom: spacing.lg,
           borderRadius: radii.xl,
-          borderWidth: 1,
-          borderColor: theme.border,
-          backgroundColor: theme.surfaceElevated,
-          overflow: 'hidden',
+          backgroundColor: theme.chipSurface,
         }}
       >
         {(['Joined', 'Created'] as const).map((tab) => {
@@ -156,12 +151,13 @@ function MyEventsScreenStory({ mode }: { mode: ViewMode }) {
                 minHeight: 48,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: selected ? theme.primary : 'transparent',
+                borderRadius: radii.pill,
+                backgroundColor: selected ? theme.selectedFill : 'transparent',
               }}
             >
               <Text
                 style={{
-                  color: selected ? theme.white : theme.textMuted,
+                  color: selected ? theme.selectedText : theme.textSecondary,
                   fontSize: typography.bodySmall,
                   fontWeight: '800',
                 }}

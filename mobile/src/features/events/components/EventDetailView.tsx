@@ -1,12 +1,10 @@
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { EventDetail } from '../../../api/types';
 import AppBackButton from '../../../components/ui/AppBackButton';
-import AppBackdrop from '../../../components/ui/AppBackdrop';
-import AppIcon from '../../../components/ui/AppIcon';
-import { Button, StatePanel } from '../../../design/primitives';
+import { Button, ScreenScaffold, SectionBlock, StatePanel } from '../../../design/primitives';
 import { useTheme } from '../../../theme/useTheme';
 import { eventDetailStyles as styles } from './eventDetail.styles';
 import { formatEventDateRange } from './eventDetail.formatters';
@@ -50,8 +48,7 @@ export function EventDetailView({
   const dateInfo = formatEventDateRange(event.startsAt, event.endsAt);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <AppBackdrop />
+    <ScreenScaffold style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.heroContainer}>
           {event.imageUrl ? (
@@ -67,25 +64,37 @@ export function EventDetailView({
               accessibilityLabel="No event image"
             />
           )}
-          <View style={styles.heroOverlay} />
+          <LinearGradient
+            colors={['rgba(29,24,20,0)', 'rgba(29,24,20,0.1)', 'rgba(29,24,20,0.58)']}
+            locations={[0.1, 0.52, 1]}
+            style={styles.heroOverlay}
+            pointerEvents="none"
+          />
 
           <View style={styles.backBtnOverlay}>
             <AppBackButton onPress={onBack} style={{ marginBottom: 0 }} />
           </View>
 
           {!!event.category && (
-            <View style={[styles.heroBadge, { backgroundColor: theme.primary }]} accessibilityLabel={`Category: ${event.category}`}>
-              <Text style={[styles.heroBadgeText, { color: theme.white }]}>{event.category}</Text>
+            <View style={[styles.heroBadge, { backgroundColor: theme.selectedFill }]} accessibilityLabel={`Category: ${event.category}`}>
+              <Text style={[styles.heroBadgeText, { color: theme.selectedText }]}>{event.category}</Text>
             </View>
           )}
         </View>
 
         <View style={[styles.contentCard, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.kicker, { color: theme.accent }]}>EVENT DETAIL / SOCIAL MOTION</Text>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>{event.title}</Text>
-          <View style={[styles.hostStrip, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
-            <View style={[styles.hostAvatar, { backgroundColor: theme.primarySubtle, borderColor: theme.primary }]}>
-              <Text style={[styles.hostAvatarText, { color: theme.primary }]}>
+          <SectionBlock
+            inset={false}
+            spacingMode="tight"
+            eyebrow="Event detail / Social motion"
+            title={event.title}
+            titleVariant="screen"
+            eyebrowStyle={[styles.kicker, { color: theme.accentPrimary }]}
+            titleStyle={[styles.title, { color: theme.textPrimary }]}
+          />
+          <View style={[styles.hostStrip, { backgroundColor: theme.subduedSurface }]}>
+            <View style={[styles.hostAvatar, { backgroundColor: theme.selectedFill }]}>
+              <Text style={[styles.hostAvatarText, { color: theme.selectedText }]}>
                 {event.host.firstName?.[0] ?? 'H'}
               </Text>
             </View>
@@ -96,7 +105,7 @@ export function EventDetailView({
               </Text>
             </View>
             <View
-              style={[styles.hostPill, { borderColor: theme.border, minHeight: 36 }]}
+              style={[styles.hostPill, { backgroundColor: theme.chipSurface, minHeight: 36 }]}
               accessibilityLabel="Open invite"
               accessibilityRole="text"
             >
@@ -111,12 +120,12 @@ export function EventDetailView({
           </View>
 
           {event.description ? (
-            <View style={[styles.descSection, { borderTopColor: theme.border }]}>
-              <Text style={[styles.descLabel, { color: theme.accent }]}>About this event</Text>
+            <SectionBlock inset={false} spacingMode="tight">
+              <Text style={[styles.descLabel, { color: theme.accentPrimary }]}>About this event</Text>
               <Text style={[styles.description, { color: theme.textSecondary }]}>
                 {event.description}
               </Text>
-            </View>
+            </SectionBlock>
           ) : null}
 
           <View style={styles.ctaArea}>
@@ -125,11 +134,12 @@ export function EventDetailView({
               onPress={onJoin}
               disabled={event.joined}
               loading={isJoining}
-              variant="energy"
+              variant="primary"
+              style={styles.ctaButton}
             />
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenScaffold>
   );
 }

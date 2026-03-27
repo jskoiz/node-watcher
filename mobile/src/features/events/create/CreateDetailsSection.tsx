@@ -2,14 +2,10 @@ import React from 'react';
 import { Controller, type Control, type FieldErrors } from 'react-hook-form';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { LocationField } from '../../../components/form/LocationField';
-import { Input } from '../../../design/primitives';
+import { Input, SectionBlock } from '../../../design/primitives';
 import type { CreateEventFormValues } from '../schema';
 import { createStyles as styles } from './create.styles';
 import { createDetailsStyles as detailStyles } from './createDetails.styles';
-
-function SectionLabel({ label }: { label: string }) {
-  return <Text style={styles.sectionLabel}>{label}</Text>;
-}
 
 export function CreateDetailsSection({
   control,
@@ -34,8 +30,7 @@ export function CreateDetailsSection({
 }) {
   return (
     <>
-      <View style={styles.formSection}>
-        <SectionLabel label="Where?" />
+      <SectionBlock eyebrow="Where?" spacingMode="tight">
         <Controller
           control={control}
           name="where"
@@ -56,11 +51,10 @@ export function CreateDetailsSection({
             />
           )}
         />
-      </View>
+      </SectionBlock>
 
       {!hideSpots ? (
-      <View style={styles.formSection}>
-        <SectionLabel label="Spots available" />
+      <SectionBlock eyebrow="Spots available" spacingMode="tight">
         <View style={styles.stepperRow}>
           <TouchableOpacity
             style={detailStyles.stepperBtn}
@@ -83,11 +77,10 @@ export function CreateDetailsSection({
             <Text style={detailStyles.stepperBtnText}>+</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SectionBlock>
       ) : null}
 
-      <View style={styles.formSection}>
-        <SectionLabel label="Add a note" />
+      <SectionBlock eyebrow="Add a note" spacingMode="tight">
         <Controller
           control={control}
           name="note"
@@ -112,7 +105,7 @@ export function CreateDetailsSection({
           )}
         />
         {errors.note?.message ? <Text style={styles.inlineError}>{errors.note.message}</Text> : null}
-      </View>
+      </SectionBlock>
     </>
   );
 }

@@ -38,6 +38,13 @@ export const Joined: Story = {
   },
 };
 
+export const JoinInProgress: Story = {
+  args: {
+    ...baseArgs,
+    isJoining: true,
+  },
+};
+
 export const Loading: Story = {
   args: {
     ...baseArgs,

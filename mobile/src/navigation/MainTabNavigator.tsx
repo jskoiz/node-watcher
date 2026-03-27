@@ -75,7 +75,7 @@ function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarPro
       ]}
     >
       <GlassView
-        tier="thick"
+        tier="frosted"
         borderRadius={radii.xxl}
         specularHighlight
         style={styles.tabBarGlass}
@@ -120,17 +120,17 @@ function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarPro
                 <View
                   style={[
                     styles.iconContainer,
-                    isFocused && styles.iconContainerActive,
+                    isFocused ? [styles.iconContainerActive, { backgroundColor: theme.selectedFill }] : null,
                   ]}
                 >
                   <AppIcon
                     name={icon}
                     size={18}
-                    color={isFocused ? '#1A1A1A' : theme.textMuted}
+                    color={isFocused ? theme.selectedText : theme.textMuted}
                   />
                   {route.name === 'Inbox' && unreadCount > 0 ? (
-                    <View style={[styles.badge, { backgroundColor: theme.accent }]}>
-                      <Text style={styles.badgeText}>
+                    <View style={[styles.badge, { backgroundColor: theme.accentPrimary }]}>
+                      <Text style={[styles.badgeText, { color: theme.textInverse }]}>
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </Text>
                     </View>
@@ -140,7 +140,7 @@ function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarPro
                   style={[
                     styles.label,
                     {
-                      color: isFocused ? '#1A1A1A' : theme.textMuted,
+                      color: isFocused ? theme.selectedText : theme.textMuted,
                       fontWeight: isFocused ? '800' : '600',
                       opacity: labelOpacity,
                       height: labelHeight,
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconContainerActive: {
-    backgroundColor: 'rgba(26,26,26,0.08)',
+    backgroundColor: 'transparent',
   },
   badge: {
     position: 'absolute',
@@ -232,7 +232,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#FFFFFF',
   },
   label: {
     fontSize: 10,

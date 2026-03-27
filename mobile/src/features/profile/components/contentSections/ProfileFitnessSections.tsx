@@ -1,7 +1,7 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { SheetSelectField } from '../../../../components/form/SheetSelectField';
-import { Card } from '../../../../design/primitives';
+import { Card, SectionBlock } from '../../../../design/primitives';
 import {
   INTENSITY_OPTIONS,
   PRIMARY_GOAL_OPTIONS,
@@ -29,8 +29,7 @@ export function ProfileFitnessProfileSection({
   weeklyFrequencyBand: string;
 }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>Fitness Profile</Text>
+    <SectionBlock eyebrow="Fitness profile">
       <Card style={styles.fieldsCard}>
         {editMode ? (
           <SheetSelectField
@@ -89,7 +88,7 @@ export function ProfileFitnessProfileSection({
           />
         )}
       </Card>
-    </View>
+    </SectionBlock>
   );
 }
 
@@ -103,8 +102,7 @@ export function ProfileScheduleSection({
   selectedSchedule: string[];
 }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>Schedule</Text>
+    <SectionBlock eyebrow="Schedule">
       <View style={styles.tagCloud}>
         {SCHEDULE_OPTIONS.map((tag) => (
           <TagPill
@@ -117,7 +115,6 @@ export function ProfileScheduleSection({
           />
         ))}
       </View>
-    </View>
+    </SectionBlock>
   );
 }
-

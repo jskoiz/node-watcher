@@ -55,6 +55,25 @@ export const PlaceholderState: Story = {
   },
 };
 
+export const ErrorState: Story = {
+  render: () => (
+    <View style={{ flex: 1, padding: 24 }}>
+      <AppSelect
+        error="Please choose an intensity level."
+        label="Intensity"
+        onSelect={() => undefined}
+        options={[
+          { label: 'Easy', value: 'easy' },
+          { label: 'Moderate', value: 'moderate' },
+          { label: 'Hard', value: 'hard' },
+        ]}
+        placeholder="Choose intensity"
+        value=""
+      />
+    </View>
+  ),
+};
+
 export const EmptyOptions: Story = {
   args: {
     initialValue: '',

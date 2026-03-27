@@ -8,6 +8,7 @@ import type {
   QuickFilterKey,
 } from '../features/discovery/components/discoveryFilters';
 import { makeDiscoveryUser, withStoryScreenFrame } from './support';
+import { lightTheme } from '../theme/tokens';
 
 const filterState: FilterModalState = {
   availability: ['morning'],
@@ -58,7 +59,7 @@ function HomeScreenContentStory({
       filterState={filterState}
       feed={feed}
       greeting="Evening, Lana"
-      intentOption={{ color: '#8BAA7A', label: 'Open to both' }}
+      intentOption={{ color: lightTheme.accentPrimary, label: 'Open to both' }}
       onApplyFilters={() => undefined}
       onMatchAnimationFinish={() => undefined}
       onOpenFilters={() => undefined}

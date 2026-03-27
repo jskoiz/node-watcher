@@ -27,9 +27,7 @@ export function NotificationRow({
       style={[
         styles.row,
         {
-          backgroundColor: isRead ? theme.surfaceElevated : theme.surface,
-          borderColor: isRead ? theme.border : `${color}44`,
-          borderLeftColor: color,
+          backgroundColor: isRead ? theme.surface : theme.accentSoft,
           minHeight: 56,
         },
       ]}
@@ -82,8 +80,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: radii.lg,
-    borderWidth: 1,
-    borderLeftWidth: 3,
     padding: spacing.md,
     marginBottom: spacing.sm,
     gap: spacing.sm,

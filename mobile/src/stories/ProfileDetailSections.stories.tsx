@@ -6,7 +6,7 @@ import {
   ProfileDetailHero,
   ProfileDetailInfo,
 } from '../features/profile/components/ProfileDetailSections';
-import { makeUser, makeUserPhoto, withStorySurface } from './support';
+import { makeUser, makeUserPhoto, withStoryScreenFrame, withStorySurface } from './support';
 
 function ProfileDetailHeroStory() {
   const user = makeUser({
@@ -96,4 +96,15 @@ export const Info: Story = {
 
 export const Actions: Story = {
   render: () => <ProfileDetailActionsStory />,
+};
+
+export const Composed: Story = {
+  decorators: [withStoryScreenFrame({ centered: false, height: 920, padding: 0 })],
+  render: () => (
+    <View style={{ flex: 1 }}>
+      <ProfileDetailHeroStory />
+      <ProfileDetailInfoStory />
+      <ProfileDetailActionsStory />
+    </View>
+  ),
 };

@@ -1,11 +1,9 @@
 import React from 'react';
 import { View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import type { User } from '../../../api/types';
 import SwipeDeck from '../../../components/SwipeDeck';
 import MatchAnimation from '../../../components/MatchAnimation';
-import AppBackdrop from '../../../components/ui/AppBackdrop';
-import { StatePanel } from '../../../design/primitives';
+import { ScreenScaffold, SectionBlock, StatePanel } from '../../../design/primitives';
 import type { AppBottomSheetProps } from '../../../design/sheets/AppBottomSheet';
 import { DiscoveryNudgeCard } from './DiscoveryNudgeCard';
 import { HomeHero } from './HomeHero';
@@ -92,9 +90,7 @@ export function HomeScreenContent({
   }, [onCardHeightChange, resolvedCardHeight]);
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-      <AppBackdrop />
-
+    <ScreenScaffold edges={['top', 'left', 'right']} style={styles.container}>
       <HomeHero
         feedCount={feed.length}
         filterCount={activeFilterCount}
@@ -111,7 +107,9 @@ export function HomeScreenContent({
         onPressRefine={onOpenFilters}
       />
 
-      <DiscoveryNudgeCard score={completenessScore} onPress={onPressCompleteness} />
+      <SectionBlock spacingMode="tight">
+        <DiscoveryNudgeCard score={completenessScore} onPress={onPressCompleteness} />
+      </SectionBlock>
 
       <View style={styles.deckArea}>
         <View
@@ -153,6 +151,6 @@ export function HomeScreenContent({
         onChangeMinAge={onUpdateMinAge}
         onUndoSwipe={onUndoAndClose}
       />
-    </SafeAreaView>
+    </ScreenScaffold>
   );
 }

@@ -138,3 +138,9 @@ export const LowContrastHero: Story = {
     lowContrastHero: true,
   },
 };
+
+export const BuildInfoExpanded: Story = {
+  args: {
+    showBuildInfo: true,
+  },
+};

@@ -165,7 +165,7 @@ describe('ProfileDetailScreen', () => {
   it('opens chat with a suggested activity when a match already exists', async () => {
     render(<ProfileDetailScreen navigation={mockNavigation} route={mockRoute as any} />);
 
-    fireEvent.press(await screen.findByText('Suggest activity'));
+    fireEvent.press(await screen.findByText('Suggest an activity'));
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('Chat', {

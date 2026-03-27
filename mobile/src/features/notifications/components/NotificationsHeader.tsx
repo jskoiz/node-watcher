@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppBackButton from '../../../components/ui/AppBackButton';
+import { screenLayout } from '../../../design/primitives';
 import { spacing, typography } from '../../../theme/tokens';
 import type { Theme } from '../../../theme/tokens';
 
@@ -21,7 +22,7 @@ export function NotificationsHeader({
     <View style={styles.header}>
       <AppBackButton onPress={onGoBack} />
       <View style={styles.copy}>
-        <Text style={[styles.eyebrow, { color: theme.accent }]}>
+        <Text style={[styles.eyebrow, { color: theme.accentPrimary }]}>
           NOTIFICATIONS
         </Text>
         <Text
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: screenLayout.gutter,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
     gap: spacing.sm,

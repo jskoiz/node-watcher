@@ -1,12 +1,12 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { StepperField } from '../../../components/form/StepperField';
 import {
   AppBottomSheet,
   APP_BOTTOM_SHEET_SNAP_POINTS,
   type AppBottomSheetProps,
 } from '../../../design/sheets/AppBottomSheet';
-import { Button, Chip } from '../../../design/primitives';
+import { Button, Chip, SectionBlock } from '../../../design/primitives';
 import { homeStyles as styles } from './home.styles';
 import {
   availabilityOptions,
@@ -29,8 +29,7 @@ function ModalFilterPill({
       onPress={onPress}
       label={label}
       active={active}
-      accentColor="#C4A882"
-      style={[styles.filterPill, active ? styles.filterPillActive : styles.filterPillInactive]}
+      style={styles.filterPill}
       textStyle={[styles.filterPillText, { textTransform: 'capitalize' as const }]}
     />
   );
@@ -124,40 +123,44 @@ export function DiscoveryFilterSheet({
       snapPoints={APP_BOTTOM_SHEET_SNAP_POINTS.tall}
     >
       <View style={styles.modalContent}>
-        <Text style={styles.filterSectionLabel}>Distance & Age</Text>
-        <View style={styles.filterInputRow}>
-          <StepperField
-            label="Distance"
-            min={1}
-            max={100}
-            value={Number(state.distanceKm) || 1}
-            onChange={handleDistanceChange}
-            helperText="km"
-          />
-          <StepperField
-            label="Min age"
-            min={18}
-            max={80}
-            value={Number(state.minAge) || 18}
-            onChange={handleMinAgeChange}
-          />
-          <StepperField
-            label="Max age"
-            min={18}
-            max={80}
-            value={Number(state.maxAge) || 18}
-            onChange={handleMaxAgeChange}
-          />
-        </View>
+        <SectionBlock eyebrow="Distance & age" inset={false} spacingMode="tight" eyebrowStyle={styles.filterSectionLabel}>
+          <View style={styles.filterInputRow}>
+            <StepperField
+              label="Distance"
+              min={1}
+              max={100}
+              value={Number(state.distanceKm) || 1}
+              onChange={handleDistanceChange}
+              helperText="km"
+            />
+            <StepperField
+              label="Min age"
+              min={18}
+              max={80}
+              value={Number(state.minAge) || 18}
+              onChange={handleMinAgeChange}
+            />
+            <StepperField
+              label="Max age"
+              min={18}
+              max={80}
+              value={Number(state.maxAge) || 18}
+              onChange={handleMaxAgeChange}
+            />
+          </View>
+        </SectionBlock>
 
-        <Text style={styles.filterSectionLabel}>Goals</Text>
-        <View style={styles.pillWrap}>{goalPills}</View>
+        <SectionBlock eyebrow="Goals" inset={false} spacingMode="tight" eyebrowStyle={styles.filterSectionLabel}>
+          <View style={styles.pillWrap}>{goalPills}</View>
+        </SectionBlock>
 
-        <Text style={styles.filterSectionLabel}>Intensity</Text>
-        <View style={styles.pillWrap}>{intensityPills}</View>
+        <SectionBlock eyebrow="Intensity" inset={false} spacingMode="tight" eyebrowStyle={styles.filterSectionLabel}>
+          <View style={styles.pillWrap}>{intensityPills}</View>
+        </SectionBlock>
 
-        <Text style={styles.filterSectionLabel}>Availability</Text>
-        <View style={styles.pillWrap}>{availabilityPills}</View>
+        <SectionBlock eyebrow="Availability" inset={false} spacingMode="tight" eyebrowStyle={styles.filterSectionLabel}>
+          <View style={styles.pillWrap}>{availabilityPills}</View>
+        </SectionBlock>
 
         <View style={styles.modalActions}>
           <Button

@@ -2,7 +2,8 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AppNotificationButton from '../../../components/ui/AppNotificationButton';
-import { fontFamily } from '../../../lib/fonts';
+import { fontIntent } from '../../../lib/fonts';
+import { useTheme } from '../../../theme/useTheme';
 import { homeStyles as styles } from './home.styles';
 
 type IntentOption = {
@@ -25,9 +26,9 @@ export function HomeHero({
   onPressNotifications: () => void;
   unreadCount: number;
 }) {
+  const theme = useTheme();
   const rawTimeWord = greeting.split(/[,\s]/)[0]?.trim() || 'Tonight';
   const timeLabel = rawTimeWord.toUpperCase();
-  const headingLabel = rawTimeWord.charAt(0).toUpperCase() + rawTimeWord.slice(1).toLowerCase();
   const summaryLabel =
     filterCount > 0 ? `${feedCount} people · ${filterCount} filters` : `${feedCount} people nearby`;
 
@@ -36,7 +37,7 @@ export function HomeHero({
       <View style={styles.heroHeaderRow}>
         <View style={styles.headerCopy} accessibilityRole="header">
           <Text style={styles.greetingEyebrow} importantForAccessibility="no">{timeLabel}</Text>
-          <Text style={[styles.greeting, { fontFamily: fontFamily.serifBold }]}>{greeting}</Text>
+          <Text style={[styles.greeting, { fontFamily: fontIntent.editorialHeadline, color: theme.textPrimary }]}>{greeting}</Text>
         </View>
 
         <AppNotificationButton

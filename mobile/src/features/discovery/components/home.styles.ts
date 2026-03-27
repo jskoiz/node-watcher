@@ -1,11 +1,15 @@
 import { StyleSheet } from 'react-native';
-import { radii, spacing, typography } from '../../../theme/tokens';
+import { screenLayout } from '../../../design/primitives';
+import { lightTheme, radii, spacing, typography } from '../../../theme/tokens';
 
-const BASE = '#FDFBF8';
-const SURFACE_ELEVATED = '#F7F4F0';
-const BORDER = '#E8E2DA';
-const TEXT_PRIMARY = '#2C2420';
-const TEXT_MUTED = '#8C8279';
+const BASE = lightTheme.background;
+const SURFACE_ELEVATED = lightTheme.surfaceElevated;
+const SUBDUED_SURFACE = lightTheme.subduedSurface;
+const CHIP_SURFACE = lightTheme.chipSurface;
+const STROKE = lightTheme.stroke;
+const SELECTED_FILL = lightTheme.selectedFill;
+const TEXT_PRIMARY = lightTheme.textPrimary;
+const TEXT_MUTED = lightTheme.textMuted;
 
 export const homeStyles = StyleSheet.create({
   container: {
@@ -13,7 +17,7 @@ export const homeStyles = StyleSheet.create({
     backgroundColor: BASE,
   },
   topBar: {
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: screenLayout.gutter,
     paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
   },
@@ -76,7 +80,7 @@ export const homeStyles = StyleSheet.create({
     flexShrink: 0,
   },
   filterBar: {
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: screenLayout.gutter,
     paddingBottom: spacing.xs,
   },
   refineTrigger: {
@@ -86,9 +90,7 @@ export const homeStyles = StyleSheet.create({
     minHeight: 34,
     paddingHorizontal: spacing.md,
     borderRadius: radii.pill,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: CHIP_SURFACE,
   },
   refineTriggerText: {
     fontSize: 12,
@@ -108,14 +110,10 @@ export const homeStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterPillActive: {
-    backgroundColor: 'rgba(196,168,130,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(196,168,130,0.25)',
+    backgroundColor: SELECTED_FILL,
   },
   filterPillInactive: {
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: CHIP_SURFACE,
   },
   filterPillText: {
     fontSize: 12,
@@ -124,11 +122,11 @@ export const homeStyles = StyleSheet.create({
     color: TEXT_MUTED,
   },
   filterPillTextActive: {
-    color: '#8B7355',
+    color: lightTheme.selectedText,
   },
   deckArea: {
     flex: 1,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: screenLayout.gutter,
     paddingTop: 2,
     paddingBottom: 2,
   },
@@ -145,7 +143,7 @@ export const homeStyles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(0,0,0,0.10)',
+    backgroundColor: STROKE,
     alignSelf: 'center',
     marginBottom: spacing.lg,
   },
@@ -153,12 +151,12 @@ export const homeStyles = StyleSheet.create({
     fontSize: typography.h2,
     fontWeight: '700',
     letterSpacing: -0.8,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: screenLayout.gutter,
     marginBottom: spacing.lg,
     color: TEXT_PRIMARY,
   },
   modalContent: {
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: screenLayout.gutter,
     paddingBottom: 80,
   },
   filterSectionLabel: {
@@ -168,22 +166,10 @@ export const homeStyles = StyleSheet.create({
     letterSpacing: 1.5,
     color: TEXT_MUTED,
     marginBottom: spacing.sm,
-    marginTop: spacing.md,
   },
   filterInputRow: {
     gap: spacing.xs,
     marginBottom: spacing.xs,
-  },
-  miniInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    fontSize: typography.bodySmall,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    borderColor: BORDER,
-    color: TEXT_PRIMARY,
   },
   pillWrap: {
     flexDirection: 'row',

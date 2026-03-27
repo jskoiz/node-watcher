@@ -4,7 +4,8 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import AppBackButton from '../../../components/ui/AppBackButton';
 import AppIcon from '../../../components/ui/AppIcon';
-import { Button } from '../../../design/primitives';
+import { Button, Chip, SectionBlock } from '../../../design/primitives';
+import { fontIntent } from '../../../lib/fonts';
 import { useTheme } from '../../../theme/useTheme';
 import { spacing } from '../../../theme/tokens';
 import { profileDetailStyles as styles } from './profileDetail.styles';
@@ -52,7 +53,7 @@ export function ProfileDetailHero({
         />
       ) : (
         <LinearGradient
-          colors={['#F7F4F0', '#E8E2DA']}
+          colors={[theme.surfaceElevated, theme.subduedSurface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroFallback}
@@ -69,7 +70,7 @@ export function ProfileDetailHero({
       )}
 
       <LinearGradient
-        colors={['transparent', 'rgba(253,251,248,0.7)', 'rgba(253,251,248,0.98)']}
+        colors={['transparent', theme.background, theme.background]}
         locations={[0, 0.55, 1]}
         style={styles.heroGradient}
       />
@@ -86,14 +87,14 @@ export function ProfileDetailHero({
           accessibilityHint={menuVisible ? 'Closes the profile actions menu' : 'Opens profile actions'}
           accessibilityState={{ expanded: menuVisible }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={styles.overflowButton}
+          style={[styles.overflowButton, { backgroundColor: theme.surface }]}
         >
           <AppIcon name="more-vertical" size={18} color={theme.textPrimary} />
         </Pressable>
         {menuVisible && (
           <Modal transparent animationType="none" visible onRequestClose={dismissMenu} accessibilityViewIsModal>
             <Pressable style={styles.overflowBackdrop} onPress={dismissMenu}>
-              <View style={styles.overflowMenu}>
+              <View style={[styles.overflowMenu, { backgroundColor: theme.surfaceElevated }]}>
                 <Pressable
                   onPress={() => {
                     dismissMenu();
@@ -126,17 +127,15 @@ export function ProfileDetailHero({
 
       <View style={styles.heroNameOverlay}>
         {intentDisplay && (
-          <View
-            style={[
-              styles.intentPill,
-              { backgroundColor: theme.primarySubtle, borderColor: theme.primary },
-            ]}
-            accessibilityLabel={`Intent: ${intentDisplay}`}
-          >
-            <Text style={[styles.intentPillText, { color: theme.primary }]}>{intentDisplay}</Text>
-          </View>
+          <Chip
+            label={intentDisplay}
+            active
+            interactive={false}
+            style={styles.intentPill}
+            textStyle={styles.intentPillText}
+          />
         )}
-        <Text style={[styles.heroName, { color: theme.textPrimary }]}>
+        <Text style={[styles.heroName, { color: theme.textPrimary, fontFamily: fontIntent.editorialHeadline }]}>
           {firstName || 'Someone'}{age ? `, ${age}` : ''}
         </Text>
         <View style={styles.locationRow}>
@@ -152,26 +151,13 @@ export function ProfileDetailHero({
             accessibilityLabel={`Activities: ${activityTags.slice(0, 4).join(', ')}`}
           >
             {activityTags.slice(0, 4).map((tag, index) => (
-              <View
+              <Chip
                 key={`${tag}-${index}`}
-                style={[
-                  styles.tag,
-                  {
-                    backgroundColor: index % 2 === 0 ? 'rgba(139,170,122,0.10)' : 'rgba(196,168,130,0.10)',
-                    borderColor: index % 2 === 0 ? 'rgba(139,170,122,0.24)' : 'rgba(196,168,130,0.24)',
-                  },
-                ]}
-                importantForAccessibility="no"
-              >
-                <Text
-                  style={[
-                    styles.tagText,
-                    { color: index % 2 === 0 ? theme.success : theme.primary },
-                  ]}
-                >
-                  {tag}
-                </Text>
-              </View>
+                label={tag}
+                interactive={false}
+                style={styles.tag}
+                textStyle={styles.tagText}
+              />
             ))}
           </View>
         )}
@@ -200,24 +186,28 @@ export function ProfileDetailInfo({
   return (
     <View style={styles.contentArea}>
       {!!bio && (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionLabel, { color: theme.primary }]}
-            accessibilityRole="header"
-          >
-            About
-          </Text>
+        <SectionBlock
+          eyebrow="About"
+          spacingMode="tight"
+          inset={false}
+          eyebrowStyle={[styles.sectionLabel, { color: theme.accentPrimary }]}
+        >
           <Text style={[styles.bio, { color: theme.textPrimary }]}>{bio}</Text>
-        </View>
+        </SectionBlock>
       )}
 
-      <View style={styles.section}>
+      <SectionBlock
+        eyebrow="Details"
+        spacingMode="tight"
+        inset={false}
+        eyebrowStyle={[styles.sectionLabel, { color: theme.accentPrimary }]}
+      >
         <View style={styles.metaPanel}>
           {weeklyFrequencyBand ? (
             <View
               style={[
                 styles.metaIntroCard,
-                { backgroundColor: theme.backgroundSoft, borderColor: theme.border },
+                { backgroundColor: theme.subduedSurface },
               ]}
             >
               <Text style={[styles.metaIntroText, { color: theme.textPrimary }]}>
@@ -230,64 +220,39 @@ export function ProfileDetailInfo({
             <StructuredRow key={row.label} label={row.label} value={row.value} />
           ))}
         </View>
-      </View>
+      </SectionBlock>
 
       {activityTags.length > 0 && (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionLabel, { color: theme.primary }]}
-            accessibilityRole="header"
-          >
-            Movement Identity
-          </Text>
+        <SectionBlock
+          eyebrow="Movement identity"
+          spacingMode="tight"
+          inset={false}
+          eyebrowStyle={[styles.sectionLabel, { color: theme.accentPrimary }]}
+        >
           <View
             style={styles.activityPills}
             accessibilityLabel={`Movement identity: ${activityTags.slice(0, 3).join(', ')}`}
           >
-            {activityTags.slice(0, 3).map((tag, index) => {
-              const isAccent = index % 2 === 0;
-              return (
-                <View
-                  key={tag}
-                  style={[
-                    styles.activityPill,
-                    {
-                      backgroundColor: isAccent ? 'rgba(139,170,122,0.10)' : 'rgba(196,168,130,0.10)',
-                      borderColor: isAccent ? 'rgba(139,170,122,0.24)' : 'rgba(196,168,130,0.24)',
-                    },
-                  ]}
-                  importantForAccessibility="no"
-                >
-                  <Text
-                    style={[
-                      styles.activityPillText,
-                      { color: isAccent ? theme.success : theme.primary },
-                    ]}
-                  >
-                    {tag}
-                  </Text>
-                </View>
-              );
-            })}
+            {activityTags.slice(0, 3).map((tag) => (
+              <Chip
+                key={tag}
+                label={tag}
+                interactive={false}
+                style={styles.activityPill}
+                textStyle={styles.activityPillText}
+              />
+            ))}
           </View>
-        </View>
+        </SectionBlock>
       )}
 
-      <Pressable
+      <Button
+        label="Suggest an activity"
         onPress={onSuggestActivity}
-        style={[styles.suggestBtn, { minHeight: 48 }]}
-        accessibilityRole="button"
-        accessibilityLabel="Suggest an activity"
-        accessibilityHint="Opens a chat with a suggested plan"
+        variant="accent"
         disabled={disabled}
-      >
-        <LinearGradient
-          colors={['#D4C9B0', theme.primary]}
-          style={styles.suggestBtnInner}
-        >
-          <Text style={styles.suggestBtnText}>Suggest activity</Text>
-        </LinearGradient>
-      </Pressable>
+        style={styles.suggestBtn}
+      />
     </View>
   );
 }
@@ -303,9 +268,11 @@ export function ProfileDetailActions({
   onPass: () => void;
   submitting: boolean;
 }) {
+  const theme = useTheme();
+
   return (
     <LinearGradient
-      colors={['rgba(253,251,248,0)', 'rgba(253,251,248,0.95)', '#FDFBF8']}
+      colors={['transparent', theme.background, theme.background]}
       style={[styles.actionBar, { paddingBottom: Math.max(bottomInset, spacing.xxl) }]}
     >
       <View style={styles.actionRow}>
@@ -333,7 +300,10 @@ function StructuredRow({ label, value }: ProfileDetailRow) {
   const theme = useTheme();
 
   return (
-    <View style={styles.structuredRow} accessibilityLabel={`${label}: ${value}`}>
+    <View
+      style={[styles.structuredRow, { backgroundColor: theme.subduedSurface }]}
+      accessibilityLabel={`${label}: ${value}`}
+    >
       <Text
         style={[styles.structuredLabel, { color: theme.textMuted }]}
         importantForAccessibility="no"

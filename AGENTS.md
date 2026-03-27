@@ -48,6 +48,71 @@ npm run release:ios:check
 - Use one Codex thread per task and one git worktree per active task. Prefer [`scripts/codex-worktree.sh`](scripts/codex-worktree.sh) for new worktrees.
 - Use `npm run symphony` from repo root for the repo-owned Linear orchestration flow. Keep it running as a long-lived operator process rather than starting a fresh manual Codex session per issue.
 
+## Product Framing
+
+- BRDG is a movement-centered social product: people discover each other, activities, and community through shared motion, not through generic fitness dashboards or high-energy performance UI.
+- The mobile app should feel premium, editorial, warm, and elegant. Prefer memorable, intentional presentation over interchangeable “default mobile app” chrome.
+- Treat visual hierarchy as product work. Discovery, create, profile, chat, event detail, and onboarding should feel like one brand system even when the layouts differ.
+- Preserve the current product and API behavior while improving visuals. Do not let design refactors break navigation, accessibility, or backend/mobile contracts.
+
+## Mobile Design Direction
+
+- Prefer spacing, typography, and contrast over extra boxes.
+- Keep stronger separation between background, primary surface, and text. Avoid washed-out surfaces with weak contrast.
+- Selected state should usually use fill, not outline.
+- Default cards should be borderless when possible.
+- Keep local areas to a maximum of 2 visible surface layers.
+- Use one shared screen gutter and one shared section spacing rhythm across major mobile screens.
+- Use editorial emphasis typography intentionally for hero headlines, key names, and major section titles; keep utility UI typography simpler and more restrained.
+- Centralize brand-critical colors, fills, spacing, and radii in the shared token/design layer instead of adding near-duplicate hard-coded values in feature styles.
+
+## Mobile Anti-Patterns To Avoid
+
+- Double borders.
+- Nested rounded containers when one surface would do.
+- Border-inside-border inputs, selects, and pills.
+- Border-only selected states when a filled state would communicate selection more clearly.
+- Washed-out surfaces with weak contrast between background, surface, and text.
+- Inconsistent spacing rhythm caused by one-off magic numbers or per-screen spacing systems.
+- Card-inside-card-inside-pill layering used to simulate hierarchy.
+
+## Shared UI Targets
+
+- Treat the following as the default leverage points for broad visual cleanup: `Button`, `Card`, `Input`, `Chip`, `BottomSheet`, `SegmentedControl`, `ScreenScaffold`, and `SectionBlock`.
+- Today the codebase already has `Button`, `Card`, `Input`, `Chip`, `AppBottomSheet`, and a minimal `Screen` primitive. It does not yet have first-class `SegmentedControl`, `ScreenScaffold`, or `SectionBlock` primitives, so future sessions may need to introduce or consolidate them instead of repeating local layout fixes.
+- Before adding a new surface pattern, check whether the change should be absorbed into an existing primitive, shared sheet shell, or a new shared scaffold/section abstraction.
+
+## Design Refactor Workflow
+
+- Plan first for design refactors, especially when shared primitives or layout patterns have wide fan-out.
+- Inspect Storybook before editing primitives or reusable modules. Start with the existing primitive story and add/update stories in the same diff when the surface changes.
+- Inspect real screen implementations before editing layout patterns. Do not assume a primitive change is sufficient without checking how screens actually compose it.
+- Summarize the proposed visual change before making broad UI edits across many files.
+- Prefer this refactor order: tokens/primitives, then screen scaffold and section patterns, then feature screens, then runtime-sensitive polish.
+- Use Storybook for isolated visual work first; move to the seeded runtime or simulator only when navigation, async state, persistence, keyboard flow, or backend-driven behavior is involved.
+
+## Done When
+
+- No obvious double-border or border-inside-border patterns remain in the touched area.
+- Shared primitives used by the task read as one coherent visual system.
+- Screen spacing follows one recognizable rhythm instead of per-screen drift.
+- Selected states are decisive and usually filled, not lightly outlined.
+- Visual hierarchy is clearer, calmer, and more memorable than before the refactor.
+
+## Design Validation And Handoff
+
+- Always note which files changed.
+- Always describe the main regression risks, especially for primitives, bottom sheets, inputs, and runtime-sensitive screens.
+- Always list the screens, components, and stories affected.
+- End each design-oriented session with a short review packet that includes:
+  - files changed
+  - shared primitives touched
+  - screens/modules affected
+  - visual intent of the change
+  - known risks or deferred cleanup
+  - validation run (`Storybook` stories reviewed, commands run, simulator/runtime checks performed)
+- Run `npm run pre-submit` before handoff unless the task is explicitly draft-only. Use `npm run check:changed`, `npm run smoke`, and `npm run qa:ios` when the blast radius or runtime sensitivity justifies them.
+
 ## Release Provenance
 
 - Treat `main` as the source of truth for shippable mobile code unless the user explicitly designates a release branch.

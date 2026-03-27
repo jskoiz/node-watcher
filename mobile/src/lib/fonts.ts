@@ -14,6 +14,15 @@ export const fontFamily = {
   sans: undefined, // system default (SF Pro / Roboto)
 } as const;
 
+// Intent-level aliases keep the serif restrained to editorial emphasis.
+// Utility UI should continue to use `uiSans`.
+export const fontIntent = {
+  editorialHeadline: fontFamily.serifBold,
+  editorialAccent: fontFamily.serifSemiBold,
+  editorialBody: fontFamily.serif,
+  uiSans: fontFamily.sans,
+} as const;
+
 export function useFontsLoaded(): boolean {
   const [loaded] = useFonts({
     PlayfairDisplay_400Regular,

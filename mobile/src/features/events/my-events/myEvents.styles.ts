@@ -1,13 +1,11 @@
 import { StyleSheet } from 'react-native';
+import { screenLayout } from '../../../design/primitives';
 import { radii, spacing, typography } from '../../../theme/tokens';
 
 export const myEventsStyles = StyleSheet.create({
   container: { flex: 1 },
 
   header: {
-    paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -24,16 +22,13 @@ export const myEventsStyles = StyleSheet.create({
   title: {
     fontSize: typography.h1,
     fontWeight: '800',
-    letterSpacing: -0.5,
+    letterSpacing: -0.7,
   },
 
   tabBar: {
     flexDirection: 'row',
-    marginHorizontal: spacing.xxl,
     borderRadius: radii.pill,
-    borderWidth: 1,
     padding: 4,
-    marginBottom: spacing.lg,
   },
   tab: {
     flex: 1,
@@ -65,16 +60,15 @@ export const myEventsStyles = StyleSheet.create({
   },
 
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xxxxl,
+    paddingHorizontal: spacing.xxxl,
+    paddingVertical: spacing.xxxl,
   },
+  emptyStateSection: { marginTop: spacing.xl },
   emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
+    width: 72,
+    height: 72,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
@@ -103,12 +97,11 @@ export const myEventsStyles = StyleSheet.create({
   },
 
   list: {
-    paddingHorizontal: spacing.xxl,
-    paddingBottom: spacing.xxxxl,
+    paddingHorizontal: screenLayout.gutter,
+    paddingBottom: screenLayout.screenBottomPadding,
   },
   card: {
     borderRadius: radii.xl,
-    borderWidth: 1,
     marginBottom: spacing.md,
     overflow: 'hidden',
   },

@@ -1,4 +1,5 @@
 import { Dimensions, StyleSheet } from 'react-native';
+import { screenLayout } from '../../../design/primitives';
 import { radii, spacing, typography } from '../../../theme/tokens';
 
 export const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -6,7 +7,7 @@ export const HERO_HEIGHT = 300;
 
 export const eventDetailStyles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { paddingBottom: spacing.xxxl },
+  scrollContent: { paddingBottom: screenLayout.screenBottomPadding },
   heroContainer: {
     width: SCREEN_WIDTH,
     height: HERO_HEIGHT,
@@ -21,22 +22,12 @@ export const eventDetailStyles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: HERO_HEIGHT * 0.5,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    height: HERO_HEIGHT * 0.64,
   },
   backBtnOverlay: {
     position: 'absolute',
     top: spacing.lg,
     left: spacing.lg,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
   },
   heroBadge: {
     position: 'absolute',
@@ -53,11 +44,11 @@ export const eventDetailStyles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   contentCard: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    marginTop: -28,
-    paddingTop: spacing.xxl,
-    paddingHorizontal: spacing.xxl,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    marginTop: -42,
+    paddingTop: spacing.xxxl,
+    paddingHorizontal: screenLayout.gutter,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -66,24 +57,17 @@ export const eventDetailStyles = StyleSheet.create({
     minHeight: 300,
   },
   kicker: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 2,
-    marginBottom: spacing.sm,
-    textTransform: 'uppercase',
+    marginBottom: 0,
   },
   title: {
-    fontSize: typography.h1,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    marginBottom: spacing.lg,
-    lineHeight: 36,
+    fontSize: 32,
+    lineHeight: 38,
+    letterSpacing: -0.8,
   },
   hostStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 22,
+    borderRadius: 24,
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
@@ -91,7 +75,6 @@ export const eventDetailStyles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -115,7 +98,6 @@ export const eventDetailStyles = StyleSheet.create({
     fontWeight: '700',
   },
   hostPill: {
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
@@ -151,8 +133,6 @@ export const eventDetailStyles = StyleSheet.create({
     lineHeight: 20,
   },
   descSection: {
-    borderTopWidth: 1,
-    paddingTop: spacing.lg,
     marginBottom: spacing.lg,
   },
   descLabel: {
@@ -167,7 +147,10 @@ export const eventDetailStyles = StyleSheet.create({
     lineHeight: 26,
   },
   ctaArea: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     paddingBottom: spacing.lg,
+  },
+  ctaButton: {
+    backgroundColor: '#1F1915',
   },
 });

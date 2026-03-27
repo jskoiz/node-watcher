@@ -1,12 +1,8 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import { Chip } from '../../../design/primitives';
+import { Chip, SectionBlock } from '../../../design/primitives';
 import { createStyles as styles } from './create.styles';
 import { SKILL_OPTIONS, TIME_OPTIONS, WHEN_OPTIONS } from './create.helpers';
-
-function SectionLabel({ label }: { label: string }) {
-  return <Text style={styles.sectionLabel}>{label}</Text>;
-}
 
 export function CreateTimingSection({
   onChangeSpots,
@@ -31,8 +27,7 @@ export function CreateTimingSection({
 }) {
   return (
     <>
-      <View style={styles.formSection}>
-        <SectionLabel label="When?" />
+      <SectionBlock eyebrow="When?" spacingMode="tight">
         <View style={styles.pillRow}>
           {WHEN_OPTIONS.map((option) => (
             <Chip
@@ -40,7 +35,6 @@ export function CreateTimingSection({
               label={option}
               active={selectedWhen === option}
               onPress={() => onSelectWhen(option)}
-              accentColor="#C4A882"
             />
           ))}
         </View>
@@ -51,15 +45,13 @@ export function CreateTimingSection({
               label={option}
               active={selectedTime === option}
               onPress={() => onSelectTime(option)}
-              accentColor="#C4A882"
             />
           ))}
         </View>
         {timingError ? <Text style={styles.inlineError}>{timingError}</Text> : null}
-      </View>
+      </SectionBlock>
 
-      <View style={styles.formSection}>
-        <SectionLabel label="Skill level" />
+      <SectionBlock eyebrow="Skill level" spacingMode="tight">
         <View style={styles.pillRow}>
           {SKILL_OPTIONS.map((option) => (
             <Chip
@@ -67,23 +59,21 @@ export function CreateTimingSection({
               label={option}
               active={skillLevel === option}
               onPress={() => onSelectSkill(option)}
-              accentColor="#8BAA7A"
             />
           ))}
         </View>
-      </View>
+      </SectionBlock>
       {typeof spots === 'number' && onChangeSpots ? (
-        <View style={styles.formSection}>
-          <SectionLabel label="Spots available" />
+        <SectionBlock eyebrow="Spots available" spacingMode="tight">
           <View style={styles.stepperRow}>
-            <Chip label="Less" onPress={() => onChangeSpots(Math.max(1, spots - 1))} accentColor="#C4A882" />
+            <Chip label="Less" onPress={() => onChangeSpots(Math.max(1, spots - 1))} />
             <View style={styles.stepperValueWrap}>
               <Text style={styles.stepperValue}>{spots}</Text>
               <Text style={styles.stepperSub}>open spots</Text>
             </View>
-            <Chip label="More" onPress={() => onChangeSpots(Math.min(10, spots + 1))} accentColor="#8BAA7A" />
+            <Chip label="More" onPress={() => onChangeSpots(Math.min(10, spots + 1))} />
           </View>
-        </View>
+        </SectionBlock>
       ) : null}
     </>
   );

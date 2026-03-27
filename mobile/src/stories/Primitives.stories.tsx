@@ -30,7 +30,7 @@ export const CardVariants: Story = {
     <View style={{ gap: 12 }}>
       <Card><View style={{ minHeight: 40 }} /></Card>
       <Card variant="glass"><View style={{ minHeight: 40 }} /></Card>
-      <Card accent="#8BAA7A"><View style={{ minHeight: 40 }} /></Card>
+      <Card accent="accent"><View style={{ minHeight: 40 }} /></Card>
     </View>
   ),
 };
@@ -49,7 +49,7 @@ export const ChipStates: Story = {
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       <Chip label="Strength" active onPress={() => undefined} />
       <Chip label="Mobility" onPress={() => undefined} />
-      <Chip label="Read-only" active interactive={false} accentColor="#8BAA7A" />
+      <Chip label="Read-only" active interactive={false} />
     </View>
   ),
 };

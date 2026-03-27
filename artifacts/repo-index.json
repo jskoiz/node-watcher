@@ -649,6 +649,7 @@
           "mobile/src/features/events/create/CreateScreenContent.tsx",
           "mobile/src/features/events/create/CreateSuccessCard.tsx",
           "mobile/src/features/events/create/CreateTimingSection.tsx",
+          "mobile/src/features/events/create/__tests__/CreateActivityPicker.test.tsx",
           "mobile/src/features/events/create/create.helpers.ts",
           "mobile/src/features/events/create/create.styles.ts",
           "mobile/src/features/events/create/createDetails.styles.ts",

@@ -74,8 +74,11 @@ export function AppBottomSheet({
       enableDismissOnClose
       enablePanDownToClose
       android_keyboardInputMode="adjustResize"
-      backgroundStyle={[styles.sheetBackground, { backgroundColor: theme.surface }]}
-      handleIndicatorStyle={[styles.handleIndicator, { backgroundColor: theme.primary + '30' }]}
+      backgroundStyle={[
+        styles.sheetBackground,
+        { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadowColor },
+      ]}
+      handleIndicatorStyle={[styles.handleIndicator, { backgroundColor: theme.strokeStrong }]}
       keyboardBehavior={Platform.OS === 'ios' ? 'interactive' : 'fillParent'}
       keyboardBlurBehavior="restore"
       style={styles.sheetOuter}
@@ -90,7 +93,7 @@ export function AppBottomSheet({
         />
       )}
     >
-      <View style={[styles.header, { borderBottomColor: theme.borderSoft }]}>
+      <View style={[styles.header, { borderBottomColor: theme.stroke }]}>
         <View style={styles.headerCopy}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
           {subtitle ? <Text style={[styles.subtitle, { color: theme.textMuted }]}>{subtitle}</Text> : null}
@@ -102,7 +105,7 @@ export function AppBottomSheet({
           hitSlop={8}
           style={({ pressed }) => [{ opacity: pressed ? 0.76 : 1 }]}
         >
-          <GlassView tier="thin" borderRadius={18} style={styles.closeButton}>
+          <GlassView tier="thin" borderRadius={18} tint={theme.accentSoft} style={styles.closeButton}>
             <AppIcon name="x" size={16} color={theme.textPrimary} />
           </GlassView>
         </Pressable>
@@ -152,7 +155,6 @@ const styles = StyleSheet.create({
   sheetBackground: {
     borderTopLeftRadius: radii.sheet,
     borderTopRightRadius: radii.sheet,
-    shadowColor: '#000000',
     shadowOpacity: 0.1,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: -6 },

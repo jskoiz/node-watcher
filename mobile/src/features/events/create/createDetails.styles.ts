@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
 import { lightTheme, spacing, typography } from '../../../theme/tokens';
 
-const SURFACE_ELEVATED = lightTheme.surfaceElevated;
+const CHIP_SURFACE = lightTheme.chipSurface;
+const FIELD_SURFACE = lightTheme.fieldSurface;
 const TEXT_PRIMARY = lightTheme.textPrimary;
 
 export const createDetailsStyles = StyleSheet.create({
@@ -10,7 +11,7 @@ export const createDetailsStyles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: typography.body,
-    backgroundColor: SURFACE_ELEVATED,
+    backgroundColor: FIELD_SURFACE,
     color: TEXT_PRIMARY,
   },
   textArea: {
@@ -22,7 +23,7 @@ export const createDetailsStyles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 0,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: CHIP_SURFACE,
     justifyContent: 'center',
     alignItems: 'center',
   },

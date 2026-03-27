@@ -19,12 +19,12 @@ export function EventDetailMetaRow({
   return (
     <View style={styles.metaRow} accessibilityLabel={fullLabel}>
       <View
-        style={[styles.metaIconWrap, { backgroundColor: theme.surfaceElevated }]}
+        style={[styles.metaIconWrap, { backgroundColor: theme.subduedSurface }]}
         accessible={false}
         accessibilityElementsHidden={true}
         importantForAccessibility="no-hide-descendants"
       >
-        <AppIcon name={icon} size={15} color={theme.primary} />
+        <AppIcon name={icon} size={15} color={theme.accentPrimary} />
       </View>
       <View>
         <Text style={[styles.metaLabel, { color: theme.textPrimary }]}>{label}</Text>

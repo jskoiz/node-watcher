@@ -86,13 +86,11 @@ export function Button({
         };
       case 'secondary':
         return {
-          backgroundColor: theme.surfaceElevated,
-          borderWidth: 1,
-          borderColor: theme.border,
+          backgroundColor: theme.subduedSurface,
         };
       case 'accent':
         return {
-          backgroundColor: theme.accent,
+          backgroundColor: theme.accentPrimary,
           ...shadows.soft,
         };
       case 'energy':
@@ -160,7 +158,7 @@ export function Button({
         <Animated.View style={[{ transform: [{ scale }] }, style]}>
           <GlassView
             tier={variant === 'glassProminent' ? 'medium' : 'light'}
-            tint={variant === 'glassProminent' ? theme.primarySubtle : undefined}
+            tint={variant === 'glassProminent' ? theme.accentSoft : undefined}
             borderRadius={999}
             specularHighlight
             style={[primitiveStyles.buttonBase, sizeStyle]}

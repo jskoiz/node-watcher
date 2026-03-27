@@ -1,11 +1,10 @@
 import React from 'react';
 import { Alert, ScrollView } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { normalizeApiError } from '../api/errors';
 import type { RootStackScreenProps } from '../core/navigation/types';
 import AppBackButton from '../components/ui/AppBackButton';
-import AppBackdrop from '../components/ui/AppBackdrop';
-import { Screen, StatePanel } from '../design/primitives';
+import { Screen, ScreenScaffold, StatePanel } from '../design/primitives';
 import { useDiscoveryActions } from '../features/discovery/hooks/useDiscoveryActions';
 import { useMatches } from '../features/matches/hooks/useMatches';
 import { useSheetController } from '../design/sheets/useSheetController';
@@ -129,8 +128,7 @@ export default function ProfileDetailScreen({
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <AppBackdrop />
+    <ScreenScaffold style={styles.container} edges={['top', 'bottom']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -167,6 +165,6 @@ export default function ProfileDetailScreen({
         onClose={reportSheet.close}
         reportedUserId={user.id}
       />
-    </SafeAreaView>
+    </ScreenScaffold>
   );
 }

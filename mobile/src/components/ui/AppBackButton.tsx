@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import { GlassView } from '../../design/primitives/GlassView';
 import { triggerLightImpactHaptic } from '../../lib/interaction/feedback';
-import { lightTheme } from '../../theme/tokens';
+import { useTheme } from '../../theme/useTheme';
 
 interface AppBackButtonProps {
   label?: string;
@@ -12,6 +12,8 @@ interface AppBackButtonProps {
 }
 
 export default function AppBackButton({ label, onPress, disabled, style }: AppBackButtonProps) {
+  const theme = useTheme();
+
   return (
     <Pressable
       onPress={() => {
@@ -31,9 +33,9 @@ export default function AppBackButton({ label, onPress, disabled, style }: AppBa
       accessibilityState={{ disabled: disabled ?? false }}
       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
     >
-      <GlassView tier="thin" borderRadius={20} style={styles.button}>
-        <Text style={styles.arrow}>←</Text>
-        {label ? <Text style={styles.label}>{label}</Text> : null}
+      <GlassView tier="thin" tint={theme.surface} borderRadius={20} style={styles.button}>
+        <Text style={[styles.arrow, { color: theme.textPrimary }]}>←</Text>
+        {label ? <Text style={[styles.label, { color: theme.textMuted }]}>{label}</Text> : null}
       </GlassView>
     </Pressable>
   );
@@ -51,12 +53,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     lineHeight: 20,
-    color: lightTheme.textPrimary,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 4,
-    color: lightTheme.textMuted,
   },
 });

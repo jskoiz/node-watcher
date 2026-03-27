@@ -33,11 +33,7 @@ function NotificationRow({
           gap: spacing.md,
           minHeight: 64,
           borderRadius: radii.lg,
-          borderWidth: 1,
-          borderColor: isRead ? theme.border : `${theme.primary}44`,
-          borderLeftWidth: 3,
-          borderLeftColor: color,
-          backgroundColor: isRead ? theme.surfaceElevated : theme.surface,
+          backgroundColor: isRead ? theme.surface : theme.accentSoft,
           padding: spacing.md,
           opacity: pressed ? 0.9 : 1,
         },
@@ -111,7 +107,7 @@ function NotificationsScreenStory({ mode }: { mode: PreviewMode }) {
       >
         <AppBackButton onPress={() => undefined} />
         <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.accent, fontSize: typography.caption, fontWeight: '800' }}>
+          <Text style={{ color: theme.accentPrimary, fontSize: typography.caption, fontWeight: '800' }}>
             NOTIFICATIONS
           </Text>
           <Text style={{ color: theme.textPrimary, fontSize: typography.h2, fontWeight: '800' }}>
@@ -148,12 +144,10 @@ function NotificationsScreenStory({ mode }: { mode: PreviewMode }) {
                 borderRadius: 24,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: theme.surfaceElevated,
-                borderWidth: 1,
-                borderColor: theme.border,
+                backgroundColor: theme.accentSoft,
               }}
             >
-              <AppIcon name="bell" size={24} color={theme.primary} />
+              <AppIcon name="bell" size={24} color={theme.accentPrimary} />
             </View>
             <Text style={{ color: theme.textPrimary, fontSize: typography.h3, fontWeight: '800' }}>
               No notifications

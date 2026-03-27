@@ -1,7 +1,8 @@
 import React from 'react';
 import { Alert, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { buildInfo } from '../../../config/buildInfo';
-import { Card } from '../../../design/primitives';
+import { Card, SectionBlock } from '../../../design/primitives';
+import { useTheme } from '../../../theme/useTheme';
 import { profileStyles as styles } from './profile.styles';
 
 function SettingsRow({
@@ -42,12 +43,16 @@ function SettingsToggleRow({
   label,
   onValueChange,
   testID,
+  thumbColor,
+  trackColor,
   value,
 }: {
   icon: string;
   label: string;
   onValueChange: (value: boolean) => void;
   testID?: string;
+  thumbColor: string;
+  trackColor: { false: string; true: string };
   value: boolean;
 }) {
   return (
@@ -64,8 +69,8 @@ function SettingsToggleRow({
         testID={testID ? `${testID}-switch` : undefined}
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: '#E0D8CF', true: '#C4A882' }}
-        thumbColor="#FFFFFF"
+        trackColor={trackColor}
+        thumbColor={thumbColor}
       />
     </View>
   );
@@ -120,9 +125,10 @@ export function ProfileSettingsSection({
   onToggleHaptics: (enabled: boolean) => void;
   showBuildInfo: boolean;
 }) {
+  const theme = useTheme();
+
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>Settings</Text>
+    <SectionBlock eyebrow="Settings">
       <Card style={styles.settingsCard}>
         <SettingsRow
           icon="👤"
@@ -152,6 +158,8 @@ export function ProfileSettingsSection({
           label="Haptic Feedback"
           value={hapticsOn}
           onValueChange={onToggleHaptics}
+          trackColor={{ false: theme.chipSurface, true: theme.selectedFill }}
+          thumbColor={theme.selectedText}
         />
         <View style={styles.fieldDivider} />
         <SettingsRow
@@ -168,7 +176,6 @@ export function ProfileSettingsSection({
           </>
         ) : null}
       </Card>
-    </View>
+    </SectionBlock>
   );
 }
-

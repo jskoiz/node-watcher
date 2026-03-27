@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
 import { HomeHero } from '../features/discovery/components/HomeHero';
+import { lightTheme } from '../theme/tokens';
 import { withStorySurface } from './support';
 
 const meta = {
@@ -16,8 +17,19 @@ export const Default: Story = {
     feedCount: 12,
     filterCount: 2,
     greeting: 'Morning, Jordan',
-    intentOption: { label: 'Open to both', color: '#8BAA7A' },
+    intentOption: { label: 'Open to both', color: lightTheme.accentPrimary },
     onPressNotifications: () => undefined,
     unreadCount: 3,
+  },
+};
+
+export const NoUnread: Story = {
+  args: {
+    feedCount: 4,
+    filterCount: 0,
+    greeting: 'Tonight, Jordan',
+    intentOption: { label: 'Open to both', color: lightTheme.accentPrimary },
+    onPressNotifications: () => undefined,
+    unreadCount: 0,
   },
 };

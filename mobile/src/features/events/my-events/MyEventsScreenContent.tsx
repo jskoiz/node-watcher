@@ -6,13 +6,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import type { EventSummary } from '../../../api/types';
 import AppBackButton from '../../../components/ui/AppBackButton';
-import AppBackdrop from '../../../components/ui/AppBackdrop';
 import AppIcon from '../../../components/ui/AppIcon';
-import { StatePanel } from '../../../design/primitives';
+import { ScreenScaffold, SectionBlock, StatePanel } from '../../../design/primitives';
 import type { Theme } from '../../../theme/tokens';
 import type { MainTabParamList } from '../../../core/navigation/types';
 import {
@@ -60,70 +58,73 @@ export function MyEventsScreenContent({
   theme: Theme;
 }) {
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <AppBackdrop />
-
-      <View style={styles.header}>
-        {canGoBack ? <AppBackButton onPress={onGoBack} /> : null}
-        <View style={styles.headerCopy}>
-          <Text style={[styles.eyebrow, { color: theme.accent }]}>EVENTS</Text>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>My Events</Text>
+    <ScreenScaffold style={[styles.container, { backgroundColor: theme.background }]}>
+      <SectionBlock spacingMode="tight">
+        <View style={styles.header}>
+          {canGoBack ? <AppBackButton onPress={onGoBack} /> : null}
+          <View style={styles.headerCopy}>
+            <Text style={[styles.eyebrow, { color: theme.accentPrimary }]}>EVENTS</Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>My Events</Text>
+          </View>
         </View>
-      </View>
+      </SectionBlock>
 
-      <View
-        style={[
-          styles.tabBar,
-          { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
-        ]}
-      >
-        {MY_EVENTS_TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tab,
-              activeTab === tab &&
-                [styles.tabActive, { backgroundColor: theme.primary }],
-              { minHeight: 44, justifyContent: 'center' },
-            ]}
-            onPress={() => onSelectTab(tab)}
-            activeOpacity={0.8}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activeTab === tab }}
-            accessibilityLabel={`${tab} events, ${tabCounts[tab]} items`}
-          >
-            <View style={styles.tabContent}>
-              <Text
-                style={[
-                  styles.tabText,
-                  { color: activeTab === tab ? theme.white : theme.textMuted },
-                ]}
-              >
-                {tab}
-              </Text>
-              <View
-                testID={`my-events-tab-${tab.toLowerCase()}-count`}
-                style={[
-                  styles.tabCount,
-                  {
-                    backgroundColor:
-                      activeTab === tab ? 'rgba(255,255,255,0.18)' : theme.primarySubtle,
-                  },
-                ]}
-              >
+      <SectionBlock spacingMode="tight">
+        <View style={[styles.tabBar, { backgroundColor: theme.chipSurface }]}>
+          {MY_EVENTS_TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.tab,
+                activeTab === tab &&
+                  [styles.tabActive, { backgroundColor: theme.selectedFill }],
+                { minHeight: 44, justifyContent: 'center' },
+              ]}
+              onPress={() => onSelectTab(tab)}
+              activeOpacity={0.8}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === tab }}
+              accessibilityLabel={`${tab} events, ${tabCounts[tab]} items`}
+            >
+              <View style={styles.tabContent}>
                 <Text
                   style={[
-                    styles.tabCountText,
-                    { color: activeTab === tab ? theme.white : theme.primary },
+                    styles.tabText,
+                    {
+                      color:
+                        activeTab === tab ? theme.selectedText : theme.textSecondary,
+                    },
                   ]}
                 >
-                  {tabCounts[tab]}
+                  {tab}
                 </Text>
+                <View
+                  testID={`my-events-tab-${tab.toLowerCase()}-count`}
+                  style={[
+                    styles.tabCount,
+                    {
+                      backgroundColor:
+                        activeTab === tab ? theme.surface : theme.subduedSurface,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.tabCountText,
+                      {
+                        color:
+                          activeTab === tab ? theme.textPrimary : theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    {tabCounts[tab]}
+                  </Text>
+                </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </SectionBlock>
 
       {isLoading ? (
         <StatePanel title="Loading your events" loading />
@@ -136,39 +137,40 @@ export function MyEventsScreenContent({
           isError
         />
       ) : displayedEvents.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View
-            style={[
-              styles.emptyIconWrap,
-              {
-                backgroundColor: theme.surfaceElevated,
-                borderColor: theme.border,
-              },
-            ]}
-          >
-            <AppIcon name={emptyState.icon} size={24} color={theme.primary} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
-            {emptyState.title}
-          </Text>
-          <Text style={[styles.emptyBody, { color: theme.textSecondary }]}>
-            {emptyState.body}
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.emptyCta,
-              { backgroundColor: theme.primary, minHeight: 48 },
-            ]}
-            onPress={() => onTabEmptyCtaPress(emptyState.route)}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={emptyState.cta}
-          >
-            <Text style={[styles.emptyCtaText, { color: theme.white }]}>
-              {emptyState.cta}
+        <SectionBlock style={styles.emptyStateSection}>
+          <View style={styles.emptyState}>
+            <View
+              style={[
+                styles.emptyIconWrap,
+                {
+                  backgroundColor: theme.accentSoft,
+                },
+              ]}
+            >
+              <AppIcon name={emptyState.icon} size={24} color={theme.accentPrimary} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
+              {emptyState.title}
             </Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={[styles.emptyBody, { color: theme.textSecondary }]}>
+              {emptyState.body}
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.emptyCta,
+                { backgroundColor: theme.selectedFill, minHeight: 48 },
+              ]}
+              onPress={() => onTabEmptyCtaPress(emptyState.route)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={emptyState.cta}
+            >
+              <Text style={[styles.emptyCtaText, { color: theme.selectedText }]}>
+                {emptyState.cta}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SectionBlock>
       ) : (
         <FlashList
           contentContainerStyle={styles.list}
@@ -187,8 +189,7 @@ export function MyEventsScreenContent({
               style={({ pressed }) => [
                 styles.card,
                 {
-                  backgroundColor: theme.surfaceElevated,
-                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
                   opacity: pressed ? 0.88 : 1,
                 },
               ]}
@@ -201,10 +202,10 @@ export function MyEventsScreenContent({
                 <View
                   style={[
                     styles.cardCategoryBar,
-                    { backgroundColor: `${theme.primary}22` },
+                    { backgroundColor: theme.accentSoft },
                   ]}
                 >
-                  <Text style={[styles.cardCategory, { color: theme.primary }]}>
+                  <Text style={[styles.cardCategory, { color: theme.accentPrimary }]}>
                     {item.category}
                   </Text>
                 </View>
@@ -232,6 +233,6 @@ export function MyEventsScreenContent({
           )}
         />
       )}
-    </SafeAreaView>
+    </ScreenScaffold>
   );
 }

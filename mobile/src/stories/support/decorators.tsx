@@ -1,5 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
+import { lightTheme } from '../../theme/tokens';
 import { StoryScreenFrame } from './StoryScreenFrame';
 
 type StoryDecoratorOptions = {
@@ -12,7 +13,7 @@ type StoryDecoratorOptions = {
 
 export function withStorySurface(options: StoryDecoratorOptions = {}) {
   const {
-    backgroundColor = '#FDFBF8',
+    backgroundColor = lightTheme.background,
     centered = true,
     padding = 24,
   } = options;
@@ -34,7 +35,7 @@ export function withStorySurface(options: StoryDecoratorOptions = {}) {
 
 export function withStoryBottomSurface(options: StoryDecoratorOptions = {}) {
   const {
-    backgroundColor = '#FDFBF8',
+    backgroundColor = lightTheme.background,
     padding = 24,
   } = options;
 
@@ -54,7 +55,7 @@ export function withStoryBottomSurface(options: StoryDecoratorOptions = {}) {
 
 export function withStoryScreenFrame(options: StoryDecoratorOptions = {}) {
   const {
-    backgroundColor = '#FDFBF8',
+    backgroundColor = lightTheme.background,
     centered = true,
     height,
     width,
