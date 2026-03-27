@@ -10,6 +10,7 @@ const testDir = path.dirname(fileURLToPath(import.meta.url));
 const releaseScriptPath = path.resolve(testDir, '../release-ios.sh');
 const ascHelperPath = path.resolve(testDir, '../app-store-connect-build.mjs');
 const fastPathScriptPath = path.resolve(testDir, '../release-ios-fast-path.mjs');
+const notesScriptPath = path.resolve(testDir, '../release-testflight-notes.mjs');
 
 function run(command, args, options = {}) {
   return spawnSync(command, args, {
@@ -38,6 +39,7 @@ function createFixture({ withUpstream = true, withReleaseTag = false } = {}) {
   fs.copyFileSync(releaseScriptPath, path.join(repoRoot, 'scripts/release-ios.sh'));
   fs.copyFileSync(ascHelperPath, path.join(repoRoot, 'scripts/app-store-connect-build.mjs'));
   fs.copyFileSync(fastPathScriptPath, path.join(repoRoot, 'scripts/release-ios-fast-path.mjs'));
+  fs.copyFileSync(notesScriptPath, path.join(repoRoot, 'scripts/release-testflight-notes.mjs'));
   fs.chmodSync(path.join(repoRoot, 'scripts/release-ios.sh'), 0o755);
 
   fs.writeFileSync(path.join(repoRoot, 'mobile/package.json'), JSON.stringify({
@@ -203,6 +205,10 @@ test('prepare writes manifest and release context without tagging', () => {
   const context = readJson(path.join(repoRoot, 'mobile/build/ios-release-context.json'));
   assert.equal(manifest.preflightOnly, true);
   assert.equal(manifest.nativePrep, 'reuse-existing-ios');
+  assert.equal(path.basename(manifest.testflightNotes.path), 'testflight-notes.md');
+  assert.match(manifest.testflightNotes.path, /mobile\/build\/testflight-notes\.md$/);
+  assert.equal(manifest.testflightNotes.baseRef, 'v1.2.2+4');
+  assert.equal(fs.existsSync(path.join(repoRoot, 'mobile/build/testflight-notes.md')), true);
   assert.equal(context.nativePrep, 'reuse-existing-ios');
   assert.match(context.gitSha, /^[0-9a-f]{40}$/);
   assert.equal(exec('git', ['tag'], { cwd: repoRoot }), 'v1.2.2+4');
@@ -245,6 +251,8 @@ test('ship uses prepared context and skips npm run check', () => {
 
   const manifest = readJson(path.join(repoRoot, 'mobile/build/ios-release-manifest.json'));
   assert.equal(manifest.preflightOnly, false);
+  assert.equal(manifest.testflightNotes.publishMode, 'auto');
+  assert.equal(manifest.testflightNotes.published, false);
   assert.equal(exec('git', ['tag', '--list', 'v1.2.3+5'], { cwd: repoRoot }), 'v1.2.3+5');
 });
 

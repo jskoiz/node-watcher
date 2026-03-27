@@ -116,6 +116,31 @@ async function fetchJson(url, { token, fetchImpl = fetch } = {}) {
   return payload;
 }
 
+async function requestJson(url, {
+  token,
+  method = 'GET',
+  body,
+  fetchImpl = fetch,
+} = {}) {
+  const response = await fetchImpl(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const detail = payload?.errors?.map((error) => error.detail).filter(Boolean).join('; ');
+    fail(`App Store Connect request failed (${response.status}): ${detail || response.statusText}`);
+  }
+
+  return payload;
+}
+
 function getRequiredCredentials() {
   const keyId = process.env.ASC_API_KEY_ID || '';
   const issuerId = process.env.ASC_API_ISSUER_ID || '';
@@ -254,6 +279,105 @@ export async function fetchNextBuildNumber(options = {}) {
   };
 }
 
+async function listBetaAppLocalizations({
+  appId,
+  locale,
+  apiBase = DEFAULT_API_BASE,
+  fetchImpl = fetch,
+  token,
+  limit = 1,
+}) {
+  const url = new URL('/betaAppLocalizations', apiBase);
+  url.searchParams.set('filter[app]', appId);
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('fields[betaAppLocalizations]', 'description,locale');
+  if (locale) {
+    url.searchParams.set('filter[locale]', locale);
+  }
+
+  const payload = await fetchJson(url, { token, fetchImpl });
+  return payload?.data ?? [];
+}
+
+export async function upsertBetaAppDescription({
+  bundleId = DEFAULT_BUNDLE_ID,
+  locale = 'en-US',
+  description,
+  apiBase = DEFAULT_API_BASE,
+  fetchImpl = fetch,
+  authToken,
+} = {}) {
+  if (!description || !description.trim()) {
+    fail('description is required');
+  }
+
+  const token = authToken ?? (await createAuthToken()).token;
+  const { appId } = await resolveAscAppId({ bundleId, apiBase, fetchImpl, token });
+  const existing = (await listBetaAppLocalizations({
+    appId,
+    locale,
+    apiBase,
+    fetchImpl,
+    token,
+  }))[0] ?? null;
+
+  if (existing?.id) {
+    const payload = await requestJson(new URL(`/betaAppLocalizations/${existing.id}`, apiBase), {
+      token,
+      method: 'PATCH',
+      body: {
+        data: {
+          type: 'betaAppLocalizations',
+          id: existing.id,
+          attributes: {
+            description,
+          },
+        },
+      },
+      fetchImpl,
+    });
+
+    return {
+      bundleId,
+      appId,
+      locale,
+      action: 'updated',
+      betaAppLocalization: payload?.data ?? null,
+    };
+  }
+
+  const payload = await requestJson(new URL('/betaAppLocalizations', apiBase), {
+    token,
+    method: 'POST',
+    body: {
+      data: {
+        type: 'betaAppLocalizations',
+        attributes: {
+          locale,
+          description,
+        },
+        relationships: {
+          app: {
+            data: {
+              type: 'apps',
+              id: appId,
+            },
+          },
+        },
+      },
+    },
+    fetchImpl,
+  });
+
+  return {
+    bundleId,
+    appId,
+    locale,
+    action: 'created',
+    betaAppLocalization: payload?.data ?? null,
+  };
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -323,6 +447,7 @@ function parseArgs(argv) {
     bundleId: DEFAULT_BUNDLE_ID,
     timeoutSeconds: 900,
     intervalSeconds: 15,
+    locale: 'en-US',
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -342,6 +467,18 @@ function parseArgs(argv) {
         break;
       case '--interval-seconds':
         values.intervalSeconds = Number.parseInt(argv[index + 1], 10);
+        index += 1;
+        break;
+      case '--locale':
+        values.locale = argv[index + 1];
+        index += 1;
+        break;
+      case '--notes-file':
+        values.notesFile = argv[index + 1];
+        index += 1;
+        break;
+      case '--description':
+        values.description = argv[index + 1];
         index += 1;
         break;
       case '-h':
@@ -365,12 +502,16 @@ function printUsage() {
     '  latest-build             Print the latest App Store Connect build for the bundle id',
     '  next-build               Print the next build number for the bundle id',
     '  wait-processing          Poll until a specific build appears and reaches a ready state',
+    '  publish-beta-description Upsert the TestFlight beta app description for a locale',
     '',
     'Options:',
     '  --bundle-id <id>         Defaults to IOS_BUNDLE_IDENTIFIER or com.avmillabs.brdg',
     '  --build <number>         Required for wait-processing',
     '  --timeout-seconds <n>    Defaults to 900',
     '  --interval-seconds <n>   Defaults to 15',
+    '  --locale <code>          Defaults to en-US for beta description publishing',
+    '  --notes-file <path>      Read the beta description body from a file',
+    '  --description <text>     Inline beta description body',
     '',
   ].join('\n'));
 }
@@ -400,6 +541,15 @@ async function main() {
       process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
       process.exit(1);
     }
+  } else if (command === 'publish-beta-description') {
+    const description = args.notesFile
+      ? fs.readFileSync(path.resolve(args.notesFile), 'utf8')
+      : args.description;
+    payload = await upsertBetaAppDescription({
+      bundleId: args.bundleId,
+      locale: args.locale,
+      description,
+    });
   } else {
     fail(`Unknown command: ${command}`);
   }

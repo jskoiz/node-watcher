@@ -7,11 +7,12 @@ Use [`APP_STORE_RELEASE.md`](./APP_STORE_RELEASE.md) as the canonical release an
 Run these checks every time before trusting the metadata or attached-build state:
 
 1. Run `npm run release:ios:check` and use the generated `mobile/build/ios-release-manifest.json` as the current source of build provenance.
-2. Verify the latest live App Store Connect build number and the currently attached build/version for `com.avmillabs.brdg`.
-3. Re-check that screenshots still match the shipped UX after profile editing, photo management, and bottom-sheet changes.
-4. Re-check that review notes still match the current account creation, account deletion, and reviewer contact flow.
-5. Confirm the App Store Connect UI still shows `Content Rights` and `App Privacy` in the expected completed state.
-6. Regenerate screenshots from the repo-owned path when needed:
+2. Review `mobile/build/testflight-notes.md` and confirm the generated notes still match the exact build you are attaching.
+3. Verify the latest live App Store Connect build number and the currently attached build/version for `com.avmillabs.brdg`.
+4. Re-check that screenshots still match the shipped UX after profile editing, photo management, and bottom-sheet changes.
+5. Re-check that review notes still match the current account creation, account deletion, and reviewer contact flow.
+6. Confirm the App Store Connect UI still shows `Content Rights` and `App Privacy` in the expected completed state.
+7. Regenerate screenshots from the repo-owned path when needed:
 
 ```bash
 npm run screenshots

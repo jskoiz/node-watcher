@@ -77,6 +77,7 @@ The release manifest at `mobile/build/ios-release-manifest.json` now records:
 - live App Store Connect build number evidence
 - native prep mode and its classifier reason
 - environment-value provenance for the release-critical inputs
+- generated TestFlight notes metadata, including the notes file path, release-tag base ref, locale, and whether ASC publishing completed
 - whether the run was preflight-only
 - the script-enforced release-eligibility checks
 
@@ -106,6 +107,10 @@ If the local Xcode Accounts state is missing or broken, the same wrapper can aut
 Use `npm run release:ios:check` as a compatibility alias for `npm run release:ios:prepare` when you want the preflight and manifest/context generation without starting the Xcode archive/upload.
 
 `npm run release:ios:prepare` is the canonical release-readiness path. It writes the manifest and context, validates the checkout and config, and must not be treated as proof that a TestFlight/App Store artifact was uploaded or attached.
+
+During `prepare` and `ship`, the wrapper now also generates `mobile/build/testflight-notes.md` from the user-facing commits since the latest matching release tag. Use `npm run release:ios:notes -- --version <version> --build <build>` if you need to regenerate or inspect the notes directly.
+
+When App Store Connect API-key auth is available, `npm run release:ios:ship` now publishes that generated text to the TestFlight beta app description automatically. Without API-key auth, the script leaves the generated notes file in `mobile/build/` for manual paste and records that publish state in the release manifest.
 
 In CI, the `release-readiness` lane runs after the main check lane and can still be retried manually for a pushed `main` SHA; it is meant to validate the same release provenance without turning the CI release lane into a second full repo-validation pass.
 
@@ -189,6 +194,8 @@ After a build is produced, compare three things before handoff:
 3. the build/version attached in App Store Connect/TestFlight
 
 The manifest and in-app panel should agree on branch, full git SHA, version, iOS build number, API URL, build date, release path, and release profile. App Store Connect should attach the build that matches those values.
+
+Also confirm the TestFlight notes attached in App Store Connect still match `mobile/build/testflight-notes.md` if the upload used manual metadata paste instead of API-key automation.
 
 ## Release QA focus
 

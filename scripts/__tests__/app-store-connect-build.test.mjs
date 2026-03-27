@@ -5,6 +5,7 @@ import {
   summarizeBuild,
   fetchLatestBuild,
   fetchNextBuildNumber,
+  upsertBetaAppDescription,
   waitForBuildProcessing,
 } from '../app-store-connect-build.mjs';
 
@@ -163,4 +164,84 @@ test('waitForBuildProcessing returns timeout when the build never becomes ready'
 
   assert.equal(result.status, 'timeout');
   assert.equal(result.build.processingState, 'PROCESSING');
+});
+
+test('upsertBetaAppDescription patches an existing localization', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    if (calls.length === 1) {
+      return buildResponse({ data: [{ id: 'app-1' }] });
+    }
+    if (calls.length === 2) {
+      return buildResponse({
+        data: [{
+          id: 'loc-1',
+          attributes: {
+            locale: 'en-US',
+            description: 'old',
+          },
+        }],
+      });
+    }
+
+    return buildResponse({
+      data: {
+        id: 'loc-1',
+        type: 'betaAppLocalizations',
+        attributes: {
+          locale: 'en-US',
+          description: 'new description',
+        },
+      },
+    });
+  };
+
+  const result = await upsertBetaAppDescription({
+    bundleId: 'com.example.brdg',
+    locale: 'en-US',
+    description: 'new description',
+    fetchImpl,
+    authToken: 'token',
+  });
+
+  assert.equal(result.action, 'updated');
+  assert.equal(calls[2].options.method, 'PATCH');
+  assert.match(calls[2].options.body, /new description/);
+});
+
+test('upsertBetaAppDescription creates a localization when one does not exist', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    if (calls.length === 1) {
+      return buildResponse({ data: [{ id: 'app-1' }] });
+    }
+    if (calls.length === 2) {
+      return buildResponse({ data: [] });
+    }
+
+    return buildResponse({
+      data: {
+        id: 'loc-2',
+        type: 'betaAppLocalizations',
+        attributes: {
+          locale: 'en-US',
+          description: 'created description',
+        },
+      },
+    });
+  };
+
+  const result = await upsertBetaAppDescription({
+    bundleId: 'com.example.brdg',
+    locale: 'en-US',
+    description: 'created description',
+    fetchImpl,
+    authToken: 'token',
+  });
+
+  assert.equal(result.action, 'created');
+  assert.equal(calls[2].options.method, 'POST');
+  assert.match(calls[2].options.body, /created description/);
 });

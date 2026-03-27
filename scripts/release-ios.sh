@@ -6,6 +6,7 @@ MOBILE_DIR="$ROOT_DIR/mobile"
 MANIFEST_DIR="$MOBILE_DIR/build"
 MANIFEST_PATH="$MANIFEST_DIR/ios-release-manifest.json"
 CONTEXT_PATH="$MANIFEST_DIR/ios-release-context.json"
+TESTFLIGHT_NOTES_PATH_DEFAULT="$MANIFEST_DIR/testflight-notes.md"
 IOS_DIR="$MOBILE_DIR/ios"
 
 MODE="xcode"
@@ -222,6 +223,21 @@ json_field() {
   ' "$json" "$field"
 }
 
+generate_testflight_notes() {
+  local notes_json
+
+  notes_json="$(
+    node "$ROOT_DIR/scripts/release-testflight-notes.mjs" \
+      --cwd "$ROOT_DIR" \
+      --version "$APP_VERSION" \
+      --build "$IOS_BUILD_NUMBER" \
+      --output "$TESTFLIGHT_NOTES_PATH"
+  )"
+
+  export TESTFLIGHT_NOTES_PATH="$(json_field "$notes_json" outputPath 2>/dev/null || printf '%s' "$TESTFLIGHT_NOTES_PATH")"
+  export TESTFLIGHT_NOTES_BASE_REF="$(json_field "$notes_json" baseRef 2>/dev/null || true)"
+}
+
 resolve_asc_live_state() {
   local asc_json
 
@@ -390,6 +406,14 @@ manifest = {
     "nativePrep": os.environ["NATIVE_PREP"],
     "nativePrepReason": os.environ.get("NATIVE_PREP_REASON") or None,
     "nativePrepBaseRef": os.environ.get("NATIVE_PREP_BASE_REF") or None,
+    "testflightNotes": {
+        "path": os.environ.get("TESTFLIGHT_NOTES_PATH") or None,
+        "baseRef": os.environ.get("TESTFLIGHT_NOTES_BASE_REF") or None,
+        "locale": os.environ.get("TESTFLIGHT_NOTES_LOCALE") or None,
+        "publishMode": os.environ.get("TESTFLIGHT_NOTES_PUBLISH") or None,
+        "published": (os.environ.get("TESTFLIGHT_NOTES_PUBLISHED", "false").lower() == "true"),
+        "publishedAt": os.environ.get("TESTFLIGHT_NOTES_PUBLISHED_AT") or None,
+    },
     "preflightOnly": preflight_only,
     "releaseEligibility": {
         "allowedBranch": True,
@@ -420,6 +444,14 @@ context = {
     "nativePrep": os.environ["NATIVE_PREP"],
     "nativePrepReason": os.environ.get("NATIVE_PREP_REASON") or None,
     "nativePrepBaseRef": os.environ.get("NATIVE_PREP_BASE_REF") or None,
+    "testflightNotes": {
+        "path": os.environ.get("TESTFLIGHT_NOTES_PATH") or None,
+        "baseRef": os.environ.get("TESTFLIGHT_NOTES_BASE_REF") or None,
+        "locale": os.environ.get("TESTFLIGHT_NOTES_LOCALE") or None,
+        "publishMode": os.environ.get("TESTFLIGHT_NOTES_PUBLISH") or None,
+        "published": (os.environ.get("TESTFLIGHT_NOTES_PUBLISHED", "false").lower() == "true"),
+        "publishedAt": os.environ.get("TESTFLIGHT_NOTES_PUBLISHED_AT") or None,
+    },
     "envSources": env_sources,
 }
 
@@ -471,6 +503,11 @@ print_preflight_summary() {
   if [[ -n "$NATIVE_PREP_BASE_REF" ]]; then
     echo "  native prep base ref: $NATIVE_PREP_BASE_REF"
   fi
+  echo "  testflight notes: $TESTFLIGHT_NOTES_PATH"
+  if [[ -n "${TESTFLIGHT_NOTES_BASE_REF:-}" ]]; then
+    echo "  testflight notes base ref: $TESTFLIGHT_NOTES_BASE_REF"
+  fi
+  echo "  testflight notes publish mode: $TESTFLIGHT_NOTES_PUBLISH"
   echo "  env sources:"
   echo "    IOS_BUILD_NUMBER: $(get_env_source IOS_BUILD_NUMBER)"
   echo "    IOS_BUNDLE_IDENTIFIER: $(get_env_source IOS_BUNDLE_IDENTIFIER)"
@@ -591,6 +628,14 @@ export ASC_API_ISSUER_ID="${ASC_API_ISSUER_ID:-}"
 export ASC_API_KEY_PATH="${ASC_API_KEY_PATH:-}"
 export ASC_LIVE_BUILD_NUMBER="${ASC_LIVE_BUILD_NUMBER:-}"
 export ASC_BUILD_NUMBER_VERIFIED_AT="${ASC_BUILD_NUMBER_VERIFIED_AT:-}"
+export TESTFLIGHT_NOTES_PATH="${TESTFLIGHT_NOTES_PATH:-$TESTFLIGHT_NOTES_PATH_DEFAULT}"
+export TESTFLIGHT_NOTES_LOCALE="${TESTFLIGHT_NOTES_LOCALE:-en-US}"
+export TESTFLIGHT_NOTES_PUBLISH="${TESTFLIGHT_NOTES_PUBLISH:-auto}"
+export TESTFLIGHT_NOTES_PUBLISHED="${TESTFLIGHT_NOTES_PUBLISHED:-false}"
+export TESTFLIGHT_NOTES_PUBLISHED_AT="${TESTFLIGHT_NOTES_PUBLISHED_AT:-}"
+export TESTFLIGHT_NOTES_BASE_REF="${TESTFLIGHT_NOTES_BASE_REF:-}"
+
+[[ "$TESTFLIGHT_NOTES_PUBLISH" == "auto" || "$TESTFLIGHT_NOTES_PUBLISH" == "skip" || "$TESTFLIGHT_NOTES_PUBLISH" == "require" ]] || fail "TESTFLIGHT_NOTES_PUBLISH must be auto, skip, or require"
 
 set_if_unset "IOS_DEVELOPMENT_TEAM" "$(detect_apple_team_id)" "mobile/eas.json"
 
@@ -630,6 +675,8 @@ resolve_ios_build_number
 export UPSTREAM="$UPSTREAM"
 export UPSTREAM_GIT_SHA="$UPSTREAM_GIT_SHA"
 export AUTH_MODE="$AUTH_MODE"
+
+generate_testflight_notes
 
 if [[ "$PHASE" == "ship" ]]; then
   resolve_native_prep_from_context
@@ -771,6 +818,29 @@ EOF
     fi
     ;;
 esac
+
+case "$TESTFLIGHT_NOTES_PUBLISH" in
+  skip)
+    echo "release-ios: skipping TestFlight beta description publish; notes are available at $TESTFLIGHT_NOTES_PATH"
+    ;;
+  auto|require)
+    if [[ "$AUTH_MODE" == "app-store-connect-api-key" ]]; then
+      echo "release-ios: publishing TestFlight beta description from $TESTFLIGHT_NOTES_PATH"
+      node "$ROOT_DIR/scripts/app-store-connect-build.mjs" publish-beta-description \
+        --bundle-id "$IOS_BUNDLE_IDENTIFIER" \
+        --locale "$TESTFLIGHT_NOTES_LOCALE" \
+        --notes-file "$TESTFLIGHT_NOTES_PATH"
+      export TESTFLIGHT_NOTES_PUBLISHED="true"
+      export TESTFLIGHT_NOTES_PUBLISHED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    elif [[ "$TESTFLIGHT_NOTES_PUBLISH" == "require" ]]; then
+      fail "TESTFLIGHT_NOTES_PUBLISH=require needs App Store Connect API-key auth"
+    else
+      echo "release-ios: App Store Connect API-key auth unavailable; leaving generated TestFlight notes at $TESTFLIGHT_NOTES_PATH for manual paste"
+    fi
+    ;;
+esac
+
+write_release_metadata 0
 
 RELEASE_TAG="v${APP_VERSION}+${IOS_BUILD_NUMBER}"
 if run_git rev-parse "$RELEASE_TAG" >/dev/null 2>&1; then
