@@ -29,12 +29,14 @@ npm run start
 
 ## Quality gates
 
-Run these before opening a PR:
+Run these before opening or updating a PR:
 
 ```bash
-# repo root one-shot smoke (bootstrap -> backend start -> mobile prereqs)
-npm run smoke
+# local pre-PR gate (docs, policy, diff-driven fast lane)
+npm run pre-submit
 ```
+
+Use `npm run smoke` in addition when backend bootstrap, scenarios, or other integrated runtime assumptions changed.
 
 ### Backend
 
@@ -67,8 +69,10 @@ This runs:
 GitHub Actions runs `.github/workflows/ci.yml` on pushes to `main` and all pull requests.
 
 It executes the repo harness via `scripts/run-harness-lane.mjs`:
-- **PR pushes:** `pr-fast` lane (diff-driven validation for changed packages)
-- **Main pushes:** `full-main` lane (complete validation across all packages)
+- **PR pushes:** lightweight remote-only checks such as backend migration rehearsal when path-gated
+- **Main pushes:** `main-check` lane (complete validation across all packages)
+
+The diff-driven `pr-fast` lane is intentionally local-only now. Run `npm run pre-submit` before opening or updating a PR instead of waiting for GitHub to run that validation remotely.
 
 ### Temporary skips
 

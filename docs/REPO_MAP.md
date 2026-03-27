@@ -52,7 +52,7 @@ Change mobile when the task touches app UX, feature modules, Storybook coverage,
 ## Safe Defaults
 
 - Start with `npm run harness:doctor` if the environment is uncertain.
-- Run `npm run pre-submit` before opening a PR or install the repo-managed pre-commit hook with `npm run hooks:install`.
+- Run `npm run pre-submit` before opening or updating a PR; this is the local replacement for the old automated PR fast lane. You can also install the repo-managed pre-commit hook with `npm run hooks:install`.
 - Use `npm run check:changed` for a fast diff-driven validation pass.
 - Use `npm run check` for full non-smoke validation.
 - Use `npm run smoke` when backend bootstrap, seed/scenario wiring, or integrated app assumptions changed; use it for contract-changing work when you need the runtime boundary verified end to end.

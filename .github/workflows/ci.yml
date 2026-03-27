@@ -83,37 +83,6 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/brdg_ci
 
-  fast-pr:
-    name: PR fast lane
-    if: github.event_name == 'pull_request'
-    runs-on: [self-hosted, Linux, X64, brdg-ci]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            backend/package-lock.json
-            mobile/package-lock.json
-      - run: npm install --ignore-scripts
-      - run: npm ci
-        working-directory: backend
-      - run: npm ci
-        working-directory: mobile
-      - run: npm ci
-        working-directory: symphony
-      - run: |
-          git fetch origin main
-          node ./scripts/run-harness-lane.mjs --lane pr-fast --artifacts-dir artifacts/harness/pr-fast --base origin/main --head HEAD
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: harness-pr-fast
-          path: artifacts/harness/pr-fast
-
   main-check:
     name: Main check lane
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

@@ -41,7 +41,7 @@ npm run release:ios:check
 
 - Keep product-facing backend and mobile contracts stable unless the task explicitly changes both sides.
 - Update docs when commands, workflows, environment expectations, or validation paths change.
-- Run `npm run pre-submit` before opening a PR. Use `npm run hooks:install` if you want the repo-managed pre-commit hook to enforce the same checklist on staged changes.
+- Run `npm run pre-submit` before opening or updating a PR. Agents should treat this as the required local replacement for the old automated `PR fast lane`; do not rely on GitHub PR CI to run diff-driven validation later. Use `npm run hooks:install` if you want the repo-managed pre-commit hook to enforce the same checklist on staged changes.
 - Visual-only mobile work should ship with a Storybook update in the same diff unless the PR explains why Storybook is the wrong surface.
 - Prefer Storybook for isolated UI work. Use the seeded `ui-preview` runtime only for integrated validation.
 - For iOS simulator QA, install the dev client once with `npm run ios:install`, then prefer `npm run qa:ios` or `npm run qa:ios:reset` over rerunning `expo run:ios`. The scripts pick the latest available iPhone simulator unless `IOS_SIMULATOR_NAME` is set. Only rebuild with `npm run ios:install` when native dependencies, Expo config, or iOS-native files change.

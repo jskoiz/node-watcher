@@ -135,10 +135,10 @@ Seeded test users: `preview.lana@brdg.local`, `preview.mason@brdg.local`, `previ
 ## CI
 
 GitHub Actions workflows:
-- **`ci.yml`**: `workflow_dispatch` trigger. Three jobs:
+- **`ci.yml`**: pull requests, pushes to `main`, and `workflow_dispatch`. Remote CI is intentionally lighter on PRs now:
   - `backend-migration-rehearsal` — replays Prisma migrations against a fresh Postgres 16 instance
-  - `fast-pr` — diff-driven `run-harness-lane.mjs --lane pr-fast` against `origin/main`
   - `main-check` — full `run-harness-lane.mjs --lane main-check`
+  - local agents must run `npm run pre-submit` before opening/updating PRs instead of relying on GitHub to run the diff-driven fast lane remotely
   - Node 22; harness artifacts uploaded on every run
 - **`deploy-backend.yml`**: Deploys backend on push to `main` or manual dispatch. Builds Docker image, pushes to GHCR, deploys to Lightsail. Supports dry-run and rollback modes.
 - **`deploy-testflight.yml`**: Triggered by `v*` tags. EAS Build & Submit to TestFlight.

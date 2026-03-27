@@ -32,7 +32,7 @@ npm run scaffold:backend-module -- --name moderation
 - `npm run check:root`
   - root validation lane: `docs:check`, `policy:check`, then `test:root`
 - `npm run pre-submit`
-  - canonical local checklist: docs drift, repo policy, new marker guard (`TODO`/`FIXME`/`HACK`), then the same diff-driven validation lane used for PRs; contract-shape changes should be checked against shared schemas plus backend controller-boundary specs/shared guardrails and the mobile dev validator
+  - canonical local checklist before opening or updating a PR: docs drift, repo policy, new marker guard (`TODO`/`FIXME`/`HACK`), then the local diff-driven fast lane; contract-shape changes should be checked against shared schemas plus backend controller-boundary specs/shared guardrails and the mobile dev validator
 - `npm run check:changed`
   - chooses the smallest reasonable validation set from git diff, promotes mixed or harness-sensitive changes in script entrypoints or workflows to `check`, keeps workspace package manifest changes scoped to the touched workspace, appends `smoke` for smoke-sensitive paths, enforces Storybook co-updates for changed reusable mobile UI surfaces, and can emit machine-readable harness artifacts
 - `npm run check`
@@ -74,6 +74,7 @@ npm run scaffold:backend-module -- --name moderation
 ## Review Flow
 
 - Local PR readiness: run `npm run pre-submit`
+- Agents should treat `npm run pre-submit` as a blocking local requirement before creating or updating a PR. Do not rely on GitHub PR CI to run the diff-driven fast lane later.
 - If the local machine or checkout looks suspect, run `npm run harness:doctor` first. Fix failures before deeper validation, and treat provenance warnings as a sign that the checkout is not a trustworthy base for release or deploy prep.
 - PR lane: run `npm run check:changed`
 - Docs/policy-only edits: run `npm run check:root`
@@ -85,7 +86,9 @@ npm run scaffold:backend-module -- --name moderation
 ## CI Shape
 
 - CI now runs automatically on pull requests and pushes to `main`; local harness commands remain the primary debugging path.
-- CI runs the fast diff-driven lane, a path-gated backend migration rehearsal lane on migration-sensitive PR changes, the full `main-check` lane on `push` to `main`, and a manual-only release-readiness lane on `workflow_dispatch`. The release-readiness lane validates release provenance with `repo:index:check` and `release:ios:prepare` without re-running the full repo graph.
+- CI no longer runs the diff-driven `pr-fast` lane on pull requests. That lane is now a local pre-PR responsibility via `npm run pre-submit` / `npm run check:changed`, with agents expected to run it before opening or updating a PR.
+- PR CI now keeps only the lightweight remote checks that still add unique value: a path-gated backend migration rehearsal lane on migration-sensitive changes plus external/security checks.
+- `main` retains the heavier centralized validation via `main-check`, and release readiness remains manual-only on `workflow_dispatch`. The release-readiness lane validates release provenance with `repo:index:check` and `release:ios:prepare` without re-running the full repo graph.
 - The dedicated iOS simulator workflow still runs only for native-impacting mobile changes such as Expo config, native plugin/dependency changes, generated iOS project changes, or workflow edits.
 - Use `npm run smoke` locally when you need deeper bootstrap/runtime validation, especially after backend auth/discovery/events/matches/notifications/profile changes or matching mobile chat/discovery/events/profile screen changes.
 - Every lane uploads `harness-plan.json`, `harness-results.json`, and `harness-failure-summary.json` as CI artifacts.
