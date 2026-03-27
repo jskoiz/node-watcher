@@ -11,7 +11,6 @@ export function CreateDetailsSection({
   control,
   errors,
   isSubmitting,
-  noteInputFocus,
   onChangeSpots,
   onClearError,
   spots,
@@ -22,7 +21,6 @@ export function CreateDetailsSection({
   errors: FieldErrors<CreateEventFormValues>;
   isSubmitting: boolean;
   knownLocationSuggestions?: import('../../locations/locationSuggestions').LocationSuggestion[];
-  noteInputFocus: () => void;
   onChangeSpots: (value: number) => void;
   onClearError: () => void;
   spots: number;
@@ -96,7 +94,6 @@ export function CreateDetailsSection({
               }}
               multiline
               numberOfLines={3}
-              onFocus={noteInputFocus}
               blurOnSubmit
               autoCapitalize="sentences"
               autoCorrect

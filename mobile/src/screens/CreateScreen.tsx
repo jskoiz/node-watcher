@@ -96,11 +96,6 @@ export default function CreateScreen({ navigation }: MainTabScreenProps<'Create'
       isSubmitting={isCreating}
       keyboardScrollRef={scrollRef}
       knownLocationSuggestions={knownLocationSuggestions}
-      noteInputFocus={() => {
-        requestAnimationFrame(() => {
-          scrollRef.current?.scrollToEnd({ animated: true });
-        });
-      }}
       onChangeSpots={(value) => setValue('spots', value, { shouldDirty: true, shouldValidate: true })}
       onClearSubmitError={clearErrors}
       onPost={() => {

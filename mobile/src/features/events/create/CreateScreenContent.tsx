@@ -36,7 +36,6 @@ export function CreateScreenContent({
   isSubmitting,
   keyboardScrollRef,
   knownLocationSuggestions,
-  noteInputFocus,
   onChangeSpots,
   onClearSubmitError,
   onPost,
@@ -64,7 +63,6 @@ export function CreateScreenContent({
   isSubmitting: boolean;
   keyboardScrollRef: React.RefObject<ScrollView | null>;
   knownLocationSuggestions: LocationSuggestion[];
-  noteInputFocus: () => void;
   onChangeSpots: (value: number) => void;
   onClearSubmitError: () => void;
   onPost: () => void;
@@ -156,7 +154,6 @@ export function CreateScreenContent({
             hideSpots
             isSubmitting={isSubmitting}
             knownLocationSuggestions={knownLocationSuggestions}
-            noteInputFocus={noteInputFocus}
             onChangeSpots={onChangeSpots}
             onClearError={onClearSubmitError}
             spots={spots}

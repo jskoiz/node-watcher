@@ -56,7 +56,6 @@ function CreateScreenContentStory({
         createLocationSuggestion('Magic Island', 'Ala Moana', 'curated'),
         createLocationSuggestion('Kakaako Waterfront', 'Honolulu', 'curated'),
       ]}
-      noteInputFocus={() => undefined}
       onChangeSpots={() => undefined}
       onClearSubmitError={() => undefined}
       onPost={() => undefined}

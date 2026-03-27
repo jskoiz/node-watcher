@@ -39,6 +39,7 @@ npm run scaffold:backend-module -- --name moderation
   - full graph: `check:root`, then the workspace checks for `backend`, `mobile`, and `symphony`
 - `npm run release:ios:prepare`
   - canonical iOS release-readiness lane: provenance gate, live ASC build-number verification or resolution, release manifest write, release context write, and native fast-path classification without uploading
+  - the native fast-path classifier lives at `./scripts/release-ios-fast-path.mjs` and is invoked by `./scripts/release-ios.sh`
 - `npm run release:ios:fast-path -- --base-ref <ref>`
   - inspects the diff against a release base and classifies whether the generated iOS project can be safely reused or a clean prebuild is required
 - `npm run release:ios:ship`

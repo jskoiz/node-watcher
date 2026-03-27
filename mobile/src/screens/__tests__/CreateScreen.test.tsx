@@ -1,14 +1,15 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { ScrollView } from 'react-native';
 import { createScreenNavigation, createScreenRoute } from '../../lib/testing/screenProps';
 import CreateScreen, { buildStartDate } from '../CreateScreen';
+import { getFloatingTabBarReservedHeight } from '../../design/layout/tabBarLayout';
 import {
   formatPlanDetailsSummary,
   getPlanDetailsActionLabel,
   getPlanDetailsHint,
   formatTimingSummary,
 } from '../../features/events/create/create.helpers';
-import { getFloatingTabBarReservedHeight } from '../../design/layout/tabBarLayout';
 import { screenLayout } from '../../design/primitives';
 
 const mockCreateEvent = jest.fn();
@@ -105,6 +106,27 @@ describe('CreateScreen', () => {
     fireEvent.changeText(noteInput, 'Bring water and meet by the tennis courts.');
 
     expect(screen.getByDisplayValue('Bring water and meet by the tennis courts.')).toBeTruthy();
+  });
+
+  it('does not force-scroll when the note input gains focus', () => {
+    jest.useFakeTimers();
+    const scrollToEnd = jest.spyOn(ScrollView.prototype, 'scrollToEnd');
+    try {
+      render(<CreateScreen navigation={navigation} route={route} />);
+
+      act(() => {
+        fireEvent(
+          screen.getByPlaceholderText('Easy pace, bring water, no experience needed...'),
+          'focus',
+        );
+        jest.runOnlyPendingTimers();
+      });
+
+      expect(scrollToEnd).not.toHaveBeenCalled();
+    } finally {
+      scrollToEnd.mockRestore();
+      jest.useRealTimers();
+    }
   });
 
   it('reserves space for the floating tab bar below the form', () => {
