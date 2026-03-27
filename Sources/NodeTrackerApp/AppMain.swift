@@ -24,7 +24,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func requestNotificationPermissions() {
         guard Bundle.main.bundleIdentifier != nil else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        // `requestAuthorization` may complete off the main thread. Avoid passing a
+        // MainActor-isolated callback from app launch, which can trip dispatch
+        // assertions in packaged builds.
+        Task.detached(priority: .utility) {
+            _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        }
     }
 }
 
