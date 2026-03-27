@@ -16,6 +16,10 @@
 
 If you've ever had multiple projects fighting over ports 3000, 5173, or 8081 and resorted to a pile of `lsof` and `ps` commands — NodeWatcher replaces all of that with a single glance at your menu bar.
 
+<p align="center">
+  <img src=".github/images/popover-detail.png" width="520" alt="NodeWatcher popover showing watched ports, project names, and conflict resolution">
+</p>
+
 ## Features
 
 - **Live port monitoring** in the menu bar with a compact summary
@@ -64,6 +68,12 @@ NodeWatcher builds a snapshot of local listening processes in a pipeline:
 6. **Assess** — marks watched ports as owned by your app or blocked by something else
 
 This is why NodeWatcher says "3000 is blocked by Docker" or "8081 is owned by the Expo app in `~/projects/mobile`" instead of just "PID 12345 is using port 3000."
+
+Expand the process list to see every Node process grouped by tool, with memory usage and bulk actions:
+
+<p align="center">
+  <img src=".github/images/process-list.png" width="520" alt="NodeWatcher process list showing grouped Node processes with memory usage">
+</p>
 
 ## CLI
 
