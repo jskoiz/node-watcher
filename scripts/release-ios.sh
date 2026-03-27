@@ -526,14 +526,29 @@ done
 [[ "$WAIT_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || fail "--wait-timeout-seconds must be numeric"
 [[ "$WAIT_INTERVAL_SECONDS" =~ ^[0-9]+$ ]] || fail "--wait-interval-seconds must be numeric"
 
+CI_RELEASE_DRY_RUN=0
+if [[ "$PHASE" == "prepare" && "$DRY_RUN_BUILD_NUMBER" == "1" && "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  CI_RELEASE_DRY_RUN=1
+fi
+
 BRANCH="$(run_git branch --show-current)"
+if [[ -z "$BRANCH" && "$CI_RELEASE_DRY_RUN" == "1" ]]; then
+  BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
+fi
 [[ -n "$BRANCH" ]] || fail "detached HEAD is not allowed for release builds"
-[[ "$BRANCH" == "main" || "$BRANCH" == release/* ]] || fail "release builds are only allowed from 'main' or 'release/*' branches (current: $BRANCH)"
+if [[ "$CI_RELEASE_DRY_RUN" != "1" ]]; then
+  [[ "$BRANCH" == "main" || "$BRANCH" == release/* ]] || fail "release builds are only allowed from 'main' or 'release/*' branches (current: $BRANCH)"
+fi
 
 STATUS_OUTPUT="$(run_git status --porcelain --untracked-files=normal)"
 [[ -z "$STATUS_OUTPUT" ]] || fail "working tree must be completely clean before release"
 
 UPSTREAM="$(run_git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+if [[ -z "$UPSTREAM" && "$CI_RELEASE_DRY_RUN" == "1" ]]; then
+  if run_git rev-parse --verify "origin/$BRANCH" >/dev/null 2>&1; then
+    UPSTREAM="origin/$BRANCH"
+  fi
+fi
 [[ -n "$UPSTREAM" ]] || fail "branch '$BRANCH' has no upstream tracking branch"
 UPSTREAM_GIT_SHA="$(run_git rev-parse "$UPSTREAM")"
 
