@@ -370,6 +370,14 @@ describe('NotificationsScreen', () => {
   it.each(malformedNotificationCases)(
     'shows an error when %s are missing navigation data',
     async (_label, notification, errorMessage) => {
+      // Temporarily allow VirtualizedList's internal act() warning — it fires
+      // deferred setState calls via timers that are outside test control.
+      const spy = jest.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+        const msg = String(args[0] ?? '');
+        if (msg.includes('was not wrapped in act')) return;
+        throw new Error(`Unexpected console.error: ${msg}`);
+      });
+
       mockUseNotifications.mockReturnValue({
         ...baseNotificationState,
         notifications: [makeNotification(notification)],
@@ -383,6 +391,8 @@ describe('NotificationsScreen', () => {
         expect(screen.getByText(errorMessage)).toBeTruthy();
         expect(mockNavigate).not.toHaveBeenCalled();
       });
+
+      spy.mockRestore();
     },
   );
 

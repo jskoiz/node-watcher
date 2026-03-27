@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -53,6 +53,7 @@ jobs:
 
   fast-pr:
     name: PR fast lane
+    if: github.event_name == 'pull_request'
     runs-on: [self-hosted, Linux, X64, brdg-vps]
     steps:
       - uses: actions/checkout@v4
@@ -83,11 +84,12 @@ jobs:
 
   main-check:
     name: Main check lane
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, Linux, X64, brdg-vps]
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -111,7 +113,8 @@ jobs:
 
   release-readiness:
     name: Release readiness
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [main-check]
     runs-on: [self-hosted, Linux, X64, brdg-vps]
     env:
       EXPO_PUBLIC_API_URL: https://api.example.invalid
@@ -119,7 +122,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -134,6 +137,5 @@ jobs:
         working-directory: mobile
       - run: npm ci
         working-directory: symphony
-      - run: npm run check
       - run: npm run repo:index:check
       - run: ./scripts/release-ios.sh --phase prepare --mode xcode --dry-run-build-number

@@ -2,7 +2,7 @@
   "name": "brdg",
   "private": true,
   "scripts": {
-    "check": "npm run check:root && npm run check:backend && npm run check:mobile && npm run check:symphony",
+    "check": "npm run check:root && node ./scripts/check-workspaces-parallel.mjs",
     "check:root": "npm run docs:check && npm run policy:check && npm run test:root",
     "check:hosted-backend": "node ./scripts/check-hosted-backend.mjs",
     "check:prisma-migration-safety": "node ./scripts/check-prisma-migration-safety.mjs",
