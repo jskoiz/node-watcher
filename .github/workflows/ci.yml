@@ -111,6 +111,7 @@ jobs:
 
   release-readiness:
     name: Release readiness
+    if: github.event_name != 'pull_request'
     runs-on: [self-hosted, Linux, X64, brdg-vps]
     env:
       EXPO_PUBLIC_API_URL: https://api.example.invalid
