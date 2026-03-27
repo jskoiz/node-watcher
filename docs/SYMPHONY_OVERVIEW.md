@@ -80,7 +80,7 @@ A healthy Symphony run usually looks like this:
 5. The agent reproduces the problem before changing code and reports progress back to Symphony.
 6. The agent runs BRDG validation.
 7. The agent commits, pushes, and creates or updates a PR.
-8. Symphony attaches the PR to the issue and moves the issue toward review or merge.
+8. Symphony attaches the PR to the issue and moves it through `PR Review`, then `Ready to Merge`, then `Done` when the branch is safely landed.
 
 If that sequence is happening, Symphony is doing useful work.
 

@@ -5,8 +5,8 @@ tracker:
   active_states:
     - Todo
     - In Progress
-    - Human Review
-    - Merging
+    - PR Review
+    - Ready to Merge
     - Rework
   terminal_states:
     - Done
@@ -25,7 +25,7 @@ hooks:
     git fetch origin main --depth 1
     bash ./.codex/worktree_init.sh
 agent:
-  max_concurrent_agents: 4
+  max_concurrent_agents: 3
   max_turns: 20
 codex:
   command: codex app-server -c shell_environment_policy.inherit=all
@@ -121,7 +121,7 @@ Some issues exist only to address unresolved PR review comments for an earlier i
 - When review follow-up work reaches a clear merge-ready state:
   - update the original implementation issue workpad with a short summary of what review feedback was addressed
   - include the PR URL and validation actually rerun
-  - move the original implementation issue to `Merging` if the PR is ready to land
+  - move the original implementation issue to `Ready to Merge` if the PR is ready to land
 - Do not guess the original issue identifier. Only sync when it is explicitly provided in the issue description.
 - The review-follow-up issue itself can be moved to `Done` after the original implementation issue has been updated and routed correctly.
 
@@ -130,8 +130,8 @@ Some issues exist only to address unresolved PR review comments for an earlier i
 - `Backlog`: do not modify the issue; stop and wait.
 - `Todo`: Symphony claims the issue and moves it to `In Progress` before active work begins.
 - `In Progress`: continue implementation.
-- `Human Review`: do not code; wait for reviewer feedback or approval.
-- `Merging`: land the PR, then move the issue to `Done`.
+- `PR Review`: inspect the PR, review unresolved comments and viability, address safe feedback directly, resolve handled review threads, and move to `Ready to Merge` only when the branch is genuinely landable.
+- `Ready to Merge`: monitor checks and approvals, resolve merge drift or small required follow-up fixes, land the PR when safe, then move the issue to `Done`.
 - `Rework`: treat as a fresh implementation attempt and rebuild the plan.
 - `Done`: no action.
 
@@ -145,9 +145,10 @@ Some issues exist only to address unresolved PR review comments for an earlier i
 6. Implement the smallest correct change that satisfies the issue.
 7. Run the appropriate harness validation commands for the scope.
 8. Commit with the `commit` skill and publish with the `push` skill when the branch is ready.
-9. When the branch is ready, call `report_handoff` with the final summary, validation, branch name, PR URL, and desired next state.
-10. In `Merging`, use the `land` skill flow and only mark the issue `Done` after the PR is merged.
-11. For review-follow-up issues linked to an original implementation issue, include the original issue identifier in `report_handoff` so Symphony can update the original issue and move it to `Merging` when the PR is truly merge-ready.
+9. When the branch is ready, call `report_handoff` with the final summary, validation, branch name, PR URL, and desired next state of `PR Review`.
+10. In `PR Review`, inspect the current PR, use the `gh-address-comments` skill for unresolved review threads and actionable comments, make or explain any required follow-up, resolve review threads that are fully handled, and call `report_handoff` again with desired next state `Ready to Merge` only when checks, review state, and outstanding comments indicate the branch is viable to land.
+11. In `Ready to Merge`, use the `land` skill flow, keep watching for late review or CI feedback, fold in the smallest safe follow-up work when needed, and only mark the issue `Done` after the PR is merged.
+12. For review-follow-up issues linked to an original implementation issue, include the original issue identifier in `report_handoff` so Symphony can update the original issue and move it to `Ready to Merge` when the PR is truly merge-ready.
 
 ## Related skills
 
@@ -155,4 +156,5 @@ Some issues exist only to address unresolved PR review comments for an earlier i
 - `pull`: sync the branch with `origin/main` before and during implementation.
 - `commit`: produce clean commit messages that match the actual diff.
 - `push`: publish the branch and create or update the PR using the BRDG template.
+- `gh-address-comments`: inspect unresolved PR review threads, implement actionable feedback, and resolve fully addressed review comments.
 - `land`: monitor checks, resolve merge drift, and merge safely once green.

@@ -72,7 +72,7 @@ That setup allows spawned issue sessions to inherit your shell environment, use 
 3. Move a Linear issue into `Todo`.
 4. Symphony picks it up, moves it to `In Progress`, creates or updates the service-owned `## Codex Workpad` comment, and starts a Codex run in `.symphony/workspaces/<ISSUE>`.
 5. The agent reports progress through `report_progress` and final routing details through `report_handoff`.
-6. Symphony applies the resulting Linear writes: workpad updates, retry/failure notes, PR attachment sync, and the final state move toward review or merge.
+6. Symphony applies the resulting Linear writes: workpad updates, retry/failure notes, PR attachment sync, then the state moves to `PR Review` and later `Ready to Merge` once the branch is landable.
 
 ## State Behavior
 
@@ -95,7 +95,7 @@ The intended behavior is:
 
 1. the follow-up issue handles the review-comment work
 2. the original implementation issue remains the canonical lifecycle issue
-3. when the PR is ready to merge, Symphony updates the original issue and moves that original issue toward `Merging`
+3. when the PR is ready to merge, Symphony updates the original issue and moves that original issue toward `Ready to Merge`
 
 This keeps review-cleanup work separate without losing the original implementation issue as the main tracker.
 
@@ -107,7 +107,7 @@ This build covers the core Symphony runner/orchestrator contract, injects a read
 
 - If Codex trust is path-sensitive on your machine, trust the workspace root you intend Symphony to use.
 - Per-workspace trust warnings are non-fatal today. They disable project-local `config.toml` loading for that workspace path, but skills and exec policies still load.
-- The current default workflow assumes these Linear states exist: `Todo`, `In Progress`, `Human Review`, `Merging`, `Rework`, and `Done`.
+- The current default workflow assumes these Linear states exist: `Todo`, `In Progress`, `PR Review`, `Ready to Merge`, `Rework`, and `Done`.
 - If your team uses different state names, update [`../WORKFLOW.md`](../WORKFLOW.md) accordingly.
 - If you want a more restrictive runtime, override the `codex` block in [`../WORKFLOW.md`](../WORKFLOW.md) and accept that GitHub push/PR automation may stop working.
 - BRDG intentionally preserves its current workspace key sanitizer and workflow renderer behavior for compatibility; those are documented deviations from the upstream spec, not accidental drift.

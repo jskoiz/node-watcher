@@ -98,7 +98,7 @@ npm run screenshots        # Full screenshot suite via Maestro
 - **Key dependencies**: expo-image, expo-haptics, expo-notifications, expo-location, expo-secure-store, expo-image-picker, @gorhom/bottom-sheet, @shopify/flash-list, react-native-reanimated, react-native-gesture-handler, lottie-react-native, @sentry/react-native, socket.io-client
 
 ### Symphony (TypeScript issue orchestration, ESM)
-- Polls Linear issues → creates git worktrees → runs Codex agents → routes status (Todo → In Progress → Human Review → Merging → Done)
+- Polls Linear issues → creates git worktrees → runs Codex agents → routes status (Todo → In Progress → PR Review → Ready to Merge → Done)
 - Maintains `## Codex Workpad` comments in Linear for traceability
 - Key files: `cli.ts` (entry), `service.ts` (main service), `workflow.ts` (state machine), `workspace.ts` (worktree management), `policy.ts` (safety policies), `agent-runner.ts` (Codex agent execution), `config.ts`, `tracker/` (status tracking)
 - Uses native Node.js test runner (via `tsx --test`)

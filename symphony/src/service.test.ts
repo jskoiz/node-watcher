@@ -36,7 +36,7 @@ test('issue dispatch fingerprint changes when issue state changes', () => {
   const original = buildIssueDispatchFingerprint(baseIssue);
   const changed = buildIssueDispatchFingerprint({
     ...baseIssue,
-    state: 'Human Review',
+    state: 'PR Review',
     updated_at: '2026-03-16T10:05:00.000Z',
     tracker: {
       ...baseIssue.tracker,

@@ -10,8 +10,8 @@ BRDG uses an upstream-derived Symphony implementation: it supports the runtime/c
 2. In Linear, ensure the team workflow includes these statuses if you want the default workflow unchanged:
    - `Todo`
    - `In Progress`
-   - `Human Review`
-   - `Merging`
+   - `PR Review`
+   - `Ready to Merge`
    - `Rework`
    - `Done`
 3. Export the required environment variables before starting Symphony:

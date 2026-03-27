@@ -205,7 +205,7 @@ export function resolveWorkflowConfig(
       projectSlug,
       activeStates: coerceStringArray(
         tracker.active_states,
-        ['Todo', 'In Progress', 'Rework', 'Human Review', 'Merging'],
+        ['Todo', 'In Progress', 'Rework', 'PR Review', 'Ready to Merge'],
         'tracker.active_states',
         invalidPaths,
       ),
