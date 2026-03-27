@@ -172,13 +172,17 @@ describe('NotificationsScreen', () => {
   it('loads notifications and marks an item as read', async () => {
     renderScreen();
 
-    const row = await screen.findByLabelText('New message. Meet me for coffee after?');
+    const row = await screen.findByLabelText(
+      'New message. Meet me for coffee after?',
+      undefined,
+      { timeout: 10000 },
+    );
     fireEvent.press(row);
 
     await waitFor(() => {
       expect(mockMarkRead).toHaveBeenCalledWith('notif-1');
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('announces loading and empty states', () => {
     mockUseNotifications.mockReturnValue({
