@@ -6,6 +6,7 @@ import type { SessionIntent } from '../../../types/sessionIntent';
 
 export interface OnboardingData {
   intent: SessionIntent;
+  discoveryPreference: 'men' | 'women' | 'both';
   activities: string[];
   frequencyLabel: string;
   intensityLevel: string;

@@ -3,6 +3,7 @@ import React, { useRef } from 'react';
 import { Animated, ScrollView, Text, View } from 'react-native';
 import {
   ActivitiesStep,
+  DiscoveryPreferenceStep,
   EnvironmentStep,
   FrequencyStep,
   IntentStep,
@@ -19,6 +20,7 @@ import { withStoryScreenFrame } from './support';
 type OnboardingStepName =
   | 'welcome'
   | 'intent'
+  | 'discovery'
   | 'activities'
   | 'frequency'
   | 'environment'
@@ -31,6 +33,7 @@ const insets = { top: 0, right: 0, bottom: 0, left: 0 };
 
 const sampleData: OnboardingData = {
   intent: 'both',
+  discoveryPreference: 'both',
   activities: ['lifting', 'running'],
   frequencyLabel: '3-4',
   intensityLevel: 'moderate',
@@ -99,6 +102,19 @@ function OnboardingStepsStory({ step }: { step: OnboardingStepName }) {
             setValue={() => undefined}
             theme={lightTheme}
             toggleArray={(items, key) => (items.includes(key) ? items.filter((item) => item !== key) : [...items, key])}
+          />
+        </Section>
+      )}
+
+      {step === 'discovery' && (
+        <Section title="Discovery step">
+          <DiscoveryPreferenceStep
+            data={sampleData}
+            goNext={() => undefined}
+            insets={insets}
+            setValue={() => undefined}
+            theme={lightTheme}
+            toggleArray={() => []}
           />
         </Section>
       )}
@@ -220,6 +236,12 @@ export const Intent: Story = {
 export const Activities: Story = {
   args: {
     step: 'activities',
+  },
+};
+
+export const Discovery: Story = {
+  args: {
+    step: 'discovery',
   },
 };
 

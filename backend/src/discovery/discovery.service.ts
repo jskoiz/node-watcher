@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { IntensityLevel } from '@prisma/client';
+import { Gender, IntensityLevel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
@@ -60,6 +60,9 @@ interface UserWithRelations {
 
 interface DiscoveryRequester {
   id: string;
+  gender: Gender;
+  showMeMen: boolean;
+  showMeWomen: boolean;
   profile: {
     latitude: number | null;
     longitude: number | null;
@@ -115,7 +118,7 @@ export class DiscoveryService {
   async getFeed(userId: string, filters: DiscoveryFilters = {}) {
     const me = await this.getRequesterOrThrow(userId);
     const blockedIds = await this.blockService.getBlockedUserIds(userId);
-    const users = await this.findFeedCandidates(userId, blockedIds, filters);
+    const users = await this.findFeedCandidates(me, blockedIds, filters);
 
     const scored = this.scoreAndFilterCandidates(me, users, filters)
       .sort(
@@ -162,12 +165,12 @@ export class DiscoveryService {
   }
 
   private async findFeedCandidates(
-    userId: string,
+    requester: DiscoveryRequester,
     blockedIds: string[],
     filters: DiscoveryFilters,
   ): Promise<UserWithRelations[]> {
     return this.prisma.user.findMany({
-      where: this.buildFeedQuery(userId, blockedIds, filters),
+      where: this.buildFeedQuery(requester, blockedIds, filters),
       select: {
         id: true,
         firstName: true,
@@ -206,20 +209,22 @@ export class DiscoveryService {
   }
 
   private buildFeedQuery(
-    userId: string,
+    requester: DiscoveryRequester,
     blockedIds: string[],
     filters: DiscoveryFilters,
   ) {
     const birthdateFilter = this.buildBirthdateFilter(filters);
     const fitnessProfileFilter = this.buildFitnessProfileFilter(filters);
+    const genderFilter = this.buildGenderPreferenceFilter(requester);
 
     return {
-      id: { notIn: [userId, ...blockedIds] },
+      id: { notIn: [requester.id, ...blockedIds] },
       isDeleted: false,
       isBanned: false,
       isOnboarded: true,
-      receivedLikes: { none: { fromUserId: userId } },
-      receivedPasses: { none: { fromUserId: userId } },
+      receivedLikes: { none: { fromUserId: requester.id } },
+      receivedPasses: { none: { fromUserId: requester.id } },
+      ...(genderFilter ? { gender: genderFilter } : {}),
       ...(birthdateFilter ? { birthdate: birthdateFilter } : {}),
       ...(fitnessProfileFilter
         ? {
@@ -229,6 +234,24 @@ export class DiscoveryService {
           }
         : {}),
     };
+  }
+
+  private buildGenderPreferenceFilter(requester: DiscoveryRequester) {
+    const genders: Gender[] = [];
+
+    if (requester.showMeMen !== false) {
+      genders.push(Gender.MALE);
+    }
+
+    if (requester.showMeWomen !== false) {
+      genders.push(Gender.FEMALE);
+    }
+
+    if (genders.length === 0) {
+      throw new BadRequestException('Choose at least one discovery preference');
+    }
+
+    return { in: genders };
   }
 
   private scoreAndFilterCandidates(

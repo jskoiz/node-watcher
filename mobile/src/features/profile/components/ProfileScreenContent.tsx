@@ -12,6 +12,7 @@ import { ProfileHero } from './ProfileHero';
 import {
   ProfileBasicsSection,
   ProfileCompletenessSection,
+  ProfileDiscoveryPreferenceSection,
   ProfileErrorBanner,
   ProfileFitnessProfileSection,
   ProfileIntentSection,
@@ -31,6 +32,7 @@ export function ProfileScreenContent({
   city,
   editMode,
   errorMessage,
+  discoveryPreference,
   intensityLevel,
   intentDating,
   intentFriends,
@@ -54,6 +56,7 @@ export function ProfileScreenContent({
   onSelectCitySuggestion,
   onSetIntensityLevel,
   onSetIntentDating,
+  onSetDiscoveryPreference,
   onSetIntentFriends,
   onSetIntentWorkout,
   onSetPrimaryGoal,
@@ -78,6 +81,7 @@ export function ProfileScreenContent({
   city: string;
   editMode: boolean;
   errorMessage: string | null;
+  discoveryPreference: 'men' | 'women' | 'both';
   intensityLevel: string;
   intentDating: boolean;
   intentFriends: boolean;
@@ -101,6 +105,7 @@ export function ProfileScreenContent({
   onSelectCitySuggestion: (suggestion: LocationSuggestion) => void;
   onSetIntensityLevel: (value: string) => void;
   onSetIntentDating: (value: boolean) => void;
+  onSetDiscoveryPreference: (value: 'men' | 'women' | 'both') => void;
   onSetIntentFriends: (value: boolean) => void;
   onSetIntentWorkout: (value: boolean) => void;
   onSetPrimaryGoal: (value: string) => void;
@@ -180,6 +185,12 @@ export function ProfileScreenContent({
           onSetIntentDating={onSetIntentDating}
           onSetIntentFriends={onSetIntentFriends}
           onSetIntentWorkout={onSetIntentWorkout}
+        />
+
+        <ProfileDiscoveryPreferenceSection
+          discoveryPreference={discoveryPreference}
+          editMode={editMode}
+          onSetDiscoveryPreference={onSetDiscoveryPreference}
         />
 
         <ProfilePhotosSection

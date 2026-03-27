@@ -65,6 +65,8 @@ function makeProfile(): User {
       intentWorkout: true,
       intentFriends: false,
     },
+    showMeMen: true,
+    showMeWomen: false,
     fitnessProfile: {
       intensityLevel: 'moderate',
       weeklyFrequencyBand: '3-4',
@@ -95,6 +97,7 @@ function renderContent(overrides: Partial<React.ComponentProps<typeof ProfileScr
         city="Honolulu"
         editMode={false}
         errorMessage={null}
+        discoveryPreference="men"
         intensityLevel="moderate"
         intentDating
         intentFriends={false}
@@ -115,6 +118,7 @@ function renderContent(overrides: Partial<React.ComponentProps<typeof ProfileScr
         onSave={jest.fn()}
         onSetBio={jest.fn()}
         onSetCity={jest.fn()}
+        onSetDiscoveryPreference={jest.fn()}
         onSelectCitySuggestion={jest.fn()}
         onSetIntensityLevel={jest.fn()}
         onSetIntentDating={jest.fn()}
@@ -182,6 +186,8 @@ describe('ProfileScreenContent', () => {
     fireEvent.press(screen.getByLabelText('Notifications'));
 
     expect(navigation.navigate).toHaveBeenCalledWith('Notifications');
+    expect(screen.getByText('Discovery')).toBeTruthy();
+    expect(screen.getByLabelText('Men. Show men in discovery.')).toBeTruthy();
   });
 
   it('loads and toggles the haptic preference and logs out', async () => {

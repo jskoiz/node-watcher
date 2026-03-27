@@ -49,6 +49,14 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsBoolean()
   intentFriends?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showMeMen?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showMeWomen?: boolean;
 }
 
 export class UpdateFitnessProfileDto {

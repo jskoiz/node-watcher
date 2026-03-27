@@ -29,6 +29,18 @@ export const PRIMARY_GOAL_OPTIONS = [
   { label: 'Fun', value: 'fun' },
   { label: 'Hypertrophy', value: 'hypertrophy' },
 ];
+export const DISCOVERY_PREFERENCE_OPTIONS = [
+  { label: 'Men', value: 'men', subtitle: 'Show men in discovery.' },
+  { label: 'Women', value: 'women', subtitle: 'Show women in discovery.' },
+  { label: 'Both', value: 'both', subtitle: 'Show both men and women.' },
+];
+
+export function getDiscoveryPreferenceValue(showMeMen?: boolean, showMeWomen?: boolean) {
+  if (showMeMen && showMeWomen) return 'both';
+  if (showMeMen) return 'men';
+  if (showMeWomen) return 'women';
+  return 'both';
+}
 
 export function buildSchedulePreferences(profile?: User['fitnessProfile']) {
   const nextSchedule: string[] = [];

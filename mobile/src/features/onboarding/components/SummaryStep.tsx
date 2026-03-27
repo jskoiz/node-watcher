@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { Button } from '../../../design/primitives';
 import { summaryStyles, styles } from '../onboarding.styles';
-import { ENVIRONMENTS, FREQUENCY_OPTIONS, SCHEDULE_OPTIONS, formatActivitySummary, getIntentLabel } from './constants';
+import { ENVIRONMENTS, FREQUENCY_OPTIONS, SCHEDULE_OPTIONS, formatActivitySummary, getDiscoveryPreferenceLabel, getIntentLabel } from './constants';
 import { OnboardingStepFooter, OnboardingStepIntro } from './OnboardingStepLayout';
 import type { SummaryStepProps } from './types';
 
@@ -40,6 +40,13 @@ export function SummaryStep({ data, insets, onNext, theme }: SummaryStepProps) {
 
       <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <SummaryRow label="Intent" value={getIntentLabel(data.intent)} textMuted={theme.textMuted} textPrimary={theme.textPrimary} />
+        <SummaryDivider color={theme.border} />
+        <SummaryRow
+          label="Discovery"
+          value={getDiscoveryPreferenceLabel(data.discoveryPreference)}
+          textMuted={theme.textMuted}
+          textPrimary={theme.textPrimary}
+        />
         <SummaryDivider color={theme.border} />
         <SummaryRow label="Movement" value={formatActivitySummary(data.activities.slice(0, 4))} textMuted={theme.textMuted} textPrimary={theme.textPrimary} />
         <SummaryDivider color={theme.border} />

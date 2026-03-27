@@ -4,6 +4,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import type { UseFormSetValue } from 'react-hook-form';
 import type { Theme } from '../../../theme/tokens';
 import { ActivitiesStep } from './ActivitiesStep';
+import { DiscoveryPreferenceStep } from './DiscoveryPreferenceStep';
 import { EnvironmentStep } from './EnvironmentStep';
 import { FrequencyStep } from './FrequencyStep';
 import { IntentStep } from './IntentStep';
@@ -47,6 +48,20 @@ export const ONBOARDING_STEP_DEFINITIONS: OnboardingStepDefinition[] = [
     showBackButton: true,
     render: ({ data, goNext, insets, setValue, theme, toggleArray }) => (
       <IntentStep
+        data={data}
+        goNext={goNext}
+        insets={insets}
+        setValue={setValue}
+        theme={theme}
+        toggleArray={toggleArray}
+      />
+    ),
+  },
+  {
+    chapter: 'Discovery',
+    showBackButton: true,
+    render: ({ data, goNext, insets, setValue, theme, toggleArray }) => (
+      <DiscoveryPreferenceStep
         data={data}
         goNext={goNext}
         insets={insets}

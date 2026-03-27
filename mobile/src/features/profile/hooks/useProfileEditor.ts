@@ -5,7 +5,11 @@ import { normalizeIntensityLevelForForm } from '../../../api/profileIntensity';
 import type { LocationSuggestion } from '../../locations/locationSuggestions';
 import { triggerErrorHaptic, triggerSuccessHaptic } from '../../../lib/interaction/feedback';
 import { showToast } from '../../../store/toastStore';
-import { buildSchedulePreferences, parseFavoriteActivities } from '../components/profile.helpers';
+import {
+  buildSchedulePreferences,
+  getDiscoveryPreferenceValue,
+  parseFavoriteActivities,
+} from '../components/profile.helpers';
 
 const PARTIAL_SAVE_ERROR =
   'Profile basics were saved, but fitness settings could not be saved. Please try again.';
@@ -38,6 +42,8 @@ export function useProfileEditor({
     intentDating?: boolean;
     intentWorkout?: boolean;
     intentFriends?: boolean;
+    showMeMen?: boolean;
+    showMeWomen?: boolean;
   }) => Promise<unknown>;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +56,7 @@ export function useProfileEditor({
   const [intentDating, setIntentDating] = useState(false);
   const [intentWorkout, setIntentWorkout] = useState(false);
   const [intentFriends, setIntentFriends] = useState(false);
+  const [discoveryPreference, setDiscoveryPreference] = useState<'men' | 'women' | 'both'>('both');
   const [weeklyFrequencyBand, setWeeklyFrequencyBand] = useState('');
   const [primaryGoal, setPrimaryGoal] = useState('');
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
@@ -66,6 +73,7 @@ export function useProfileEditor({
     intentDating,
     intentWorkout,
     intentFriends,
+    discoveryPreference,
     weeklyFrequencyBand,
     primaryGoal,
     selectedActivities,
@@ -81,6 +89,7 @@ export function useProfileEditor({
       intentDating,
       intentWorkout,
       intentFriends,
+      discoveryPreference,
       weeklyFrequencyBand,
       primaryGoal,
       selectedActivities,
@@ -99,6 +108,9 @@ export function useProfileEditor({
     setIntentDating(Boolean(source.profile?.intentDating));
     setIntentWorkout(Boolean(source.profile?.intentWorkout));
     setIntentFriends(Boolean(source.profile?.intentFriends));
+    setDiscoveryPreference(
+      getDiscoveryPreferenceValue(source.showMeMen, source.showMeWomen),
+    );
     setWeeklyFrequencyBand(source.fitnessProfile?.weeklyFrequencyBand || '');
     setPrimaryGoal(source.fitnessProfile?.primaryGoal || '');
     setSelectedActivities(parseFavoriteActivities(source.fitnessProfile?.favoriteActivities));
@@ -146,6 +158,8 @@ export function useProfileEditor({
         intentDating: f.intentDating,
         intentWorkout: f.intentWorkout,
         intentFriends: f.intentFriends,
+        showMeMen: f.discoveryPreference === 'men' || f.discoveryPreference === 'both',
+        showMeWomen: f.discoveryPreference === 'women' || f.discoveryPreference === 'both',
       });
       basicsSaved = true;
       await updateFitness({
@@ -181,6 +195,7 @@ export function useProfileEditor({
     intentDating,
     intentWorkout,
     intentFriends,
+    discoveryPreference,
     weeklyFrequencyBand,
     primaryGoal,
     selectedActivities,
@@ -192,6 +207,7 @@ export function useProfileEditor({
     setIntentDating,
     setIntentWorkout,
     setIntentFriends,
+    setDiscoveryPreference,
     setWeeklyFrequencyBand,
     setPrimaryGoal,
     setShowBuildInfo,

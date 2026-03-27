@@ -1,5 +1,6 @@
-export { ACTIVITIES, ENVIRONMENTS, FREQUENCY_OPTIONS, SCHEDULE_OPTIONS, SOCIAL_OPTIONS, STEP_CHAPTERS, TOTAL_STEPS, formatActivitySummary, getIntentLabel } from './constants';
+export { ACTIVITIES, DISCOVERY_PREFERENCE_OPTIONS, ENVIRONMENTS, FREQUENCY_OPTIONS, SCHEDULE_OPTIONS, SOCIAL_OPTIONS, STEP_CHAPTERS, TOTAL_STEPS, formatActivitySummary, getDiscoveryPreferenceLabel, getIntentLabel } from './constants';
 export { ActivitiesStep } from './ActivitiesStep';
+export { DiscoveryPreferenceStep } from './DiscoveryPreferenceStep';
 export { EnvironmentStep } from './EnvironmentStep';
 export { FrequencyStep } from './FrequencyStep';
 export { IntentStep } from './IntentStep';

@@ -99,6 +99,7 @@ export default function ProfileScreen({ navigation }: MainTabScreenProps<'You'>)
       city={editor.city}
       editMode={editor.editMode}
       errorMessage={errorMessage}
+      discoveryPreference={editor.discoveryPreference}
       intensityLevel={editor.intensityLevel}
       intentDating={editor.intentDating}
       intentFriends={editor.intentFriends}
@@ -146,6 +147,7 @@ export default function ProfileScreen({ navigation }: MainTabScreenProps<'You'>)
       onSave={() => { void editor.save(); }}
       onSetBio={editor.setBio}
       onSetCity={editor.updateCity}
+      onSetDiscoveryPreference={editor.setDiscoveryPreference}
       onSelectCitySuggestion={editor.selectCitySuggestion}
       onSetIntensityLevel={editor.setIntensityLevel}
       onSetIntentDating={editor.setIntentDating}

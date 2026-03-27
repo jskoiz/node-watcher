@@ -24,7 +24,7 @@ export default function OnboardingScreen({
   const insets = useSafeAreaInsets();
   const setUser = useAuthStore((state) => state.setUser);
   const user = useAuthStore((state) => state.user);
-  const { profile, updateFitness } = useProfile();
+  const { profile, updateFitness, updateProfile } = useProfile();
   const totalSteps = ONBOARDING_STEP_DEFINITIONS.length;
   const { goToStep, isFirstStep, isLastStep, step } = useStepFlow({ totalSteps });
   const {
@@ -35,6 +35,7 @@ export default function OnboardingScreen({
   } = useForm<OnboardingData>({
     defaultValues: {
       intent: 'both',
+      discoveryPreference: 'both',
       activities: [],
       frequencyLabel: '3-4',
       intensityLevel: 'moderate',
@@ -84,6 +85,13 @@ export default function OnboardingScreen({
   const submitOnboarding = handleSubmit(
     async (values) => {
       try {
+        const showMeMen = values.discoveryPreference === 'men' || values.discoveryPreference === 'both';
+        const showMeWomen = values.discoveryPreference === 'women' || values.discoveryPreference === 'both';
+
+        await updateProfile({
+          showMeMen,
+          showMeWomen,
+        });
         await updateFitness({
           intensityLevel: values.intensityLevel,
           weeklyFrequencyBand: values.weeklyFrequencyBand,

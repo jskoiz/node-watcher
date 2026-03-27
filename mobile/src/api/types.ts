@@ -78,7 +78,10 @@ export type User = {
   hasVerifiedPhone?: boolean;
   firstName?: string;
   age?: number | null;
+  gender?: string | null;
   isOnboarded?: boolean;
+  showMeMen?: boolean;
+  showMeWomen?: boolean;
   photoUrl?: string | null;
   profile?: UserProfile | null;
   fitnessProfile?: FitnessProfile | null;
@@ -126,6 +129,8 @@ export interface UpdateProfilePayload {
   intentDating?: boolean;
   intentWorkout?: boolean;
   intentFriends?: boolean;
+  showMeMen?: boolean;
+  showMeWomen?: boolean;
 }
 
 export interface UpdateFitnessPayload {

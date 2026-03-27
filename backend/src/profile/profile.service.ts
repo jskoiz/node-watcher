@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { calculateAge } from '../common/age.util';
 import { PhotoStorageService } from './photo-storage.service';
@@ -78,10 +78,56 @@ export class ProfileService {
   }
 
   async updateProfile(userId: string, data: UpdateProfileDto) {
-    await this.prisma.userProfile.upsert({
-      where: { userId },
-      update: { ...data },
-      create: { userId, ...data },
+    const {
+      showMeMen,
+      showMeWomen,
+      ...profileData
+    } = data;
+
+    const hasDiscoveryPreferenceUpdate =
+      typeof showMeMen === 'boolean' || typeof showMeWomen === 'boolean';
+
+    await this.prisma.$transaction(async (tx) => {
+      if (hasDiscoveryPreferenceUpdate) {
+        const currentUser = await tx.user.findUnique({
+          where: { id: userId },
+          select: {
+            showMeMen: true,
+            showMeWomen: true,
+          },
+        });
+
+        if (!currentUser) {
+          throw new NotFoundException('Profile not found');
+        }
+
+        const nextShowMeMen =
+          typeof showMeMen === 'boolean' ? showMeMen : currentUser.showMeMen;
+        const nextShowMeWomen =
+          typeof showMeWomen === 'boolean'
+            ? showMeWomen
+            : currentUser.showMeWomen;
+
+        if (!nextShowMeMen && !nextShowMeWomen) {
+          throw new BadRequestException('Choose at least one discovery preference');
+        }
+
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            showMeMen: nextShowMeMen,
+            showMeWomen: nextShowMeWomen,
+          },
+        });
+      }
+
+      if (Object.keys(profileData).length > 0) {
+        await tx.userProfile.upsert({
+          where: { userId },
+          update: { ...profileData },
+          create: { userId, ...profileData },
+        });
+      }
     });
 
     return this.getProfile(userId);

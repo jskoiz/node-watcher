@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Animated } from 'react-native';
 import { lightTheme } from '../../../../theme/tokens';
 import { ActivitiesStep } from '../ActivitiesStep';
+import { DiscoveryPreferenceStep } from '../DiscoveryPreferenceStep';
 import { EnvironmentStep } from '../EnvironmentStep';
 import { FrequencyStep } from '../FrequencyStep';
 import { IntentStep } from '../IntentStep';
@@ -17,6 +18,7 @@ const insets = { top: 0, right: 0, bottom: 0, left: 0 };
 
 const baseData: OnboardingData = {
   intent: 'both',
+  discoveryPreference: 'both',
   activities: [],
   frequencyLabel: '3-4',
   intensityLevel: 'moderate',
@@ -57,6 +59,25 @@ describe('onboarding steps', () => {
     fireEvent.press(screen.getByLabelText('Training Partner. Find your perfect training companion'));
 
     expect(setValue).toHaveBeenCalledWith('intent', 'workout');
+  });
+
+  it('updates the selected discovery preference', () => {
+    const setValue = jest.fn();
+
+    render(
+      <DiscoveryPreferenceStep
+        data={baseData}
+        goNext={jest.fn()}
+        insets={insets}
+        setValue={setValue}
+        theme={lightTheme}
+        toggleArray={toggleArray}
+      />,
+    );
+
+    fireEvent.press(screen.getByLabelText('Women. Show women in discovery.'));
+
+    expect(setValue).toHaveBeenCalledWith('discoveryPreference', 'women');
   });
 
   it('toggles activities and gates the continue action until one is selected', () => {
@@ -130,6 +151,7 @@ describe('onboarding steps', () => {
         data={{
           ...baseData,
           intent: 'workout',
+          discoveryPreference: 'women',
           activities: ['lifting', 'running'],
           environment: ['gym', 'outdoors'],
           schedule: ['morning'],
@@ -142,6 +164,7 @@ describe('onboarding steps', () => {
     );
 
     expect(screen.getByText('Training')).toBeTruthy();
+    expect(screen.getByText('Women')).toBeTruthy();
     expect(screen.getByText('Lifting · Running')).toBeTruthy();
 
     const pulseAnim = new Animated.Value(1);

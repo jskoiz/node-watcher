@@ -1,10 +1,10 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import type { User } from '../../../../api/types';
 import { LocationField } from '../../../../components/form/LocationField';
 import type { LocationSuggestion } from '../../../locations/locationSuggestions';
 import { Card, SectionBlock } from '../../../../design/primitives';
-import { ACTIVITY_OPTIONS } from '../profile.helpers';
+import { ACTIVITY_OPTIONS, DISCOVERY_PREFERENCE_OPTIONS } from '../profile.helpers';
 import { EditableField, PhotoManager, TagPill } from '../ProfileSections';
 import { profileStyles as styles } from '../profile.styles';
 import type { PhotoOperationState } from '../../hooks/usePhotoManager';
@@ -108,6 +108,52 @@ export function ProfileIntentSection({
           onPress={() => onSetIntentFriends(!intentFriends)}
           interactive={editMode}
         />
+      </View>
+    </SectionBlock>
+  );
+}
+
+export function ProfileDiscoveryPreferenceSection({
+  discoveryPreference,
+  editMode,
+  onSetDiscoveryPreference,
+}: {
+  discoveryPreference: 'men' | 'women' | 'both';
+  editMode: boolean;
+  onSetDiscoveryPreference: (value: 'men' | 'women' | 'both') => void;
+}) {
+  return (
+    <SectionBlock eyebrow="Discovery">
+      <View style={styles.preferenceCardStack}>
+        {DISCOVERY_PREFERENCE_OPTIONS.map((option) => {
+          const selected = discoveryPreference === option.value;
+
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="radio"
+              accessibilityState={{ disabled: !editMode, selected }}
+              accessibilityLabel={`${option.label}. ${option.subtitle}`}
+              disabled={!editMode}
+              onPress={() => onSetDiscoveryPreference(option.value)}
+              style={[
+                styles.preferenceCard,
+                selected ? styles.preferenceCardSelected : null,
+                !editMode ? styles.preferenceCardDisabled : null,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.preferenceCardTitle,
+                  selected ? styles.preferenceCardTitleSelected : null,
+                ]}
+              >
+                {option.label}
+              </Text>
+              <Text style={styles.preferenceCardSubtitle}>{option.subtitle}</Text>
+            </Pressable>
+          );
+        })}
       </View>
     </SectionBlock>
   );

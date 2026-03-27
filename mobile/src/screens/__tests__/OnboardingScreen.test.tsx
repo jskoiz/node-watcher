@@ -3,12 +3,13 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import OnboardingScreen from '../OnboardingScreen';
 
 const mockUpdateFitness = jest.fn();
+const mockUpdateProfile = jest.fn();
 const mockSetUser = jest.fn();
 
 jest.mock('../../features/profile/hooks/useProfile', () => ({
   useProfile: () => ({
     updateFitness: mockUpdateFitness,
-    updateProfile: jest.fn(),
+    updateProfile: mockUpdateProfile,
     uploadPhoto: jest.fn(),
     updatePhoto: jest.fn(),
     deletePhoto: jest.fn(),
@@ -56,6 +57,7 @@ describe('OnboardingScreen', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     mockUpdateFitness.mockResolvedValue({ data: {} });
+    mockUpdateProfile.mockResolvedValue({ data: {} });
   });
 
   afterEach(() => {
@@ -73,6 +75,8 @@ describe('OnboardingScreen', () => {
 
       pressAndAdvance('Get started');
       pressAndAdvance('Continue');
+      fireEvent.press(screen.getByText('Women'));
+      pressAndAdvance('Continue');
       fireEvent.press(screen.getByText('Lifting'));
       pressAndAdvance('Continue');
       fireEvent.press(screen.getByText('5–6x'));
@@ -87,6 +91,12 @@ describe('OnboardingScreen', () => {
       fireEvent.press(screen.getByText('Meet them now'));
 
       await waitFor(() => {
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
+          expect.objectContaining({
+            showMeMen: false,
+            showMeWomen: true,
+          }),
+        );
         expect(mockUpdateFitness).toHaveBeenCalledWith(
           expect.objectContaining({
             weeklyFrequencyBand: '5-6',

@@ -148,6 +148,14 @@ describe('ProfileService', () => {
   });
 
   it('uses authoritative userId in updateProfile upsert', async () => {
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
+    );
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      showMeMen: true,
+      showMeWomen: true,
+    });
     prismaMock.userProfile.upsert.mockResolvedValue({ userId: 'user-1' });
     prismaMock.user.findFirst.mockResolvedValue({
       id: 'user-1',
@@ -164,6 +172,59 @@ describe('ProfileService', () => {
     const call = prismaMock.userProfile.upsert.mock.calls[0][0];
     expect(call.create.userId).toBe('user-1');
     expect(call.update).not.toHaveProperty('userId');
+  });
+
+  it('updates discovery preference flags on the user record', async () => {
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
+    );
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      showMeMen: true,
+      showMeWomen: true,
+    });
+    prismaMock.user.findFirst.mockResolvedValue({
+      id: 'user-1',
+      birthdate: null,
+      showMeMen: false,
+      showMeWomen: true,
+      fitnessProfile: null,
+      profile: null,
+      photos: [],
+    });
+
+    await service.updateProfile('user-1', {
+      showMeMen: false,
+      showMeWomen: true,
+    });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: {
+        showMeMen: false,
+        showMeWomen: true,
+      },
+    });
+    expect(prismaMock.userProfile.upsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects discovery updates that would hide everyone', async () => {
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
+    );
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      showMeMen: false,
+      showMeWomen: true,
+    });
+
+    await expect(
+      service.updateProfile('user-1', {
+        showMeWomen: false,
+      }),
+    ).rejects.toThrow('Choose at least one discovery preference');
+
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
   it('returns null age when birthdate is null', async () => {

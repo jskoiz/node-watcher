@@ -46,6 +46,7 @@ function ProfileScreenContentStory({
       city={profile.profile?.city ?? ''}
       editMode={editMode}
       errorMessage={errorMessage}
+      discoveryPreference="both"
       intensityLevel={profile.fitnessProfile?.intensityLevel ?? 'moderate'}
       intentDating
       intentFriends={false}
@@ -70,6 +71,7 @@ function ProfileScreenContentStory({
       onSelectCitySuggestion={() => undefined}
       onSetBio={() => undefined}
       onSetCity={() => undefined}
+      onSetDiscoveryPreference={() => undefined}
       onSetIntensityLevel={() => undefined}
       onSetIntentDating={() => undefined}
       onSetIntentFriends={() => undefined}

@@ -159,6 +159,8 @@ export class AuthService {
         firstName: true,
         birthdate: true,
         gender: true,
+        showMeMen: true,
+        showMeWomen: true,
         pronouns: true,
         isOnboarded: true,
         createdAt: true,

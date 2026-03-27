@@ -32,9 +32,16 @@ export const SOCIAL_OPTIONS = [
   { key: 'group-first', label: 'Group First', subtitle: 'Start big, connect naturally', icon: 'target' },
 ] as const;
 
+export const DISCOVERY_PREFERENCE_OPTIONS = [
+  { key: 'men', label: 'Men', subtitle: 'Show men in discovery.' },
+  { key: 'women', label: 'Women', subtitle: 'Show women in discovery.' },
+  { key: 'both', label: 'Both', subtitle: 'Keep discovery open to both.' },
+] as const;
+
 export const STEP_CHAPTERS = [
   'Welcome',
   'Intent',
+  'Discovery',
   'Activities',
   'Frequency',
   'Environment',
@@ -50,6 +57,12 @@ export function getIntentLabel(intent: SessionIntent) {
   if (intent === 'dating') return 'Dating';
   if (intent === 'workout') return 'Training';
   return 'Open to both';
+}
+
+export function getDiscoveryPreferenceLabel(value: 'men' | 'women' | 'both') {
+  if (value === 'men') return 'Men';
+  if (value === 'women') return 'Women';
+  return 'Both';
 }
 
 export function formatActivitySummary(values: string[]) {

@@ -30,7 +30,10 @@ function toSessionUser(user: User | null): User | null {
     id: user.id,
     email: user.email,
     firstName: user.firstName,
+    gender: user.gender,
     isOnboarded: user.isOnboarded,
+    showMeMen: user.showMeMen,
+    showMeWomen: user.showMeWomen,
     profile: user.profile
       ? {
           intentDating: user.profile.intentDating,

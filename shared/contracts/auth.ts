@@ -27,6 +27,8 @@ export const CurrentUserSchema = z.object({
   firstName: z.string(),
   birthdate: z.coerce.date().nullable(),
   gender: z.string(),
+  showMeMen: z.boolean(),
+  showMeWomen: z.boolean(),
   pronouns: z.string().nullable(),
   isOnboarded: z.boolean(),
   createdAt: z.coerce.date(),

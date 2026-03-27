@@ -137,6 +137,13 @@ export const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     lineHeight: 20,
   },
+  discoveryCaption: {
+    fontSize: typography.caption,
+    lineHeight: 18,
+    marginTop: -spacing.xl,
+    marginBottom: spacing.xl,
+    maxWidth: 320,
+  },
 
   // ── Activity grid ─────────────────────────────────────────────────────────
   activityGrid: {

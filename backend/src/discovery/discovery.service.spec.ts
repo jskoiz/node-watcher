@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
-import { IntensityLevel } from '@prisma/client';
+import { Gender, IntensityLevel } from '@prisma/client';
 import { DiscoveryService } from './discovery.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -131,6 +131,9 @@ describe('DiscoveryService', () => {
     blockServiceMock.getBlockedUserIds.mockResolvedValue(['blocked-1', 'blocked-2']);
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'me',
+      gender: Gender.MALE,
+      showMeMen: true,
+      showMeWomen: true,
       profile: { latitude: 21.3, longitude: -157.8 },
       fitnessProfile: {
         intensityLevel: IntensityLevel.INTERMEDIATE,
@@ -150,6 +153,9 @@ describe('DiscoveryService', () => {
     blockServiceMock.getBlockedUserIds.mockResolvedValue(['blocked-1', 'blocked-2']);
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'me',
+      gender: Gender.MALE,
+      showMeMen: true,
+      showMeWomen: true,
       profile: {
         latitude: 21.3,
         longitude: -157.8,
@@ -178,6 +184,9 @@ describe('DiscoveryService', () => {
     expect(query.where.id).toEqual({ notIn: ['me', 'blocked-1', 'blocked-2'] });
     expect(query.where.receivedLikes).toEqual({ none: { fromUserId: 'me' } });
     expect(query.where.receivedPasses).toEqual({ none: { fromUserId: 'me' } });
+    expect(query.where.gender).toEqual({
+      in: [Gender.MALE, Gender.FEMALE],
+    });
     expect(query.where.birthdate).toEqual(
       expect.objectContaining({
         gte: expect.any(Date),
@@ -219,6 +228,9 @@ describe('DiscoveryService', () => {
   it('still filters distance after the database query and returns top scored results', async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'me',
+      gender: Gender.MALE,
+      showMeMen: true,
+      showMeWomen: true,
       profile: {
         latitude: 21.3069,
         longitude: -157.8583,
@@ -278,6 +290,9 @@ describe('DiscoveryService', () => {
   it('excludes candidates with unknown coordinates when distance filtering is enabled', async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'me',
+      gender: Gender.MALE,
+      showMeMen: true,
+      showMeWomen: true,
       profile: {
         latitude: 21.3069,
         longitude: -157.8583,
@@ -322,6 +337,9 @@ describe('DiscoveryService', () => {
   it('keeps candidates when the requester has no coordinates even if a distance filter is set', async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'me',
+      gender: Gender.MALE,
+      showMeMen: true,
+      showMeWomen: true,
       profile: {
         latitude: null,
         longitude: null,
@@ -358,6 +376,9 @@ describe('DiscoveryService', () => {
   it('returns an empty feed when no candidates match the query', async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'me',
+      gender: Gender.MALE,
+      showMeMen: true,
+      showMeWomen: true,
       profile: {
         latitude: 21.3069,
         longitude: -157.8583,
@@ -386,6 +407,9 @@ describe('DiscoveryService', () => {
   it('returns feed entries sorted by recommendation score and strips coordinates', async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'me',
+      gender: Gender.MALE,
+      showMeMen: true,
+      showMeWomen: true,
       profile: {
         latitude: 21.3069,
         longitude: -157.8583,
@@ -456,6 +480,32 @@ describe('DiscoveryService', () => {
     expect(result[0]?.profile).not.toHaveProperty('longitude');
     expect(result[1]?.profile).not.toHaveProperty('latitude');
     expect(result[1]?.profile).not.toHaveProperty('longitude');
+  });
+
+  it('limits the feed to women when discovery preference is women only', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'me',
+      gender: Gender.MALE,
+      showMeMen: false,
+      showMeWomen: true,
+      profile: {
+        latitude: 21.3069,
+        longitude: -157.8583,
+      },
+      fitnessProfile: {
+        intensityLevel: IntensityLevel.INTERMEDIATE,
+        primaryGoal: 'strength',
+        secondaryGoal: 'mobility',
+      },
+    });
+    prismaMock.user.findMany.mockResolvedValue([]);
+
+    await service.getFeed('me');
+
+    const query = prismaMock.user.findMany.mock.calls[0][0];
+    expect(query.where.gender).toEqual({
+      in: [Gender.FEMALE],
+    });
   });
 
   it('derives mutual match classification from shared intents', async () => {

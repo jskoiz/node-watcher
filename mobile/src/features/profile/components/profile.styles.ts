@@ -121,6 +121,36 @@ export const profileStyles = StyleSheet.create({
   tagCloud: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagPill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: radii.pill },
   tagPillText: { fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY },
+  preferenceCardStack: { gap: spacing.sm },
+  preferenceCard: {
+    borderRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: 4,
+    backgroundColor: SURFACE,
+    borderWidth: 1.5,
+    borderColor: STROKE,
+  },
+  preferenceCardSelected: {
+    backgroundColor: ACCENT_SOFT,
+    borderColor: PRIMARY,
+  },
+  preferenceCardDisabled: {
+    opacity: 0.9,
+  },
+  preferenceCardTitle: {
+    fontSize: typography.body,
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+  },
+  preferenceCardTitleSelected: {
+    color: PRIMARY,
+  },
+  preferenceCardSubtitle: {
+    fontSize: typography.caption,
+    lineHeight: 18,
+    color: TEXT_SECONDARY,
+  },
   fieldsCard: { backgroundColor: SURFACE, borderRadius: 20, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, ...SOFT_SHADOW },
   fieldRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, gap: spacing.md },
   fieldLabel: { fontSize: typography.bodySmall, fontWeight: '700', width: 100, color: TEXT_MUTED, textTransform: 'capitalize' },
