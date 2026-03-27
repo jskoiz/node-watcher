@@ -145,12 +145,12 @@ private struct ConflictCard: View {
             PortBadge(port: self.status.port, tone: .conflict)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text(DisplayText.watchedPortHeadline(self.status, primaryBlocker: self.primaryBlocker))
+                Text(DisplayText.watchedPortHeadline(self.status, blockers: self.blockers))
                     .font(.caption)
                     .fontWeight(.medium)
                     .lineLimit(1)
-                if let process = self.primaryBlocker {
-                    Text(DisplayText.blockerDetail(process))
+                if let detail = DisplayText.blockerDetail(self.blockers) {
+                    Text(detail)
                         .font(.caption2)
                         .foregroundStyle(Readability.secondaryText)
                         .lineLimit(1)
@@ -194,7 +194,26 @@ private struct ConflictCard: View {
     }
 
     private var primaryBlocker: TrackedProcessSnapshot? {
-        self.otherProcesses.first ?? self.projects.flatMap(\.processes).first
+        self.blockers.min(by: { lhs, rhs in
+            let lhsPriority = ResolutionAdvisor.displayPriority(for: lhs)
+            let rhsPriority = ResolutionAdvisor.displayPriority(for: rhs)
+            if lhsPriority != rhsPriority {
+                return lhsPriority < rhsPriority
+            }
+            let lhsLabel = DisplayText.blockerName(lhs)
+            let rhsLabel = DisplayText.blockerName(rhs)
+            let labelComparison = lhsLabel.localizedCaseInsensitiveCompare(rhsLabel)
+            if labelComparison != .orderedSame {
+                return labelComparison == .orderedAscending
+            }
+            return lhs.process.pid < rhs.process.pid
+        })
+    }
+
+    private var blockers: [TrackedProcessSnapshot] {
+        let combined = self.otherProcesses + self.projects.flatMap(\.processes)
+        var seen: Set<Int> = []
+        return combined.filter { seen.insert($0.process.pid).inserted }
     }
 }
 
@@ -848,6 +867,37 @@ private struct ResolutionAction {
 }
 
 private enum ResolutionAdvisor {
+    static func displayPriority(for process: TrackedProcessSnapshot) -> Int {
+        let command = process.process.commandLine.lowercased()
+        let tool = process.process.toolLabel.lowercased()
+        let listenerIsSSH = process.listeners.contains {
+            let name = $0.commandName.lowercased()
+            return name == "ssh" || name == "sshd"
+        }
+
+        if tool == "ssh" || tool == "sshd" || command.hasPrefix("ssh ") || listenerIsSSH {
+            return 0
+        }
+
+        if process.process.isNodeFamily {
+            return 1
+        }
+
+        if self.applicationBundlePath(from: process.process.commandLine)?.localizedCaseInsensitiveContains("/Docker.app") == true {
+            return 2
+        }
+
+        if process.process.commandLine.hasPrefix("/System/") {
+            return 3
+        }
+
+        if ProcessActionPolicy.canTerminate(process) {
+            return 4
+        }
+
+        return 5
+    }
+
     static func primaryAction(for process: TrackedProcessSnapshot, portContext: Int?) -> ResolutionAction? {
         let command = process.process.commandLine
         let lowercasedCommand = command.lowercased()
@@ -978,8 +1028,8 @@ private enum DisplayText {
         NSString(string: path).abbreviatingWithTildeInPath
     }
 
-    static func watchedPortHeadline(_ status: WatchedPortStatus, primaryBlocker: TrackedProcessSnapshot?) -> String {
-        let owner = self.watchedPortOwner(status, primaryBlocker: primaryBlocker)
+    static func watchedPortHeadline(_ status: WatchedPortStatus, blockers: [TrackedProcessSnapshot]) -> String {
+        let owner = self.watchedPortOwner(status, blockers: blockers)
         if status.isConflict {
             return "Blocked by \(owner)"
         }
@@ -989,12 +1039,19 @@ private enum DisplayText {
         return "In use by \(owner)"
     }
 
-    static func blockerDetail(_ process: TrackedProcessSnapshot) -> String {
-        let pid = "PID \(process.process.pid)"
-        if let cwd = process.process.cwd, cwd != "/" {
-            return "\(pid) \u{00B7} \(self.path(cwd))"
+    static func blockerDetail(_ blockers: [TrackedProcessSnapshot]) -> String? {
+        guard !blockers.isEmpty else { return nil }
+        if blockers.count == 1 {
+            let process = blockers[0]
+            let pid = "PID \(process.process.pid)"
+            if let cwd = process.process.cwd, cwd != "/" {
+                return "\(pid) \u{00B7} \(self.path(cwd))"
+            }
+            return pid
         }
-        return pid
+
+        let summaries = blockers.map { "\(blockerName($0)) PID \($0.process.pid)" }
+        return "2 blockers: " + summaries.joined(separator: ", ")
     }
 
     static func processDetail(_ process: ProcessSnapshot) -> String? {
@@ -1016,18 +1073,34 @@ private enum DisplayText {
         return tools.joined(separator: " \u{2022} ")
     }
 
-    private static func watchedPortOwner(_ status: WatchedPortStatus, primaryBlocker: TrackedProcessSnapshot?) -> String {
+    static func blockerName(_ process: TrackedProcessSnapshot) -> String {
+        let tool = process.process.toolLabel
+        let command = process.process.commandLine.lowercased()
+
+        if tool.caseInsensitiveCompare("com.docker.backend") == .orderedSame {
+            return "Docker"
+        }
+        if tool.caseInsensitiveCompare("ControlCenter") == .orderedSame {
+            return "Control Center"
+        }
+        if tool.caseInsensitiveCompare("ssh") == .orderedSame
+            || tool.caseInsensitiveCompare("sshd") == .orderedSame
+            || command.hasPrefix("ssh ") {
+            return "SSH tunnel"
+        }
+
+        return tool
+    }
+
+    private static func watchedPortOwner(_ status: WatchedPortStatus, blockers: [TrackedProcessSnapshot]) -> String {
+        let ownerNames = blockers.map(blockerName)
+        if !ownerNames.isEmpty {
+            return formatOwnerNames(ownerNames)
+        }
+
         let owners = status.ownerSummary
             .split(separator: ",")
             .map { stripPID(from: $0.trimmingCharacters(in: .whitespacesAndNewlines)) }
-
-        if let primaryBlocker {
-            let primaryOwner = primaryBlocker.process.toolLabel
-            if owners.count <= 1 {
-                return primaryOwner
-            }
-            return "\(primaryOwner) +\(owners.count - 1)"
-        }
 
         guard let firstOwner = owners.first, !firstOwner.isEmpty else {
             return "another process"
@@ -1038,6 +1111,20 @@ private enum DisplayText {
         }
 
         return "\(firstOwner) +\(owners.count - 1)"
+    }
+
+    private static func formatOwnerNames(_ owners: [String]) -> String {
+        let uniqueOwners = Array(NSOrderedSet(array: owners)) as? [String] ?? owners
+        switch uniqueOwners.count {
+        case 0:
+            return "another process"
+        case 1:
+            return uniqueOwners[0]
+        case 2:
+            return "\(uniqueOwners[0]) and \(uniqueOwners[1])"
+        default:
+            return "\(uniqueOwners[0]), \(uniqueOwners[1]), and \(uniqueOwners.count - 2) more"
+        }
     }
 
     private static func command(_ process: ProcessSnapshot) -> String {
