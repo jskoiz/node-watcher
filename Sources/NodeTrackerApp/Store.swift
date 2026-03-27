@@ -253,6 +253,24 @@ final class NodeTrackerStore: ObservableObject {
         self.refreshNow()
     }
 
+    func terminateGroup(_ group: NodeProcessGroup) {
+        if self.settings.confirmBeforeTerminate {
+            let alert = NSAlert()
+            alert.messageText = "Terminate \(group.count) \(group.toolLabel) process\(group.count == 1 ? "" : "es")?"
+            alert.informativeText = "This will free \(group.formattedMemory) of memory."
+            alert.addButton(withTitle: "Terminate All")
+            alert.addButton(withTitle: "Cancel")
+            if alert.runModal() != .alertFirstButtonReturn {
+                return
+            }
+        }
+
+        for pid in group.pids {
+            kill(pid_t(pid), SIGTERM)
+        }
+        self.refreshNow()
+    }
+
     func reveal(path: String?) {
         guard let path else { return }
         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
