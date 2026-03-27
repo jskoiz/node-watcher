@@ -145,7 +145,7 @@ private struct ConflictCard: View {
             PortBadge(port: self.status.port, tone: .conflict)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text(DisplayText.watchedPortHeadline(self.status))
+                Text(DisplayText.watchedPortHeadline(self.status, primaryBlocker: self.primaryBlocker))
                     .font(.caption)
                     .fontWeight(.medium)
                     .lineLimit(1)
@@ -185,7 +185,8 @@ private struct ConflictCard: View {
                     self.store.openApplication(at: path)
                 }
             }
-        } else if let suggested = self.store.nextAvailablePort(after: self.status.port) {
+        } else if self.projects.contains(where: { !$0.processes.isEmpty }),
+                  let suggested = self.store.nextAvailablePort(after: self.status.port) {
             InlineAccentButton("Use \(suggested)", tone: .node) {
                 self.store.copySuggestedPort(after: self.status.port)
             }
@@ -977,8 +978,8 @@ private enum DisplayText {
         NSString(string: path).abbreviatingWithTildeInPath
     }
 
-    static func watchedPortHeadline(_ status: WatchedPortStatus) -> String {
-        let owner = self.watchedPortOwner(status)
+    static func watchedPortHeadline(_ status: WatchedPortStatus, primaryBlocker: TrackedProcessSnapshot?) -> String {
+        let owner = self.watchedPortOwner(status, primaryBlocker: primaryBlocker)
         if status.isConflict {
             return "Blocked by \(owner)"
         }
@@ -1015,10 +1016,18 @@ private enum DisplayText {
         return tools.joined(separator: " \u{2022} ")
     }
 
-    private static func watchedPortOwner(_ status: WatchedPortStatus) -> String {
+    private static func watchedPortOwner(_ status: WatchedPortStatus, primaryBlocker: TrackedProcessSnapshot?) -> String {
         let owners = status.ownerSummary
             .split(separator: ",")
             .map { stripPID(from: $0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+
+        if let primaryBlocker {
+            let primaryOwner = primaryBlocker.process.toolLabel
+            if owners.count <= 1 {
+                return primaryOwner
+            }
+            return "\(primaryOwner) +\(owners.count - 1)"
+        }
 
         guard let firstOwner = owners.first, !firstOwner.isEmpty else {
             return "another process"

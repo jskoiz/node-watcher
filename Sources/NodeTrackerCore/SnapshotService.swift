@@ -85,6 +85,7 @@ public struct SnapshotService: Sendable {
                     isWatchedConflict: isWatchedConflict
                 )
             }
+            .filter { !self.shouldHideFromUI($0.process) }
 
         var projectGroups: [String: (ResolvedProject, [TrackedProcessSnapshot])] = [:]
         var otherProcesses: [TrackedProcessSnapshot] = []
@@ -179,6 +180,17 @@ public struct SnapshotService: Sendable {
 
         let nodeProcesses = rawProcesses.filter {
             self.classifier.isNodeFamily(commandLine: $0.commandLine, parentCommandLine: nil)
+                && !self.shouldHideFromUI(
+                    self.classifier.classify(
+                        pid: $0.pid,
+                        ppid: 0,
+                        state: "",
+                        uptime: "",
+                        commandLine: $0.commandLine,
+                        parentCommandLine: nil,
+                        cwd: nil
+                    )
+                )
         }
 
         var groups: [String: (count: Int, totalBytes: Int, pids: [Int])] = [:]
@@ -259,6 +271,26 @@ public struct SnapshotService: Sendable {
             isNodeFamily: process.isNodeFamily,
             toolLabel: commandName
         )
+    }
+
+    private func shouldHideFromUI(_ process: ProcessSnapshot) -> Bool {
+        let tool = process.toolLabel.lowercased()
+        let command = process.commandLine.lowercased()
+        let parent = (process.parentCommandLine ?? "").lowercased()
+        let cwd = (process.cwd ?? "").lowercased()
+
+        if tool == "playwright-mcp" || tool == "mcp-server" {
+            return true
+        }
+
+        if command.contains("playwright-mcp")
+            || parent.contains("playwright-mcp")
+            || command.contains("/ms-playwright/mcp-chrome")
+            || cwd.contains("/ms-playwright/") {
+            return true
+        }
+
+        return false
     }
 
     private static func compareProjects(lhs: ProjectSnapshot, rhs: ProjectSnapshot, watchedPorts: [Int]) -> Bool {
