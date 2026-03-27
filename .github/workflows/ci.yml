@@ -18,8 +18,6 @@ jobs:
   backend-migration-rehearsal:
     name: Backend migration rehearsal
     runs-on: [self-hosted, Linux, X64, brdg-vps]
-    env:
-      POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
     services:
       postgres:
         image: postgres:16-alpine
@@ -51,7 +49,7 @@ jobs:
         working-directory: backend
       - run: npm run rehearse:backend:legacy-migrations
         env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ env.POSTGRES_PORT }}/brdg_ci
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/brdg_ci
 
   fast-pr:
     name: PR fast lane

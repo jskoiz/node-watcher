@@ -42,8 +42,6 @@ jobs:
     runs-on: [self-hosted, Linux, X64, brdg-vps]
     timeout-minutes: 60
     environment: production
-    env:
-      POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
     services:
       postgres:
         image: postgres:16-alpine
@@ -119,14 +117,14 @@ jobs:
       - name: Backend checks
         run: npm run check:backend
         env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ env.POSTGRES_PORT }}/brdg_ci
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/brdg_ci
           JWT_SECRET: 12345678901234567890123456789012
           NODE_ENV: test
 
       - name: Legacy migration rehearsal
         run: npm run rehearse:backend:legacy-migrations
         env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ env.POSTGRES_PORT }}/brdg_ci
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/brdg_ci
 
       - name: Log in to GHCR
         if: steps.meta.outputs.rollback_tag == ''
