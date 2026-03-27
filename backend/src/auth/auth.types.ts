@@ -22,6 +22,8 @@ export type CurrentUserResult = {
   firstName: string;
   birthdate: Date | null;
   gender: Gender;
+  showMeMen: boolean;
+  showMeWomen: boolean;
   pronouns: string | null;
   isOnboarded: boolean;
   createdAt: Date;

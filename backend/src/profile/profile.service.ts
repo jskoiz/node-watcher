@@ -89,32 +89,35 @@ export class ProfileService {
 
     await this.prisma.$transaction(async (tx) => {
       if (hasDiscoveryPreferenceUpdate) {
-        const currentUser = await tx.user.findUnique({
-          where: { id: userId },
+        const currentProfile = await tx.userProfile.findUnique({
+          where: { userId },
           select: {
             showMeMen: true,
             showMeWomen: true,
           },
         });
 
-        if (!currentUser) {
-          throw new NotFoundException('Profile not found');
-        }
-
         const nextShowMeMen =
-          typeof showMeMen === 'boolean' ? showMeMen : currentUser.showMeMen;
+          typeof showMeMen === 'boolean'
+            ? showMeMen
+            : currentProfile?.showMeMen ?? true;
         const nextShowMeWomen =
           typeof showMeWomen === 'boolean'
             ? showMeWomen
-            : currentUser.showMeWomen;
+            : currentProfile?.showMeWomen ?? true;
 
         if (!nextShowMeMen && !nextShowMeWomen) {
           throw new BadRequestException('Choose at least one discovery preference');
         }
 
-        await tx.user.update({
-          where: { id: userId },
-          data: {
+        await tx.userProfile.upsert({
+          where: { userId },
+          update: {
+            showMeMen: nextShowMeMen,
+            showMeWomen: nextShowMeWomen,
+          },
+          create: {
+            userId,
             showMeMen: nextShowMeMen,
             showMeWomen: nextShowMeWomen,
           },

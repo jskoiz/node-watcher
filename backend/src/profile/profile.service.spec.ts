@@ -13,6 +13,7 @@ describe('ProfileService', () => {
       upsert: jest.fn(),
     },
     userProfile: {
+      findUnique: jest.fn(),
       upsert: jest.fn(),
     },
     userPhoto: {
@@ -151,8 +152,7 @@ describe('ProfileService', () => {
     prismaMock.$transaction.mockImplementation(
       async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
     );
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 'user-1',
+    prismaMock.userProfile.findUnique.mockResolvedValue({
       showMeMen: true,
       showMeWomen: true,
     });
@@ -198,22 +198,25 @@ describe('ProfileService', () => {
       showMeWomen: true,
     });
 
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
-      where: { id: 'user-1' },
-      data: {
+    expect(prismaMock.userProfile.upsert).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+      update: {
+        showMeMen: false,
+        showMeWomen: true,
+      },
+      create: {
+        userId: 'user-1',
         showMeMen: false,
         showMeWomen: true,
       },
     });
-    expect(prismaMock.userProfile.upsert).not.toHaveBeenCalled();
   });
 
   it('rejects discovery updates that would hide everyone', async () => {
     prismaMock.$transaction.mockImplementation(
       async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
     );
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 'user-1',
+    prismaMock.userProfile.findUnique.mockResolvedValue({
       showMeMen: false,
       showMeWomen: true,
     });
@@ -224,7 +227,7 @@ describe('ProfileService', () => {
       }),
     ).rejects.toThrow('Choose at least one discovery preference');
 
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expect(prismaMock.userProfile.upsert).not.toHaveBeenCalled();
   });
 
   it('returns null age when birthdate is null', async () => {

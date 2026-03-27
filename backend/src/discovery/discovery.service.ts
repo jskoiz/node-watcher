@@ -149,7 +149,25 @@ export class DiscoveryService {
   private async getRequesterOrThrow(userId: string): Promise<DiscoveryRequester> {
     const requester = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { profile: true, fitnessProfile: true },
+      select: {
+        id: true,
+        gender: true,
+        profile: {
+          select: {
+            latitude: true,
+            longitude: true,
+            showMeMen: true,
+            showMeWomen: true,
+          },
+        },
+        fitnessProfile: {
+          select: {
+            primaryGoal: true,
+            secondaryGoal: true,
+            intensityLevel: true,
+          },
+        },
+      },
     });
 
     if (!requester) {
@@ -161,7 +179,18 @@ export class DiscoveryService {
       throw new NotFoundException('User not found');
     }
 
-    return requester;
+    const legacyRequester = requester as typeof requester & {
+      showMeMen?: boolean;
+      showMeWomen?: boolean;
+    };
+
+    return {
+      ...requester,
+      showMeMen:
+        requester.profile?.showMeMen ?? legacyRequester.showMeMen ?? true,
+      showMeWomen:
+        requester.profile?.showMeWomen ?? legacyRequester.showMeWomen ?? true,
+    };
   }
 
   private async findFeedCandidates(

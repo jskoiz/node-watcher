@@ -159,13 +159,24 @@ export class AuthService {
         firstName: true,
         birthdate: true,
         gender: true,
-        showMeMen: true,
-        showMeWomen: true,
         pronouns: true,
         isOnboarded: true,
         createdAt: true,
         updatedAt: true,
-        profile: true,
+        profile: {
+          select: {
+            bio: true,
+            city: true,
+            country: true,
+            latitude: true,
+            longitude: true,
+            intentDating: true,
+            intentWorkout: true,
+            intentFriends: true,
+            showMeMen: true,
+            showMeWomen: true,
+          },
+        },
         fitnessProfile: true,
         photos: {
           where: { isHidden: false },
@@ -188,6 +199,8 @@ export class AuthService {
 
     return {
       ...user,
+      showMeMen: user.profile?.showMeMen ?? true,
+      showMeWomen: user.profile?.showMeWomen ?? true,
       age: calculateAge(user.birthdate),
     };
   }
