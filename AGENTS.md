@@ -32,6 +32,8 @@ npm run ios:install
 npm run qa:ios
 npm run qa:ios:reset
 npm run release:ios
+npm run release:ios:prepare
+npm run release:ios:ship
 npm run release:ios:check
 ```
 
@@ -119,11 +121,16 @@ npm run release:ios:check
 - Never produce a TestFlight or App Store build from a dirty working tree, a detached `HEAD`, or an unpushed local-only commit.
 - Require a clean `main` or `release/*` branch plus passing backend and mobile checks before recommending or cutting a release build.
 - Before choosing `IOS_BUILD_NUMBER`, verify the latest live App Store Connect build number for `com.avmillabs.brdg` and pick a higher number. Do not rely on historical notes or local memory for build-number selection.
-- Before `npm run release:ios` or `npm run release:ios:check`, verify the branch already has an upstream on `origin` and that the worktree is fully clean after any generated-file checks.
+- Before `npm run release:ios:prepare`, `npm run release:ios:ship`, `npm run release:ios`, or `npm run release:ios:check`, verify the branch already has an upstream on `origin` and that the worktree is fully clean after any generated-file checks.
 - Before release preflight, run `npm run repo:index` if repo policy reports `artifacts/repo-index.json` drift.
+- Prefer a dedicated clean release checkout refreshed with [`scripts/release-worktree.sh`](scripts/release-worktree.sh) over detached Codex worktrees for TestFlight/App Store execution.
 - Before a release that uses App Store Connect API key auth, verify `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, and an accessible `AuthKey_<key>.p8` path or confirm that Xcode account auth will be used instead.
 - BRDG ships to TestFlight/App Store through local Xcode by default, even though the mobile app uses Expo and the repo contains `eas.json`.
 - Prefer [`scripts/release-ios.sh`](scripts/release-ios.sh) or `npm run release:ios` over ad hoc release commands, and assume `xcode` mode unless the user explicitly asks for `eas`.
+- `npm run release:ios:prepare` is the canonical release-readiness gate. It runs repo validation, resolves or verifies the live ASC build state, writes `mobile/build/ios-release-manifest.json`, and records `mobile/build/ios-release-context.json` for the exact SHA/build/env that `npm run release:ios:ship` will upload.
+- `npm run release:ios:ship` must use the prepared context and must not rediscover repo problems by rerunning `npm run check`.
+- When App Store Connect API-key auth is available, prefer `npm run release:ios:asc -- next-build` and `npm run release:ios:asc -- wait-processing --build <n>` over manual ASC polling.
+- The release wrapper may reuse the existing generated iOS project only when the conservative fast-path classifier says the diff is non-native-affecting; uncertain diffs must fall back to a clean Expo prebuild.
 - Do not treat missing Expo auth as a blocker for the normal BRDG release path.
 - Treat backend production deploy provenance the same way as mobile releases: deploy only pushed `main` snapshots through the GitHub Actions workflow, and verify the running backend reports the expected git SHA and image tag after rollout.
 - Treat older TestFlight rollout notes as historical context only. When release state matters, prefer live App Store Connect state and the current release manifest over doc snapshots.

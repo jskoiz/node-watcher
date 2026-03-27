@@ -1,6 +1,10 @@
 name: CI
 
 on:
+  pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -100,3 +104,29 @@ jobs:
         with:
           name: harness-main-check
           path: artifacts/harness/main-check
+
+  release-readiness:
+    name: Release readiness
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_API_URL: https://api.example.invalid
+      IOS_BUNDLE_IDENTIFIER: com.avmillabs.brdg
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            mobile/package-lock.json
+      - run: npm install --ignore-scripts
+      - run: npm ci
+        working-directory: backend
+      - run: npm ci
+        working-directory: mobile
+      - run: npm run check
+      - run: npm run repo:index:check
+      - run: ./scripts/release-ios.sh --phase prepare --mode xcode --dry-run-build-number

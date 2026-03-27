@@ -61,6 +61,7 @@ Use the smoke run any time you change backend auth, discovery, events, matches, 
 npm run pre-submit
 npm run check:changed
 npm run check
+npm run release:ios:prepare
 
 # or package-local when narrowing failures
 npm run check:root
@@ -74,6 +75,8 @@ npm run docs:check
 `npm run check:changed` is the narrow PR-scoped lane. It picks `check:root` for docs-only changes, backend/mobile/symphony lanes for single-stack changes, promotes mixed or harness-sensitive edits to `npm run check`, and appends `npm run smoke` when the diff touches smoke-sensitive paths.
 
 `npm run check:root` is the root-only lane for docs, policy, and root test coverage. Use it when you are narrowing failures outside backend/mobile runtime changes.
+
+`npm run release:ios:prepare` is the release-readiness gate for iOS. It proves the current pushed SHA is releasable, resolves or verifies the latest live ASC build number, records `mobile/build/ios-release-manifest.json`, and writes `mobile/build/ios-release-context.json` for the exact SHA/build/env that `npm run release:ios:ship` will upload.
 
 The current shipped mobile surface is on `main`. New work should generally branch from clean `main` and stay narrow rather than continuing to accumulate broad cleanup in one branch.
 
@@ -191,7 +194,9 @@ If you are planning follow-on work, the current recommended next track is event 
 
 - Do not cut TestFlight or App Store builds from feature branches, dirty trees, detached `HEAD`, or local-only commits.
 - Ship only from a clean `main` or explicit `release/*` branch.
-- If release readiness is the goal, use `npm run release:ios:check` after `npm run harness:doctor`; the doctor is an operator sanity check, not the release gate itself.
+- If release readiness is the goal, use `npm run release:ios:prepare` after `npm run harness:doctor`; the doctor is an operator sanity check, not the release gate itself.
+- Use `npm run release:ios:ship` only after a successful prepare run from the same clean checkout. It should not be the step that discovers stale repo state, failing tests, or build-number drift.
+- For a dedicated release checkout, prefer `./scripts/release-worktree.sh` so `main` is fast-forwarded and clean before you run the prepare/ship pair.
 - If local dev and TestFlight differ, inspect the shipped bundle and identify the exact source snapshot before changing UI code.
 
 ## Troubleshooting quick reference

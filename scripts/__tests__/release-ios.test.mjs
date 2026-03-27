@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const releaseScriptPath = path.resolve(testDir, '../release-ios.sh');
+const ascHelperPath = path.resolve(testDir, '../app-store-connect-build.mjs');
+const fastPathScriptPath = path.resolve(testDir, '../release-ios-fast-path.mjs');
 
 function run(command, args, options = {}) {
   return spawnSync(command, args, {
@@ -27,19 +29,22 @@ function writeExecutable(filePath, content) {
   fs.writeFileSync(filePath, content, { encoding: 'utf8', mode: 0o755 });
 }
 
-function createFixture({ withUpstream = true } = {}) {
+function createFixture({ withUpstream = true, withReleaseTag = false } = {}) {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'brdg-release-ios-'));
-  fs.mkdirSync(path.join(repoRoot, 'scripts'), { recursive: true });
+  fs.mkdirSync(path.join(repoRoot, 'scripts', '__tests__'), { recursive: true });
   fs.mkdirSync(path.join(repoRoot, 'mobile'), { recursive: true });
   fs.mkdirSync(path.join(repoRoot, 'bin'), { recursive: true });
 
   fs.copyFileSync(releaseScriptPath, path.join(repoRoot, 'scripts/release-ios.sh'));
+  fs.copyFileSync(ascHelperPath, path.join(repoRoot, 'scripts/app-store-connect-build.mjs'));
+  fs.copyFileSync(fastPathScriptPath, path.join(repoRoot, 'scripts/release-ios-fast-path.mjs'));
   fs.chmodSync(path.join(repoRoot, 'scripts/release-ios.sh'), 0o755);
 
   fs.writeFileSync(path.join(repoRoot, 'mobile/package.json'), JSON.stringify({
     name: 'mobile',
     version: '1.2.3',
   }, null, 2));
+  fs.writeFileSync(path.join(repoRoot, '.gitignore'), 'mobile/build/\nnpm-check-count.txt\n');
   fs.writeFileSync(path.join(repoRoot, 'mobile/eas.json'), JSON.stringify({
     submit: {
       production: {
@@ -59,10 +64,68 @@ function createFixture({ withUpstream = true } = {}) {
       'ASC_BUILD_NUMBER_VERIFIED_AT=2026-03-25T12:00:00Z',
     ].join('\n') + '\n',
   );
+  fs.writeFileSync(path.join(repoRoot, 'mobile/src-screen.tsx'), 'export const screen = true;\n');
 
   writeExecutable(
     path.join(repoRoot, 'bin/npm'),
-    '#!/usr/bin/env bash\nif [[ "$1" == "run" && "$2" == "check" ]]; then exit 0; fi\nexit 0\n',
+    `#!/usr/bin/env bash
+set -euo pipefail
+count_file="${path.join(repoRoot, 'npm-check-count.txt')}"
+if [[ "$1" == "run" && "$2" == "check" ]]; then
+  current=0
+  if [[ -f "$count_file" ]]; then
+    current="$(cat "$count_file")"
+  fi
+  printf '%s' "$((current + 1))" > "$count_file"
+fi
+exit 0
+`,
+  );
+
+  writeExecutable(
+    path.join(repoRoot, 'bin/npx'),
+    `#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$1" == "expo" && "$2" == "prebuild" ]]; then
+  mkdir -p "${path.join(repoRoot, 'mobile/ios/BRDG.xcodeproj')}"
+  exit 0
+fi
+if [[ "$1" == "-y" && "$2" == "eas-cli" ]]; then
+  exit 0
+fi
+exit 0
+`,
+  );
+
+  writeExecutable(
+    path.join(repoRoot, 'bin/xcodebuild'),
+    `#!/usr/bin/env bash
+set -euo pipefail
+archive_path=""
+export_path=""
+for ((index=1; index<=$#; index++)); do
+  current="\${!index}"
+  next_index=$((index + 1))
+  next_value="\${!next_index:-}"
+  if [[ "$current" == "-archivePath" ]]; then
+    archive_path="$next_value"
+  fi
+  if [[ "$current" == "-exportPath" ]]; then
+    export_path="$next_value"
+  fi
+done
+if [[ " $* " == *" archive "* ]]; then
+  app_dir="$archive_path/Products/Applications/BRDG.app"
+  mkdir -p "$app_dir"
+  touch "$app_dir/main.jsbundle"
+  exit 0
+fi
+if [[ " $* " == *" -exportArchive "* ]]; then
+  mkdir -p "$export_path"
+  exit 0
+fi
+exit 0
+`,
   );
 
   exec('git', ['init', '--initial-branch=main'], { cwd: repoRoot });
@@ -70,6 +133,14 @@ function createFixture({ withUpstream = true } = {}) {
   exec('git', ['config', 'user.email', 'codex@example.test'], { cwd: repoRoot });
   exec('git', ['add', '.'], { cwd: repoRoot });
   exec('git', ['commit', '-m', 'initial'], { cwd: repoRoot });
+
+  if (withReleaseTag) {
+    exec('git', ['tag', 'v1.2.2+4'], { cwd: repoRoot });
+    fs.mkdirSync(path.join(repoRoot, 'mobile', 'src'), { recursive: true });
+    fs.writeFileSync(path.join(repoRoot, 'mobile', 'src', 'screen.tsx'), 'export const release = true;\n');
+    exec('git', ['add', '.'], { cwd: repoRoot });
+    exec('git', ['commit', '-m', 'screen change'], { cwd: repoRoot });
+  }
 
   if (withUpstream) {
     const remoteRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'brdg-release-ios-remote-'));
@@ -81,80 +152,102 @@ function createFixture({ withUpstream = true } = {}) {
   return repoRoot;
 }
 
-function runReleaseCheck(repoRoot) {
-  return run('bash', ['scripts/release-ios.sh', '--check-only', '--mode', 'xcode'], {
+function releaseEnv(repoRoot, extra = {}) {
+  return {
+    ...process.env,
+    PATH: `${path.join(repoRoot, 'bin')}:${process.env.PATH}`,
+    ...extra,
+  };
+}
+
+function runRelease(repoRoot, args, extraEnv = {}) {
+  return run('bash', ['scripts/release-ios.sh', ...args], {
     cwd: repoRoot,
-    env: {
-      ...process.env,
-      PATH: `${path.join(repoRoot, 'bin')}:${process.env.PATH}`,
-    },
+    env: releaseEnv(repoRoot, extraEnv),
   });
 }
 
-test('release-ios keeps explicit environment overrides instead of clobbering them from .env.production', () => {
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+test('prepare keeps explicit environment overrides instead of clobbering them from .env.production', () => {
   const repoRoot = createFixture();
-  const result = run('bash', ['scripts/release-ios.sh', '--check-only', '--mode', 'xcode'], {
-    cwd: repoRoot,
-    env: {
-      ...process.env,
-      PATH: `${path.join(repoRoot, 'bin')}:${process.env.PATH}`,
-      IOS_BUILD_NUMBER: '13',
-      ASC_LIVE_BUILD_NUMBER: '12',
-      ASC_BUILD_NUMBER_VERIFIED_AT: '2026-03-26T12:23:48Z',
-    },
+  const result = runRelease(repoRoot, ['--phase', 'prepare', '--mode', 'xcode', '--native-mode', 'clean'], {
+    IOS_BUILD_NUMBER: '13',
+    ASC_LIVE_BUILD_NUMBER: '12',
+    ASC_BUILD_NUMBER_VERIFIED_AT: '2026-03-26T12:23:48Z',
   });
 
   assert.equal(result.status, 0, result.stderr);
 
-  const manifestPath = path.join(repoRoot, 'mobile/build/ios-release-manifest.json');
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const manifest = readJson(path.join(repoRoot, 'mobile/build/ios-release-manifest.json'));
   assert.equal(manifest.iosBuildNumber, '13');
   assert.equal(manifest.appStoreConnectLiveBuildNumber, '12');
-  assert.equal(
-    manifest.appStoreConnectBuildNumberVerifiedAt,
-    '2026-03-26T12:23:48Z',
-  );
+  assert.equal(manifest.appStoreConnectBuildNumberVerifiedAt, '2026-03-26T12:23:48Z');
+  assert.equal(manifest.envSources.iosBuildNumber, 'environment');
 });
 
-test('release-ios check-only writes a provenance-rich manifest without tagging', () => {
-  const repoRoot = createFixture();
-  const result = runReleaseCheck(repoRoot);
+test('prepare writes manifest and release context without tagging', () => {
+  const repoRoot = createFixture({ withReleaseTag: true });
+  const result = runRelease(repoRoot, ['--phase', 'prepare', '--mode', 'xcode']);
 
   assert.equal(result.status, 0, result.stderr);
 
-  const manifestPath = path.join(repoRoot, 'mobile/build/ios-release-manifest.json');
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  assert.equal(manifest.appVersion, '1.2.3');
+  const manifest = readJson(path.join(repoRoot, 'mobile/build/ios-release-manifest.json'));
+  const context = readJson(path.join(repoRoot, 'mobile/build/ios-release-context.json'));
   assert.equal(manifest.preflightOnly, true);
-  assert.equal(manifest.authMode, 'xcode-account');
-  assert.equal(manifest.appStoreConnectLiveBuildNumber, '4');
-  assert.equal(manifest.releaseEligibility.cleanTree, true);
-  assert.match(manifest.upstreamGitSha, /^[0-9a-f]{40}$/);
-  assert.equal(exec('git', ['tag'], { cwd: repoRoot }), '');
+  assert.equal(manifest.nativePrep, 'reuse-existing-ios');
+  assert.equal(context.nativePrep, 'reuse-existing-ios');
+  assert.match(context.gitSha, /^[0-9a-f]{40}$/);
+  assert.equal(exec('git', ['tag'], { cwd: repoRoot }), 'v1.2.2+4');
 });
 
-test('release-ios rejects detached HEAD state', () => {
+test('ship uses prepared context and skips npm run check', () => {
+  const repoRoot = createFixture({ withReleaseTag: true });
+  const prepareResult = runRelease(repoRoot, ['--phase', 'prepare', '--mode', 'xcode']);
+  assert.equal(prepareResult.status, 0, prepareResult.stderr);
+  assert.equal(fs.readFileSync(path.join(repoRoot, 'npm-check-count.txt'), 'utf8'), '1');
+
+  const shipResult = runRelease(repoRoot, ['--phase', 'ship', '--mode', 'xcode']);
+  assert.equal(shipResult.status, 0, shipResult.stderr);
+  assert.equal(fs.readFileSync(path.join(repoRoot, 'npm-check-count.txt'), 'utf8'), '1');
+
+  const manifest = readJson(path.join(repoRoot, 'mobile/build/ios-release-manifest.json'));
+  assert.equal(manifest.preflightOnly, false);
+  assert.equal(exec('git', ['tag', '--list', 'v1.2.3+5'], { cwd: repoRoot }), 'v1.2.3+5');
+});
+
+test('full mode runs validation then ships and tags the release', () => {
+  const repoRoot = createFixture({ withReleaseTag: true });
+  const result = runRelease(repoRoot, ['--phase', 'full', '--mode', 'xcode']);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(fs.readFileSync(path.join(repoRoot, 'npm-check-count.txt'), 'utf8'), '1');
+  assert.equal(exec('git', ['tag', '--list', 'v1.2.3+5'], { cwd: repoRoot }), 'v1.2.3+5');
+});
+
+test('prepare rejects detached HEAD state', () => {
   const repoRoot = createFixture();
   exec('git', ['checkout', '--detach', 'HEAD'], { cwd: repoRoot });
 
-  const result = runReleaseCheck(repoRoot);
+  const result = runRelease(repoRoot, ['--phase', 'prepare', '--mode', 'xcode']);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /detached HEAD is not allowed/);
 });
 
-test('release-ios rejects dirty working trees', () => {
+test('ship rejects missing release context', () => {
   const repoRoot = createFixture();
-  fs.writeFileSync(path.join(repoRoot, 'scratch.txt'), 'dirty\n');
+  const result = runRelease(repoRoot, ['--phase', 'ship', '--mode', 'xcode']);
 
-  const result = runReleaseCheck(repoRoot);
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /working tree must be completely clean/);
+  assert.match(result.stderr, /ship phase requires .*ios-release-context.json/);
 });
 
-test('release-ios rejects branches without an upstream', () => {
+test('prepare rejects branches without an upstream', () => {
   const repoRoot = createFixture({ withUpstream: false });
+  const result = runRelease(repoRoot, ['--phase', 'prepare', '--mode', 'xcode']);
 
-  const result = runReleaseCheck(repoRoot);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /has no upstream tracking branch/);
 });

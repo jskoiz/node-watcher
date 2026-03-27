@@ -20,15 +20,15 @@ This document describes the current release workflow. Historical rollout notes a
 
 ## Required environment values
 
-Copy [`mobile/.env.example`](../mobile/.env.example) into your local env or EAS secrets and replace:
+Copy [`mobile/.env.production.release.example`](../mobile/.env.production.release.example) into your local env or release checkout and replace:
 
 - `EXPO_PUBLIC_API_URL` with the production backend origin
 - `IOS_BUNDLE_IDENTIFIER` with the App Store bundle ID reserved in Apple Developer
 - `IOS_DEVELOPMENT_TEAM` only if the local Xcode release should override the Apple team id already stored in [`mobile/eas.json`](../mobile/eas.json)
 - `ASC_API_KEY_ID` and `ASC_API_ISSUER_ID` when the local machine should authenticate to Apple using an App Store Connect API key instead of an interactive Xcode account
 - `ASC_API_KEY_PATH` only if the App Store Connect private key is not already stored at one of Xcode/altool's default lookup paths such as `~/.appstoreconnect/private_keys/AuthKey_<key>.p8`
-- `ASC_LIVE_BUILD_NUMBER` from the latest live App Store Connect state for `com.avmillabs.brdg`
-- `ASC_BUILD_NUMBER_VERIFIED_AT` with the UTC timestamp or operator note for when that live build-number check was performed
+- `ASC_LIVE_BUILD_NUMBER` from the latest live App Store Connect state for `com.avmillabs.brdg` when you are using manual ASC verification instead of API-key automation
+- `ASC_BUILD_NUMBER_VERIFIED_AT` with the UTC timestamp or operator note for when that live build-number check was performed when you are using manual ASC verification instead of API-key automation
 - `ANDROID_PACKAGE` with the Play package name if Android release is also planned
 - `EAS_PROJECT_ID` only if an EAS build is explicitly needed
 - `SENTRY_ORG`, `SENTRY_PROJECT`, and `SENTRY_AUTH_TOKEN` only if you want sourcemap upload during the local Xcode release; otherwise the wrapper allows that step to fail without blocking TestFlight delivery
@@ -43,25 +43,27 @@ For local release builds, start from `mobile/.env.example` and provide productio
 
 ## Live preflight before choosing a build number
 
-Do these checks before `npm run release:ios:check`:
+Do these checks before `npm run release:ios:prepare`:
 
-1. Verify the latest live App Store Connect build number for `com.avmillabs.brdg`.
-2. Choose an `IOS_BUILD_NUMBER` strictly higher than the latest uploaded build.
-3. Do not trust historical rollout docs or local memory for this value.
-4. If the machine or checkout state is uncertain, run `npm run harness:doctor` first and resolve any provenance warnings before continuing.
+1. If App Store Connect API-key auth is available, use `npm run release:ios:asc -- latest-build` or `npm run release:ios:asc -- next-build`.
+2. If API-key auth is unavailable, verify the latest live App Store Connect build number for `com.avmillabs.brdg` manually and set `ASC_LIVE_BUILD_NUMBER` plus `ASC_BUILD_NUMBER_VERIFIED_AT`.
+3. Choose an `IOS_BUILD_NUMBER` strictly higher than the latest uploaded build when you are not letting `release:ios:prepare` derive it automatically.
+4. Do not trust historical rollout docs or local memory for this value.
+5. If the machine or checkout state is uncertain, run `npm run harness:doctor` first and resolve any provenance warnings before continuing.
 
 ## Script-enforced preflight
 
-`npm run release:ios:check` and `npm run release:ios` enforce these conditions before any archive/upload:
+`npm run release:ios:prepare`, `npm run release:ios:ship`, `npm run release:ios:check`, and `npm run release:ios` enforce these conditions before any archive/upload:
 
 - release branch is `main` or `release/*`
 - branch is pushed, tracking `origin`, and neither ahead of nor behind upstream
 - worktree is completely clean
-- `EXPO_PUBLIC_API_URL`, `IOS_BUNDLE_IDENTIFIER`, and `IOS_BUILD_NUMBER` are set
+- `EXPO_PUBLIC_API_URL` and `IOS_BUNDLE_IDENTIFIER` are set
+- `IOS_BUILD_NUMBER` is set explicitly or derived automatically from live ASC state when API-key auth is available
 - `IOS_BUILD_NUMBER` is strictly greater than `ASC_LIVE_BUILD_NUMBER`
 - `ASC_BUILD_NUMBER_VERIFIED_AT` records when the live App Store Connect build number was checked
 - `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, and `ASC_API_KEY_PATH` are complete if using API-key auth, or Xcode account auth is available instead
-- repo validation passes
+- `prepare` runs repo validation; `ship` requires the prepared release context instead of rerunning `npm run check`
 
 The release manifest at `mobile/build/ios-release-manifest.json` now records:
 
@@ -73,29 +75,37 @@ The release manifest at `mobile/build/ios-release-manifest.json` now records:
 - release mode/profile
 - auth mode
 - live App Store Connect build number evidence
+- native prep mode and its classifier reason
+- environment-value provenance for the release-critical inputs
 - whether the run was preflight-only
 - the script-enforced release-eligibility checks
+
+`mobile/build/ios-release-context.json` records the exact prepared SHA/build/env/native-prep tuple that `npm run release:ios:ship` must use.
 
 ## Recommended release flow
 
 From repo root:
 
 ```bash
-npm run release:ios:check
-npm run release:ios
+npm run release:ios:prepare
+npm run release:ios:ship
 ```
 
-This is the normal BRDG TestFlight/App Store path. The root scripts pin `--mode xcode`, and [`scripts/release-ios.sh`](../scripts/release-ios.sh) enforces branch cleanliness, upstream sync, backend/mobile validation, writes a manifest to `mobile/build/ios-release-manifest.json`, then archives and uploads through Xcode.
+This is the normal BRDG TestFlight/App Store path. The root scripts pin `--mode xcode`, and [`scripts/release-ios.sh`](../scripts/release-ios.sh) enforces branch cleanliness, upstream sync, backend/mobile validation, writes a manifest to `mobile/build/ios-release-manifest.json`, writes a release context to `mobile/build/ios-release-context.json`, then archives and uploads through Xcode.
 
-In `xcode` mode the wrapper first runs `npx expo prebuild --clean -p ios --npm` inside [`mobile`](../mobile). That regenerates the ignored native iOS folder, installs CocoaPods, and then archives the top-level generated workspace/project and matching scheme. A fresh worktree is therefore expected to start without a committed `Podfile`, `Pods/`, or other generated iOS artifacts. The wrapper also defaults Xcode signing to `submit.production.ios.appleTeamId` from [`mobile/eas.json`](../mobile/eas.json); set `IOS_DEVELOPMENT_TEAM` only when the local release should use a different Apple team.
+In `xcode` mode the wrapper uses a conservative native fast path. It only skips `npx expo prebuild --clean -p ios --npm` when the diff since the latest release tag is limited to known non-native-affecting paths such as `mobile/src/**`, tests, Storybook, docs, backend, and shared contracts. Changes to `mobile/app.config.ts`, `mobile/eas.json`, `mobile/package.json`, `mobile/package-lock.json`, `mobile/ios/**`, or release-critical icon/splash assets force a clean prebuild. If the classifier is uncertain, it falls back to a clean prebuild.
 
-If the local Xcode Accounts state is missing or broken, the same wrapper can authenticate with an App Store Connect API key by setting `ASC_API_KEY_ID` and `ASC_API_ISSUER_ID` before `npm run release:ios`. The wrapper will auto-discover `AuthKey_<key>.p8` from the standard private-key locations, or you can point it at a different file with `ASC_API_KEY_PATH`.
+The wrapper still defaults Xcode signing to `submit.production.ios.appleTeamId` from [`mobile/eas.json`](../mobile/eas.json); set `IOS_DEVELOPMENT_TEAM` only when the local release should use a different Apple team.
 
-Use `npm run release:ios:check` when you want the preflight and manifest generation without starting the Xcode archive/upload.
+If the local Xcode Accounts state is missing or broken, the same wrapper can authenticate with an App Store Connect API key by setting `ASC_API_KEY_ID` and `ASC_API_ISSUER_ID` before `npm run release:ios:prepare`. The wrapper will auto-discover `AuthKey_<key>.p8` from the standard private-key locations, or you can point it at a different file with `ASC_API_KEY_PATH`.
 
-`npm run release:ios:check` is the canonical no-release readiness path. It writes the manifest, validates the checkout and config, and must not be treated as proof that a TestFlight/App Store artifact was uploaded or attached.
+Use `npm run release:ios:check` as a compatibility alias for `npm run release:ios:prepare` when you want the preflight and manifest/context generation without starting the Xcode archive/upload.
 
-If `npm run release:ios:check` fails on repo policy because `artifacts/repo-index.json` is stale, run `npm run repo:index`, commit that generated change if it reflects real repo state, push the branch, and rerun release preflight.
+`npm run release:ios:prepare` is the canonical release-readiness path. It writes the manifest and context, validates the checkout and config, and must not be treated as proof that a TestFlight/App Store artifact was uploaded or attached.
+
+`npm run release:ios:ship` must run from the same clean checkout after a successful prepare run. It does not rerun `npm run check`; instead it verifies the prepared context still matches the current branch, SHA, version, build number, API URL, mode, and profile before it archives and uploads.
+
+If `npm run release:ios:prepare` fails on repo policy because `artifacts/repo-index.json` is stale, run `npm run repo:index`, commit that generated change if it reflects real repo state, push the branch, and rerun release preflight.
 
 If you intentionally need the Expo/EAS path instead, call it explicitly:
 
@@ -113,6 +123,7 @@ Before any production or TestFlight archive:
 - Do not build from local-only, unpushed commits.
 - Verify the branch already exists on `origin` before starting the wrapper.
 - Verify the next `IOS_BUILD_NUMBER` against live App Store Connect state, not historical docs.
+- Prefer `./scripts/release-worktree.sh` to create or refresh a dedicated clean `main` release checkout before the prepare/ship pair.
 - Record the exact branch, full git SHA, app version, iOS build number, API URL, and build date in the release notes or handoff.
 - Keep the release notes tied to the exact attached TestFlight/App Store artifact; do not reuse notes from an older build after profile/photo changes land.
 
@@ -140,6 +151,8 @@ The script blocks release if any of these conditions fail:
 If the build is intended for App Store review, use the uploaded Xcode build in App Store Connect or submit the resulting `.ipa` through Transporter if a manual attach step is still required.
 
 Successful uploads may still warn about missing vendored framework dSYMs for `React.framework`, `ReactNativeDependencies.framework`, and `hermes.framework`. Treat those as release-quality warnings to follow up on, but they do not necessarily block TestFlight delivery if App Store Connect accepts the package.
+
+After a successful Xcode upload, App Store Connect may still take time to surface the build in its API and UI. When API-key auth is available, `npm run release:ios:ship` now polls ASC until the uploaded build appears and reaches a ready state. When API-key auth is unavailable, treat the Xcode upload success message as provisional until the build is visible in ASC.
 
 ## App Store Connect items still required
 

@@ -5,6 +5,7 @@
 .env.*
 !.env.example
 !*.env.example
+!mobile/.env.production.release.example
 
 # Node
 node_modules/

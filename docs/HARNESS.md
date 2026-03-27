@@ -36,6 +36,10 @@ npm run scaffold:backend-module -- --name moderation
   - chooses the smallest reasonable validation set from git diff, promotes mixed or harness-sensitive changes to `check`, appends `smoke` for smoke-sensitive paths, enforces Storybook co-updates for changed reusable mobile UI surfaces, and can emit machine-readable harness artifacts
 - `npm run check`
   - full graph: `check:root`, `check:backend`, `check:mobile`, then `check:symphony`
+- `npm run release:ios:prepare`
+  - canonical iOS release-readiness lane: provenance gate, full `npm run check`, live ASC build-number verification or resolution, release manifest write, release context write, and native fast-path classification without uploading
+- `npm run release:ios:ship`
+  - canonical iOS upload lane: reuse the prepared release context, archive/upload through Xcode, and wait for ASC processing when API-key auth is available
 - `npm run smoke`
   - deterministic bootstrap plus seeded `ui-preview` runtime plus mobile launch prerequisites
   - smoke owns the backend port for the run, loads backend env defaults, pins one `SMOKE_NOW_ISO` anchor for seed/scenario timing, probes `/health`, and writes bootstrap/backend/scenario logs to `/tmp`
@@ -69,15 +73,15 @@ npm run scaffold:backend-module -- --name moderation
 - If the local machine or checkout looks suspect, run `npm run harness:doctor` first. Fix failures before deeper validation, and treat provenance warnings as a sign that the checkout is not a trustworthy base for release or deploy prep.
 - PR lane: run `npm run check:changed`
 - Docs/policy-only edits: run `npm run check:root`
-- Protected branch or release prep: run `npm run check` and add `npm run smoke` when you need bootstrap/runtime confidence
+- Protected branch or release prep: run `npm run check`; for actual iOS release readiness, run `npm run release:ios:prepare` and add `npm run smoke` when you need bootstrap/runtime confidence
 - The diff-driven lane also appends `npm run smoke` automatically for smoke-sensitive backend/bootstrap/scenario changes.
 - Visual mobile changes: link the relevant Storybook story or attach screenshots in the PR
 - Release-oriented changes: keep build provenance aligned with [`APP_STORE_RELEASE.md`](APP_STORE_RELEASE.md)
 
 ## CI Shape
 
-- CI is manual-only via GitHub Actions `workflow_dispatch`; local harness commands are the primary validation path.
-- When CI is dispatched manually, it runs the fast diff-driven lane, the backend migration rehearsal lane, and the check-only lane so maintainers can still use Actions as an opt-in mirror of local validation.
+- CI now runs automatically on pull requests and pushes to `main`; local harness commands remain the primary debugging path.
+- CI runs the fast diff-driven lane, the backend migration rehearsal lane, the full `main-check` lane, and a release-readiness lane that runs `npm run check`, `npm run repo:index:check`, and a dry-run `release:ios:prepare`.
 - The dedicated iOS simulator workflow still runs only for native-impacting mobile changes such as Expo config, native plugin/dependency changes, generated iOS project changes, or workflow edits.
 - Use `npm run smoke` locally when you need deeper bootstrap/runtime validation, especially after backend auth/discovery/events/matches/notifications/profile changes or matching mobile chat/discovery/events/profile screen changes.
 - Every lane uploads `harness-plan.json`, `harness-results.json`, and `harness-failure-summary.json` as CI artifacts.
