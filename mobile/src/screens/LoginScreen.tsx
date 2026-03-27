@@ -124,6 +124,14 @@ export function LoginScreenView({
             loading={isSubmitting}
             style={styles.ctaButton}
           />
+          <Button
+            testID="login-signup-button"
+            label="Create account"
+            onPress={onNavigateSignup}
+            disabled={isSubmitting}
+            variant="secondary"
+            style={styles.secondaryCtaButton}
+          />
         </GlassView>
       )}
       footer={(
@@ -239,6 +247,10 @@ const styles = StyleSheet.create({
     padding: spacing.xxl,
   },
   ctaButton: {
+    marginTop: spacing.sm,
+    width: '100%',
+  },
+  secondaryCtaButton: {
     marginTop: spacing.sm,
     width: '100%',
   },

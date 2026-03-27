@@ -105,3 +105,11 @@ export const Loading: Story = {
     password: 'PreviewPass123!',
   },
 };
+
+export const ShortViewport: Story = {
+  decorators: [withStoryScreenFrame({ height: 720 })],
+  args: {
+    email: 'lana@brdg.local',
+    password: 'PreviewPass123!',
+  },
+};

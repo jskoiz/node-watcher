@@ -79,4 +79,12 @@ describe('LoginScreen', () => {
     expect(await screen.findByText('Invalid credentials')).toBeTruthy();
     expect(screen.getByLabelText('Invalid credentials').props.accessibilityRole).toBe('alert');
   });
+
+  it('navigates to signup from the visible primary auth actions', () => {
+    render(<LoginScreen navigation={navigation} route={route} />);
+
+    fireEvent.press(screen.getByTestId('login-signup-button'));
+
+    expect(navigation.navigate).toHaveBeenCalledWith('Signup');
+  });
 });
