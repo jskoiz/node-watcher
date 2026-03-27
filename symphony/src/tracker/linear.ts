@@ -282,17 +282,6 @@ export class LinearTracker {
                 key
                 name
               }
-              blockedByIssues {
-                nodes {
-                  id
-                  identifier
-                  createdAt
-                  updatedAt
-                  state {
-                    name
-                  }
-                }
-              }
               labels {
                 nodes {
                   name
@@ -432,17 +421,6 @@ export class LinearTracker {
                 id
                 key
                 name
-              }
-              blockedByIssues {
-                nodes {
-                  id
-                  identifier
-                  createdAt
-                  updatedAt
-                  state {
-                    name
-                  }
-                }
               }
               labels {
                 nodes {

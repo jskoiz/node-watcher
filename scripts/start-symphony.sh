@@ -6,6 +6,12 @@ repo_root="$(cd "$script_dir/.." && pwd)"
 
 cd "$repo_root"
 
+if [[ -f "$repo_root/symphony/.env" ]]; then
+  set -a
+  source "$repo_root/symphony/.env"
+  set +a
+fi
+
 if [[ -z "${LINEAR_API_KEY:-}" ]]; then
   echo "LINEAR_API_KEY is required." >&2
   exit 1
