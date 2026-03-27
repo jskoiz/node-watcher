@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { plainToInstance } from 'class-transformer';
 import { ReportCategory } from '@prisma/client';
 import { ModerationController } from './moderation.controller';
+import { BlockUserDto } from './moderation.dto';
 import { ModerationService } from './moderation.service';
 import type { AuthenticatedRequest } from '../common/auth-request.interface';
 
@@ -62,7 +64,10 @@ describe('ModerationController', () => {
     const blockResult = { success: true, matchId: null };
     moderationServiceMock.blockUser.mockResolvedValue(blockResult);
 
-    const result = await controller.block(req, { blockedUserId: 'user-2' });
+    const result = await controller.block(
+      req,
+      plainToInstance(BlockUserDto, { blockedUserId: 'user-2' }),
+    );
 
     expect(moderationServiceMock.blockUser).toHaveBeenCalledWith(
       'user-1',
