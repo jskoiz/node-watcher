@@ -80,6 +80,7 @@ function makeProfile(): User {
 function renderContent(overrides: Partial<React.ComponentProps<typeof ProfileScreenContent>> = {}) {
   const navigation = { navigate: jest.fn() };
   const onLogout = jest.fn();
+  const onConfirmDeleteAccount = jest.fn();
   const onToggleBuildInfo = jest.fn();
   const Wrapper = () => {
     const [showBuildInfo, setShowBuildInfo] = React.useState(false);
@@ -104,7 +105,7 @@ function renderContent(overrides: Partial<React.ComponentProps<typeof ProfileScr
         knownLocationSuggestions={[]}
         navigation={navigation}
         onCancelEdit={jest.fn()}
-        onConfirmDeleteAccount={jest.fn()}
+        onConfirmDeleteAccount={onConfirmDeleteAccount}
         onDeletePhoto={jest.fn()}
         onMakePrimaryPhoto={jest.fn()}
         onMovePhotoLeft={jest.fn()}
@@ -142,6 +143,7 @@ function renderContent(overrides: Partial<React.ComponentProps<typeof ProfileScr
 
   return {
     navigation,
+    onConfirmDeleteAccount,
     onLogout,
     onToggleBuildInfo,
     ...render(<Wrapper />),
@@ -197,5 +199,17 @@ describe('ProfileScreenContent', () => {
     expect(onLogout).toHaveBeenCalledTimes(1);
     expect(onToggleBuildInfo).not.toHaveBeenCalled();
     expect(navigation.navigate).not.toHaveBeenCalledWith('Notifications');
+  });
+
+  it('keeps account deletion tucked inside settings instead of the main page', () => {
+    const { onConfirmDeleteAccount } = renderContent();
+
+    expect(screen.queryByText('Delete your account')).toBeNull();
+    expect(screen.queryByText('This permanently deletes your profile and all data.')).toBeNull();
+    expect(screen.queryByText('Delete account')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('account-settings-row'));
+
+    expect(onConfirmDeleteAccount).toHaveBeenCalledTimes(1);
   });
 });

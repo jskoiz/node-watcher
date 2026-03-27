@@ -10,7 +10,6 @@ import type { LocationSuggestion } from '../../locations/locationSuggestions';
 import { ProfileEditBar } from './ProfileEditBar';
 import { ProfileHero } from './ProfileHero';
 import {
-  ProfileAccountDeletionSection,
   ProfileBasicsSection,
   ProfileCompletenessSection,
   ProfileErrorBanner,
@@ -218,16 +217,13 @@ export function ProfileScreenContent({
         />
 
         <ProfileSettingsSection
+          deletingAccount={deletingAccount}
           hapticsOn={hapticsOn}
           navigation={navigation}
+          onConfirmDeleteAccount={onConfirmDeleteAccount}
           onToggleBuildInfo={onToggleBuildInfo}
           onToggleHaptics={handleToggleHaptics}
           showBuildInfo={showBuildInfo}
-        />
-
-        <ProfileAccountDeletionSection
-          deletingAccount={deletingAccount}
-          onConfirmDeleteAccount={onConfirmDeleteAccount}
         />
 
         <ProfileLogoutButton onLogout={onLogout} />

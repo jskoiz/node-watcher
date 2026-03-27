@@ -206,13 +206,6 @@ export const profileStyles = StyleSheet.create({
   buildInfoLabel: { fontSize: typography.bodySmall, fontWeight: '700', color: TEXT_MUTED, textTransform: 'uppercase', letterSpacing: 0.6 },
   buildInfoValue: { fontSize: typography.bodySmall, lineHeight: 20, color: TEXT_PRIMARY, fontWeight: '600' },
   buildInfoDivider: { height: 1, backgroundColor: STROKE },
-  dangerCard: { backgroundColor: 'rgba(201,112,112,0.05)', borderRadius: 24, padding: spacing.xl, gap: spacing.md },
-  dangerTitle: { fontSize: typography.body, fontWeight: '800', color: TEXT_PRIMARY },
-  dangerBody: { fontSize: typography.bodySmall, lineHeight: 20, color: TEXT_SECONDARY },
-  deleteAccountBtn: { minHeight: 46, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: DANGER },
-  deleteAccountBtnPressed: { opacity: 0.88 },
-  deleteAccountBtnDisabled: { opacity: 0.6 },
-  deleteAccountText: { fontSize: typography.bodySmall, fontWeight: '800', color: '#FFFFFF' },
   errorBanner: {
     marginHorizontal: screenLayout.gutter,
     borderRadius: 18,

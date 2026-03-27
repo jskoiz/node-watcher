@@ -113,14 +113,18 @@ function BuildProvenancePanel() {
 }
 
 export function ProfileSettingsSection({
+  deletingAccount,
   hapticsOn,
   navigation,
+  onConfirmDeleteAccount,
   onToggleBuildInfo,
   onToggleHaptics,
   showBuildInfo,
 }: {
+  deletingAccount: boolean;
   hapticsOn: boolean;
   navigation: { navigate: (screen: string, params?: Record<string, unknown>) => void };
+  onConfirmDeleteAccount: () => void;
   onToggleBuildInfo: () => void;
   onToggleHaptics: (enabled: boolean) => void;
   showBuildInfo: boolean;
@@ -132,10 +136,9 @@ export function ProfileSettingsSection({
       <Card style={styles.settingsCard}>
         <SettingsRow
           icon="👤"
-          label="Account"
-          onPress={() =>
-            Alert.alert('Coming Soon', 'This feature is not yet available.')
-          }
+          label={deletingAccount ? 'Account (Deleting...)' : 'Account'}
+          onPress={onConfirmDeleteAccount}
+          testID="account-settings-row"
         />
         <View style={styles.fieldDivider} />
         <SettingsRow
