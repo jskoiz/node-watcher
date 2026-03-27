@@ -16,33 +16,21 @@ let package = Package(
             name: "NodeTrackerCore",
             resources: [
                 .process("Resources"),
-            ],
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency"),
             ]
         ),
         .executableTarget(
             name: "NodeTrackerCLI",
-            dependencies: ["NodeTrackerCore"],
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency"),
-            ]
+            dependencies: ["NodeTrackerCore"]
         ),
         .executableTarget(
             name: "NodeTrackerApp",
-            dependencies: ["NodeTrackerCore"],
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency"),
-            ]
+            dependencies: ["NodeTrackerCore"]
         ),
         .testTarget(
             name: "NodeTrackerCoreTests",
             dependencies: ["NodeTrackerCore"],
             resources: [
                 .process("Fixtures"),
-            ],
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency"),
             ]
         ),
     ]
