@@ -23,6 +23,17 @@ hooks:
     SOURCE_REPO_URL="${SOURCE_REPO_URL:-https://github.com/jskoiz/brdg.git}"
     git clone --origin origin --depth 1 "$SOURCE_REPO_URL" .
     git fetch origin main --depth 1
+    if [ -n "${CODEX_HOME:-}" ]; then
+      mkdir -p "$CODEX_HOME"
+      config_path="$CODEX_HOME/config.toml"
+      touch "$config_path"
+      escaped_workspace_path="${WORKSPACE_PATH//\\/\\\\}"
+      escaped_workspace_path="${escaped_workspace_path//\"/\\\"}"
+      {
+        printf '\n[projects.\"%s\"]\n' "$escaped_workspace_path"
+        printf 'trust_level = "trusted"\n'
+      } >> "$config_path"
+    fi
     bash ./.codex/worktree_init.sh
 agent:
   max_concurrent_agents: 3
