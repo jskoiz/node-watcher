@@ -5,7 +5,7 @@ BRDG deploys the backend API to a single Ubuntu Lightsail instance with:
 - a versioned backend image published to GHCR
 - Postgres in Docker
 - Cloudflare Tunnel for public HTTPS
-- a repository-scoped GitHub Actions runner labeled `brdg-vps`
+- three repository-scoped GitHub Actions runners sharing the label `brdg-vps`
 
 Recommended production API host:
 
@@ -57,7 +57,9 @@ The host runtime directory should contain only rendered runtime files and pulled
 
 It must not act as a repo checkout.
 
-GitHub Actions now targets the self-hosted runner with `runs-on: [self-hosted, Linux, X64, brdg-vps]`. That keeps PR and deploy workflows off GitHub-hosted minutes, but it also means CI shares CPU, memory, disk, and Docker with the production backend host. Service containers must use dynamically assigned host ports instead of assuming standard ports like `5432` are free on the machine.
+GitHub Actions now targets the self-hosted runner pool with `runs-on: [self-hosted, Linux, X64, brdg-vps]`. The Lightsail host runs `brdg-vps`, `brdg-vps-2`, and `brdg-vps-3` under that shared label so PR jobs can fan out instead of queueing behind one worker. PR CI skips the `Release readiness` lane; that lane still runs on `main` pushes and `workflow_dispatch`, where release provenance is actually relevant.
+
+This keeps PR and deploy workflows off GitHub-hosted minutes, but it also means CI shares CPU, memory, disk, and Docker with the production backend host. Service containers must use dynamically assigned host ports instead of assuming standard ports like `5432` are free on the machine.
 
 ## Server bootstrap
 
