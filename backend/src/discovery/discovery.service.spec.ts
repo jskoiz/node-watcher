@@ -58,34 +58,51 @@ describe('DiscoveryService', () => {
     isBlocked: jest.fn().mockResolvedValue(false),
   };
 
-  const makeCandidate = (overrides: Record<string, unknown> = {}) => ({
-    id: 'candidate-1',
-    firstName: 'Casey',
-    birthdate: new Date('1998-06-15T00:00:00.000Z'),
-    profile: {
-      city: 'Honolulu',
-      bio: 'Runner and lifter who likes sunrise sessions.',
-      latitude: 21.3069,
-      longitude: -157.8583,
-    },
-    fitnessProfile: {
-      primaryGoal: 'strength',
-      secondaryGoal: 'endurance',
-      intensityLevel: IntensityLevel.INTERMEDIATE,
-      prefersMorning: true,
-      prefersEvening: false,
-      favoriteActivities: null,
-    },
-    photos: [
-      {
-        id: 'photo-1',
-        storageKey: 'photo-1.jpg',
-        isPrimary: true,
-        sortOrder: 0,
+  const makeCandidate = (overrides: Record<string, unknown> = {}) => {
+    const baseCandidate = {
+      id: 'candidate-1',
+      firstName: 'Casey',
+      birthdate: new Date('1998-06-15T00:00:00.000Z'),
+      profile: {
+        city: 'Honolulu',
+        bio: 'Runner and lifter who likes sunrise sessions.',
+        latitude: 21.3069,
+        longitude: -157.8583,
+        intentDating: true,
+        intentWorkout: true,
+        intentFriends: false,
       },
-    ],
-    ...overrides,
-  });
+      fitnessProfile: {
+        primaryGoal: 'strength',
+        secondaryGoal: 'endurance',
+        intensityLevel: IntensityLevel.INTERMEDIATE,
+        prefersMorning: true,
+        prefersEvening: false,
+        favoriteActivities: null,
+      },
+      photos: [
+        {
+          id: 'photo-1',
+          storageKey: 'photo-1.jpg',
+          isPrimary: true,
+          sortOrder: 0,
+        },
+      ],
+    };
+
+    return {
+      ...baseCandidate,
+      ...overrides,
+      profile: {
+        ...baseCandidate.profile,
+        ...(overrides.profile as Record<string, unknown> | undefined),
+      },
+      fitnessProfile: {
+        ...baseCandidate.fitnessProfile,
+        ...(overrides.fitnessProfile as Record<string, unknown> | undefined),
+      },
+    };
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -223,6 +240,17 @@ describe('DiscoveryService', () => {
         ],
       },
     });
+    expect(query.select.profile).toEqual({
+      select: {
+        city: true,
+        bio: true,
+        latitude: true,
+        longitude: true,
+        intentDating: true,
+        intentWorkout: true,
+        intentFriends: true,
+      },
+    });
   });
 
   it('still filters distance after the database query and returns top scored results', async () => {
@@ -277,6 +305,9 @@ describe('DiscoveryService', () => {
         profile: {
           city: 'Honolulu',
           bio: 'Close by',
+          intentDating: true,
+          intentWorkout: true,
+          intentFriends: false,
         },
       }),
     );
@@ -471,10 +502,16 @@ describe('DiscoveryService', () => {
     expect(result[0]?.profile).toEqual({
       city: 'Honolulu',
       bio: 'Close by',
+      intentDating: true,
+      intentWorkout: true,
+      intentFriends: false,
     });
     expect(result[1]?.profile).toEqual({
       city: 'Honolulu',
       bio: null,
+      intentDating: true,
+      intentWorkout: true,
+      intentFriends: false,
     });
     expect(result[0]?.profile).not.toHaveProperty('latitude');
     expect(result[0]?.profile).not.toHaveProperty('longitude');

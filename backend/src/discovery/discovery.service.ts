@@ -41,6 +41,9 @@ interface UserWithRelations {
     bio: string | null;
     latitude: number | null;
     longitude: number | null;
+    intentDating: boolean;
+    intentWorkout: boolean;
+    intentFriends: boolean;
   } | null;
   fitnessProfile: {
     primaryGoal: string | null;
@@ -77,6 +80,9 @@ interface DiscoveryRequester {
 interface SanitizedDiscoveryProfile {
   city: string | null;
   bio: string | null;
+  intentDating: boolean | null;
+  intentWorkout: boolean | null;
+  intentFriends: boolean | null;
 }
 
 export interface DiscoveryFeedEntry extends Omit<UserWithRelations, 'profile'> {
@@ -220,6 +226,9 @@ export class DiscoveryService {
             bio: true,
             latitude: true,
             longitude: true,
+            intentDating: true,
+            intentWorkout: true,
+            intentFriends: true,
           },
         },
         photos: {
@@ -382,6 +391,9 @@ export class DiscoveryService {
       profile: {
         city: profile?.city ?? null,
         bio: profile?.bio ?? null,
+        intentDating: profile?.intentDating ?? null,
+        intentWorkout: profile?.intentWorkout ?? null,
+        intentFriends: profile?.intentFriends ?? null,
       },
       age,
       distanceKm,

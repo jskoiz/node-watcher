@@ -59,6 +59,9 @@ export function buildDiscoveryFeedSelect() {
         bio: true,
         latitude: true,
         longitude: true,
+        intentDating: true,
+        intentWorkout: true,
+        intentFriends: true,
       },
     },
     photos: {
