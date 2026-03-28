@@ -46,12 +46,12 @@ describe('useProfileEditor', () => {
     jest.clearAllMocks();
   });
 
-  it('preserves unsaved fitness draft when basics save but fitness fails', async () => {
+  it('shows error and stays in edit mode when fitness save fails', async () => {
     const updateProfile = jest.fn().mockResolvedValue(undefined);
     const updateFitness = jest.fn().mockRejectedValue(new Error('Fitness save failed'));
     const profile = makeProfile();
 
-    const { result, rerender } = renderHook<
+    const { result } = renderHook<
       ReturnType<typeof useProfileEditor>,
       { currentProfile: ProfileShape }
     >(
@@ -89,16 +89,6 @@ describe('useProfileEditor', () => {
       await result.current.save();
     });
 
-    rerender({
-      currentProfile: {
-        ...profile,
-        profile: {
-          ...profile.profile,
-          bio: 'Updated bio',
-        },
-      },
-    });
-
     expect(updateProfile).toHaveBeenCalledWith({
       bio: 'Updated bio',
       city: 'Old City',
@@ -109,23 +99,15 @@ describe('useProfileEditor', () => {
       intentFriends: false,
     });
     expect(updateFitness).toHaveBeenCalledWith({
-      intensityLevel: 'ADVANCED',
+      intensityLevel: 'high',
       weeklyFrequencyBand: '5+',
       primaryGoal: 'strength',
       favoriteActivities: 'Running, Surfing',
       prefersMorning: true,
       prefersEvening: true,
     });
-    expect(result.current.error).toBe(
-      'Profile basics were saved, but fitness settings could not be saved. Please try again.',
-    );
+    expect(result.current.error).toBe('Fitness save failed');
     expect(result.current.editMode).toBe(true);
-    expect(result.current.bio).toBe('Updated bio');
-    expect(result.current.intensityLevel).toBe('moderate');
-    expect(result.current.weeklyFrequencyBand).toBe('3-4');
-    expect(result.current.primaryGoal).toBe('connection');
-    expect(result.current.selectedActivities).toEqual(['Running']);
-    expect(result.current.selectedSchedule).toEqual(['Evening']);
     expect(mockTriggerErrorHaptic).toHaveBeenCalled();
     expect(mockTriggerSuccessHaptic).not.toHaveBeenCalled();
   });
@@ -165,7 +147,7 @@ describe('useProfileEditor', () => {
       intentFriends: false,
     });
     expect(updateFitness).toHaveBeenCalledWith({
-      intensityLevel: 'INTERMEDIATE',
+      intensityLevel: 'moderate',
       weeklyFrequencyBand: '3-4',
       primaryGoal: 'connection',
       favoriteActivities: 'Running',

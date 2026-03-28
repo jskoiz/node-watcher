@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from '../../../api/types';
 import { normalizeApiError } from '../../../api/errors';
-import { normalizeIntensityLevelForApi, normalizeIntensityLevelForForm } from '../../../api/profileIntensity';
+import { normalizeIntensityLevelForForm } from '../../../api/profileIntensity';
 import type { LocationSuggestion } from '../../locations/locationSuggestions';
 import { triggerErrorHaptic, triggerSuccessHaptic } from '../../../lib/interaction/feedback';
 import { showToast } from '../../../store/toastStore';
@@ -11,8 +11,6 @@ import {
   parseFavoriteActivities,
 } from '../components/profile.helpers';
 
-const PARTIAL_SAVE_ERROR =
-  'Profile basics were saved, but fitness settings could not be saved. Please try again.';
 const PROFILE_COMPLETENESS_BIO_MIN_CHARS = 20;
 const BIO_COMPLETENESS_ERROR =
   `Bio must be at least ${PROFILE_COMPLETENESS_BIO_MIN_CHARS} characters to count toward profile completion.`;
@@ -172,49 +170,61 @@ export function useProfileEditor({
       setError(BIO_COMPLETENESS_ERROR);
       return;
     }
-    let basicsSaved = false;
-    let fitnessSaved = false;
     try {
       const nextDiscoveryFlags = getDiscoveryPreferenceFlags(f.discoveryPreference);
       const currentDiscoveryFlags = getDiscoveryPreferenceFlags(
         getDiscoveryPreferenceValue(profileRef.current?.showMeMen, profileRef.current?.showMeWomen),
       );
 
-      await updateProfile({
-        bio: nextBio,
-        city: f.city.trim(),
-        latitude: f.citySelection?.latitude,
-        longitude: f.citySelection?.longitude,
-        intentDating: f.intentDating,
-        intentWorkout: f.intentWorkout,
-        intentFriends: f.intentFriends,
-        ...(nextDiscoveryFlags.showMeMen !== currentDiscoveryFlags.showMeMen
-          ? { showMeMen: nextDiscoveryFlags.showMeMen }
-          : {}),
-        ...(nextDiscoveryFlags.showMeWomen !== currentDiscoveryFlags.showMeWomen
-          ? { showMeWomen: nextDiscoveryFlags.showMeWomen }
-          : {}),
-      });
-      basicsSaved = true;
-      await updateFitness({
-        intensityLevel: normalizeIntensityLevelForApi(f.intensityLevel),
-        weeklyFrequencyBand: f.weeklyFrequencyBand,
-        primaryGoal: f.primaryGoal,
-        favoriteActivities: f.selectedActivities.join(', '),
-        prefersMorning: f.selectedSchedule.includes('Morning'),
-        prefersEvening: f.selectedSchedule.includes('Evening'),
-      });
-      fitnessSaved = true;
+      // Send both updates in parallel. The fitness API layer strips empty
+      // strings so backend enum validators don't reject unset optional fields.
+      // Each mutation's onSuccess writes to cache independently; the last to
+      // settle wins. invalidateProfileSurfaces then triggers a background
+      // refetch so the cache converges to the authoritative server state.
+      const [profileResult, fitnessResult] = await Promise.allSettled([
+        updateProfile({
+          bio: nextBio,
+          city: f.city.trim(),
+          latitude: f.citySelection?.latitude,
+          longitude: f.citySelection?.longitude,
+          intentDating: f.intentDating,
+          intentWorkout: f.intentWorkout,
+          intentFriends: f.intentFriends,
+          ...(nextDiscoveryFlags.showMeMen !== currentDiscoveryFlags.showMeMen
+            ? { showMeMen: nextDiscoveryFlags.showMeMen }
+            : {}),
+          ...(nextDiscoveryFlags.showMeWomen !== currentDiscoveryFlags.showMeWomen
+            ? { showMeWomen: nextDiscoveryFlags.showMeWomen }
+            : {}),
+        }),
+        updateFitness({
+          intensityLevel: f.intensityLevel,
+          weeklyFrequencyBand: f.weeklyFrequencyBand,
+          primaryGoal: f.primaryGoal,
+          favoriteActivities: f.selectedActivities.join(', '),
+          prefersMorning: f.selectedSchedule.includes('Morning'),
+          prefersEvening: f.selectedSchedule.includes('Evening'),
+        }),
+      ]);
+
+      const profileFailed = profileResult.status === 'rejected';
+      const fitnessFailed = fitnessResult.status === 'rejected';
+
+      if (profileFailed || fitnessFailed) {
+        void triggerErrorHaptic();
+        const messages = [
+          profileFailed ? normalizeApiError(profileResult.reason).message : null,
+          fitnessFailed ? normalizeApiError(fitnessResult.reason).message : null,
+        ].filter(Boolean).join(' · ');
+        setError(messages);
+        return;
+      }
+
       void triggerSuccessHaptic();
       showToast('Profile saved', 'success');
       setEditMode(false);
     } catch (err) {
       void triggerErrorHaptic();
-      if (basicsSaved && !fitnessSaved) {
-        setError(PARTIAL_SAVE_ERROR);
-        return;
-      }
-
       setError(normalizeApiError(err).message);
     }
   }, [updateProfile, updateFitness]);

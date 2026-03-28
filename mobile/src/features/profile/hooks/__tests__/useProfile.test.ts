@@ -146,7 +146,7 @@ describe('useProfile', () => {
     });
   });
 
-  it('does not regress completed bio state when the next fitness response carries stale profile basics', async () => {
+  it('uses the latest server response for cache after fitness save', async () => {
     const initialProfile = {
       id: 'u1',
       firstName: 'Alice',
@@ -160,58 +160,31 @@ describe('useProfile', () => {
         prefersEvening: false,
       },
     };
-    const updatedProfile = {
+    const fitnessResponse = {
       ...initialProfile,
-      profile: {
-        ...initialProfile.profile,
-        bio: 'Sunrise runs, surf checks, and low-pressure plans.',
-      },
-    };
-    const staleFitnessResponse = {
-      ...updatedProfile,
-      profile: initialProfile.profile,
       fitnessProfile: {
-        ...updatedProfile.fitnessProfile,
+        ...initialProfile.fitnessProfile,
         intensityLevel: 'high',
       },
     };
     mockGetProfile.mockResolvedValue({ data: initialProfile });
-    mockUpdateProfile.mockResolvedValue({ data: updatedProfile });
-    mockUpdateFitness.mockResolvedValue({ data: staleFitnessResponse });
+    mockUpdateFitness.mockResolvedValue({ data: fitnessResponse });
 
     const { queryClient, wrapper } = createQueryTestHarness();
-    queryClient.setQueryData(queryKeys.discovery.profileCompleteness(), {
-      score: 88,
-      total: 8,
-      earned: 7,
-      prompts: ['Write a bio (20+ chars) so people know your vibe.'],
-      missing: [{ field: 'bio', label: 'Add a bio', route: 'EditProfile' }],
-    });
 
     const { result } = renderHook(() => useProfile(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     await act(async () => {
-      await result.current.updateProfile({
-        bio: updatedProfile.profile.bio,
-      });
       await result.current.updateFitness({
         intensityLevel: 'high',
       });
     });
 
-    expect(queryClient.getQueryData(queryKeys.profile.current())).toEqual({
-      ...updatedProfile,
-      fitnessProfile: staleFitnessResponse.fitnessProfile,
-    });
-    expect(queryClient.getQueryData(queryKeys.discovery.profileCompleteness())).toEqual({
-      score: 100,
-      total: 8,
-      earned: 8,
-      prompts: [],
-      missing: [],
-    });
+    // Cache should directly use the server response, not merge with stale data
+    expect(queryClient.getQueryData(queryKeys.profile.current())).toEqual(fitnessResponse);
+    expect(mockSetUser).toHaveBeenLastCalledWith(fitnessResponse);
   });
 
   it('exposes mutation helpers', async () => {

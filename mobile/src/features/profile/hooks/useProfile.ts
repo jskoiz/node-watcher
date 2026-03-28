@@ -96,21 +96,6 @@ function syncUserToCaches(queryClient: ReturnType<typeof useQueryClient>, user: 
   syncUserToAuthStore(user);
 }
 
-function mergeUserProfile(
-  queryClient: ReturnType<typeof useQueryClient>,
-  user: User,
-): User {
-  const currentUser = queryClient.getQueryData<User>(queryKeys.profile.current());
-  if (!currentUser?.profile) {
-    return user;
-  }
-
-  return {
-    ...user,
-    profile: currentUser.profile,
-  };
-}
-
 export function useProfile() {
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -127,7 +112,7 @@ export function useProfile() {
   const updateFitness = useMutation({
     mutationFn: profileApi.updateFitness,
     onSuccess: (response) => {
-      syncUserToCaches(queryClient, mergeUserProfile(queryClient, response.data));
+      syncUserToCaches(queryClient, response.data);
       void invalidateProfileSurfaces(queryClient);
     },
   });
