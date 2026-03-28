@@ -22,12 +22,14 @@ If you've ever had multiple projects fighting over ports 3000, 5173, or 8081 and
 
 ## Features
 
-- **Live port monitoring** in the menu bar with a compact summary
+- **Live port monitoring** — compact menu bar summary with dot matrix or numeric display modes
 - **Project-aware** — maps Node processes back to their project root (`package.json`, `.git`, lockfiles)
 - **Smart classification** — identifies Vite, Next.js, Expo, Storybook, Nest, and other Node-family tools by name
 - **Conflict detection** — distinguishes "your app owns this port" from "Docker is blocking it" or "an SSH tunnel is occupying it"
-- **Safe actions** — context-aware resolution (free port, stop tunnel, configurable port command template) with no destructive force-kill
-- **Configurable** — settings for watched ports, refresh cadence, display modes, hotkeys, port command template, and grouping
+- **AI tool tracking** — shows Claude Code and Codex worktrees, session counts, and disk usage with cleanup actions
+- **Dark mode** — follows system appearance automatically
+- **Safe actions** — context-aware resolution (free port, stop tunnel, kill process groups) with confirmation
+- **Configurable** — watched ports, refresh cadence, display modes, hotkeys, and grouping
 - **CLI included** — `nodetracker snapshot --json` for scripting and CI
 
 ## Install
@@ -100,23 +102,34 @@ The core library (`NodeTrackerCore`) is deliberately free of AppKit/SwiftUI so i
 
 ## Roadmap
 
-NodeWatcher is intentionally narrow — it solves port conflicts for local dev, and it does that well. Future work stays focused on that mission.
+### Next up
+
+- [ ] **Cached AI tool sizes** — persist worktree sizes to disk, only rescan on change (currently ~90s for large Codex dirs)
+- [ ] **Session cleanup** — expose Codex archived sessions and log files for deletion (currently 656MB+ unmanaged)
+- [ ] **Memory alerts** — notify when Node processes exceed a configurable memory threshold
 
 ### Planned
 
-- [ ] **Notifications** — alert when a watched port becomes blocked or freed
 - [ ] **Port history** — show which project last used a port and when
-- [ ] **Launch at login** — optional auto-start on macOS boot
 - [ ] **Quick-switch ports** — one-click to restart a dev server on a suggested alternate port
 - [ ] **Monorepo awareness** — better grouping for Turborepo/Nx/pnpm workspace projects
 - [ ] **Process tree view** — visualize parent-child relationships (e.g., which `node` spawned which)
 
 ### Considering
 
-- [ ] **Menubar widgets** — compact inline port status without opening the popover
 - [ ] **Profiles** — save port configurations per project or workspace
 - [ ] **Export/share** — copy a snapshot as Markdown or JSON for bug reports
 - [ ] **Plugin system** — user-defined classifiers for non-Node dev servers (Python, Go, Ruby)
+
+### Shipped (recent)
+
+- [x] **AI tool tracking** — Claude Code and Codex worktree/session visibility with cleanup actions
+- [x] **Dot matrix menu bar** — visual project dots + memory gauge blocks
+- [x] **Dark mode** — follows system appearance
+- [x] **Brand icons** — Claude and Codex logos via SVG assets
+- [x] **Expandable process groups** — click to reveal Kill all + Copy PIDs
+- [x] **Hover highlights** — interactive rows highlight on hover
+- [x] **Idle state** — calm display when no processes are running
 
 ### Not planned
 
