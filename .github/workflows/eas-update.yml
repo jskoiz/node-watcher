@@ -11,7 +11,7 @@ on:
       channel:
         description: 'Update channel'
         required: true
-        default: 'preview'
+        default: 'production'
         type: choice
         options:
           - preview
@@ -60,7 +60,7 @@ jobs:
       - name: Publish update
         working-directory: mobile
         run: |
-          npx eas update \
+          eas update \
             --channel "${{ steps.params.outputs.channel }}" \
             --message "${{ steps.params.outputs.message }}" \
             --non-interactive
