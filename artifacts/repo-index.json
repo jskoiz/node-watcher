@@ -49,7 +49,9 @@
     "symphony",
     "test:backend",
     "test:mobile",
-    "test:root"
+    "test:root",
+    "update:preview",
+    "update:production"
   ],
   "layerModel": {
     "backend": [
@@ -390,6 +392,7 @@
       "mobile/src/stories/ChatQuickActionsSheet.stories.tsx",
       "mobile/src/stories/ChatThread.stories.tsx",
       "mobile/src/stories/Chip.stories.tsx",
+      "mobile/src/stories/CreateSuccessCard.stories.tsx",
       "mobile/src/stories/DiscoveryFilterSheet.stories.tsx",
       "mobile/src/stories/DiscoveryHero.stories.tsx",
       "mobile/src/stories/DiscoveryQuickFilters.stories.tsx",
