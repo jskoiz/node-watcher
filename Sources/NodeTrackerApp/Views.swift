@@ -1088,6 +1088,7 @@ private struct AIWorktreeRow: View {
 
 // MARK: - Brand Icons
 
+@MainActor
 private enum BrandIcon {
     static let claude: NSImage? = loadIcon("ProviderIcon-claude")
     static let codex: NSImage? = loadIcon("ProviderIcon-codex")
