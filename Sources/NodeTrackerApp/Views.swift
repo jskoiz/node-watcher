@@ -22,6 +22,8 @@ struct PopoverRootView: View {
             .sorted(by: DisplayText.compareWatchedPorts)
         let allProjects = SnapshotDetails.sortedProjects(self.store.snapshot.projects)
         let visibleOtherProcesses = self.store.visibleOtherProcesses()
+        let devServers = visibleOtherProcesses.filter { $0.process.isDevServer }
+        let otherListeners = visibleOtherProcesses.filter { !$0.process.isDevServer }
         let significantGroups = self.store.snapshot.nodeProcessGroups.filter { $0.count >= 3 }
 
         ZStack {
@@ -32,7 +34,7 @@ struct PopoverRootView: View {
                     snapshot: self.store.snapshot,
                     useSampleData: self.store.useSampleData,
                     conflictCount: conflicts.count,
-                    projectCount: allProjects.count
+                    projectCount: allProjects.count + devServers.count
                 )
 
                 if conflicts.isEmpty && allProjects.isEmpty && nodeOwnedPorts.isEmpty
@@ -57,9 +59,14 @@ struct PopoverRootView: View {
                     )
                 }
 
-                if !visibleOtherProcesses.isEmpty {
+                if !devServers.isEmpty {
                     Divider()
-                    OtherListenersSection(processes: visibleOtherProcesses)
+                    OtherListenersSection(title: "Dev servers", processes: devServers)
+                }
+
+                if !otherListeners.isEmpty {
+                    Divider()
+                    OtherListenersSection(title: "Other listeners", processes: otherListeners)
                 }
 
                 // Bottom drawer toggle for node process groups
@@ -544,13 +551,14 @@ private struct ProcessDetailRow: View {
 // MARK: - Other Listeners (optional)
 
 private struct OtherListenersSection: View {
+    let title: String
     let processes: [TrackedProcessSnapshot]
     @State private var isExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             DisclosureToggle(
-                title: "Other listeners",
+                title: self.title,
                 countText: "\(self.processes.count)",
                 isExpanded: self.$isExpanded
             )
