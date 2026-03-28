@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.2.7
+
+### New: AI Tools Section
+- Shows Claude Code and Codex worktrees with count, session count, and total disk size
+- Scans ~/.claude/, ~/.codex/, and per-project .claude/worktrees/ directories
+- Expand to see individual worktrees sorted by size
+- Actions: Reveal in Finder, Delete individual, Clear all
+- Sizes over 1 GB highlighted in red
+- Background async scanning — doesn't block the main snapshot refresh
+
+### Fixes
+- Fix popover dismiss animation snap (removed blanket .animation modifier)
+- Add idle state view when no Node processes are running
+- Scrollable worktree list (max 180pt) prevents popover overflow
+
 ## v0.2.6
 
 ### Visual Polish

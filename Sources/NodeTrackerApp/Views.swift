@@ -35,6 +35,11 @@ struct PopoverRootView: View {
                     projectCount: allProjects.count
                 )
 
+                if conflicts.isEmpty && allProjects.isEmpty && nodeOwnedPorts.isEmpty
+                    && significantGroups.isEmpty {
+                    IdleStateView()
+                }
+
                 if !conflicts.isEmpty {
                     ConflictSection(
                         store: self.store,
@@ -78,10 +83,12 @@ struct PopoverRootView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
+
+                Divider()
+                AIToolsSection(store: self.store, aiTools: self.store.snapshot.aiTools)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .animation(.easeInOut(duration: 0.2), value: self.showProcessDrawer)
         }
         .frame(width: 330)
         .overlay(alignment: .bottomTrailing) {
@@ -334,7 +341,9 @@ private struct NodeProcessDrawerToggle: View {
 
     var body: some View {
         Button {
-            self.isOpen.toggle()
+            withAnimation(.easeInOut(duration: 0.15)) {
+                self.isOpen.toggle()
+            }
         } label: {
             HStack(alignment: .center, spacing: 6) {
                 Text("Node processes")
@@ -716,6 +725,21 @@ private struct DisclosureToggle: View {
 }
 
 
+private struct IdleStateView: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "moon.zzz")
+                .font(.system(size: 24))
+                .foregroundStyle(Color.primary.opacity(0.20))
+            Text("No Node processes running")
+                .font(.caption)
+                .foregroundStyle(Readability.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+}
+
 private struct CompactRowDivider: View {
     var body: some View {
         Divider()
@@ -847,6 +871,199 @@ private struct InlineAccentButton: View {
                 .background(self.tone.solidBackground, in: Capsule())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - AI Tools Section
+
+private struct AIToolsSection: View {
+    @ObservedObject var store: NodeTrackerStore
+    let aiTools: AIToolSnapshot
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if !self.aiTools.claudeWorktrees.isEmpty {
+                AIToolSourceRow(
+                    store: self.store,
+                    icon: "terminal",
+                    label: "Claude Code",
+                    worktrees: self.aiTools.claudeWorktrees,
+                    sessionCount: self.aiTools.claudeSessionCount,
+                    totalSize: self.aiTools.claudeTotalSize
+                )
+            }
+
+            if !self.aiTools.codexWorktrees.isEmpty || self.aiTools.codexSessionCount > 0 {
+                AIToolSourceRow(
+                    store: self.store,
+                    icon: "sparkle",
+                    label: "Codex",
+                    worktrees: self.aiTools.codexWorktrees,
+                    sessionCount: self.aiTools.codexSessionCount,
+                    totalSize: self.aiTools.codexTotalSize
+                )
+            }
+        }
+    }
+}
+
+private struct AIToolSourceRow: View {
+    @ObservedObject var store: NodeTrackerStore
+    let icon: String
+    let label: String
+    let worktrees: [AIWorktreeEntry]
+    let sessionCount: Int
+    let totalSize: Int64
+    @State private var isExpanded = false
+    @State private var isHovered = false
+
+    private var formattedSize: String {
+        let mb = Double(self.totalSize) / (1024 * 1024)
+        if mb >= 1024 {
+            return String(format: "%.1f GB", mb / 1024)
+        }
+        return String(format: "%.0f MB", mb)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    self.isExpanded.toggle()
+                }
+            } label: {
+                HStack(alignment: .center, spacing: 6) {
+                    Image(systemName: self.icon)
+                        .font(.caption2)
+                        .foregroundStyle(Readability.secondaryText)
+                        .frame(width: 14)
+
+                    Text(self.label)
+                        .font(.caption)
+                        .fontWeight(.medium)
+
+                    Text("\(self.worktrees.count) worktree\(self.worktrees.count == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundStyle(Readability.secondaryText)
+
+                    if self.sessionCount > 0 {
+                        Text("\u{00B7} \(self.sessionCount) sessions")
+                            .font(.caption)
+                            .foregroundStyle(Readability.secondaryText)
+                    }
+
+                    Spacer(minLength: 4)
+
+                    Text(self.formattedSize)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(
+                            self.totalSize > 1024 * 1024 * 1024
+                                ? Palette.mutedRed
+                                : Readability.secondaryText
+                        )
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8))
+                        .foregroundStyle(Readability.secondaryText)
+                        .rotationEffect(.degrees(self.isExpanded ? 90 : 0))
+                        .animation(.easeInOut(duration: 0.15), value: self.isExpanded)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if self.isExpanded {
+                VStack(alignment: .leading, spacing: 0) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(self.worktrees) { entry in
+                                AIWorktreeRow(store: self.store, entry: entry)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 180)
+
+                    if self.worktrees.count > 1 {
+                        HStack {
+                            Spacer()
+                            InlineAccentButton("Clear all", tone: .conflict) {
+                                self.store.deleteAllWorktrees(self.worktrees)
+                            }
+                        }
+                        .padding(.top, 4)
+                    }
+                }
+                .padding(.leading, 20)
+                .padding(.top, 4)
+            }
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 5)
+                .fill(self.isHovered ? Color.primary.opacity(0.04) : Color.clear)
+        )
+        .onHover { hovering in
+            self.isHovered = hovering
+        }
+    }
+}
+
+private struct AIWorktreeRow: View {
+    @ObservedObject var store: NodeTrackerStore
+    let entry: AIWorktreeEntry
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    self.isExpanded.toggle()
+                }
+            } label: {
+                HStack(alignment: .center, spacing: 6) {
+                    Text(self.entry.name)
+                        .font(.caption)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+
+                    if let project = self.entry.projectName {
+                        Text(project)
+                            .font(.caption2)
+                            .foregroundStyle(Readability.secondaryText)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 4)
+
+                    Text(self.entry.formattedSize)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(Readability.secondaryText)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 7))
+                        .foregroundStyle(Readability.secondaryText)
+                        .rotationEffect(.degrees(self.isExpanded ? 90 : 0))
+                        .animation(.easeInOut(duration: 0.15), value: self.isExpanded)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, 3)
+
+            if self.isExpanded {
+                HStack(spacing: 8) {
+                    InlineTextButton("Reveal") {
+                        self.store.revealWorktree(self.entry)
+                    }
+                    InlineAccentButton("Delete", tone: .conflict) {
+                        self.store.deleteWorktree(self.entry)
+                    }
+                }
+                .padding(.leading, 4)
+                .padding(.bottom, 4)
+            }
+        }
     }
 }
 

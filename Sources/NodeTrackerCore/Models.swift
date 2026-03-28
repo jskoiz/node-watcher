@@ -184,6 +184,69 @@ public struct SnapshotSummary: Codable, Hashable, Sendable {
     }
 }
 
+// MARK: - AI Tool Data
+
+public struct AIWorktreeEntry: Codable, Hashable, Sendable, Identifiable {
+    public let path: String
+    public let name: String
+    public let sizeBytes: Int64
+    public let projectName: String?
+
+    public init(path: String, name: String, sizeBytes: Int64, projectName: String?) {
+        self.path = path
+        self.name = name
+        self.sizeBytes = sizeBytes
+        self.projectName = projectName
+    }
+
+    public var id: String { self.path }
+
+    public var formattedSize: String {
+        let mb = Double(self.sizeBytes) / (1024 * 1024)
+        if mb >= 1024 {
+            return String(format: "%.1f GB", mb / 1024)
+        }
+        return String(format: "%.0f MB", mb)
+    }
+}
+
+public struct AIToolSnapshot: Codable, Hashable, Sendable {
+    public let claudeWorktrees: [AIWorktreeEntry]
+    public let codexWorktrees: [AIWorktreeEntry]
+    public let claudeSessionCount: Int
+    public let codexSessionCount: Int
+    public let totalSizeBytes: Int64
+
+    public init(
+        claudeWorktrees: [AIWorktreeEntry] = [],
+        codexWorktrees: [AIWorktreeEntry] = [],
+        claudeSessionCount: Int = 0,
+        codexSessionCount: Int = 0,
+        totalSizeBytes: Int64 = 0
+    ) {
+        self.claudeWorktrees = claudeWorktrees
+        self.codexWorktrees = codexWorktrees
+        self.claudeSessionCount = claudeSessionCount
+        self.codexSessionCount = codexSessionCount
+        self.totalSizeBytes = totalSizeBytes
+    }
+
+    public static let empty = AIToolSnapshot()
+
+    public var claudeTotalSize: Int64 {
+        self.claudeWorktrees.reduce(0) { $0 + $1.sizeBytes }
+    }
+
+    public var codexTotalSize: Int64 {
+        self.codexWorktrees.reduce(0) { $0 + $1.sizeBytes }
+    }
+
+    public var hasContent: Bool {
+        !self.claudeWorktrees.isEmpty || !self.codexWorktrees.isEmpty
+            || self.claudeSessionCount > 0 || self.codexSessionCount > 0
+    }
+}
+
 public struct ProbeDiagnostics: Codable, Hashable, Sendable {
     public let commands: [String]
     public let source: String
@@ -201,6 +264,7 @@ public struct AppSnapshot: Codable, Hashable, Sendable {
     public let projects: [ProjectSnapshot]
     public let otherProcesses: [TrackedProcessSnapshot]
     public let nodeProcessGroups: [NodeProcessGroup]
+    public let aiTools: AIToolSnapshot
     public let diagnostics: ProbeDiagnostics
 
     public init(
@@ -210,6 +274,7 @@ public struct AppSnapshot: Codable, Hashable, Sendable {
         projects: [ProjectSnapshot],
         otherProcesses: [TrackedProcessSnapshot],
         nodeProcessGroups: [NodeProcessGroup] = [],
+        aiTools: AIToolSnapshot = .empty,
         diagnostics: ProbeDiagnostics
     ) {
         self.generatedAt = generatedAt
@@ -218,6 +283,7 @@ public struct AppSnapshot: Codable, Hashable, Sendable {
         self.projects = projects
         self.otherProcesses = otherProcesses
         self.nodeProcessGroups = nodeProcessGroups
+        self.aiTools = aiTools
         self.diagnostics = diagnostics
     }
 
@@ -238,6 +304,19 @@ public struct AppSnapshot: Codable, Hashable, Sendable {
             otherProcesses: [],
             nodeProcessGroups: [],
             diagnostics: ProbeDiagnostics(commands: SnapshotService.diagnosticCommands, source: source)
+        )
+    }
+
+    public func withAITools(_ aiTools: AIToolSnapshot) -> AppSnapshot {
+        AppSnapshot(
+            generatedAt: self.generatedAt,
+            summary: self.summary,
+            watchedPorts: self.watchedPorts,
+            projects: self.projects,
+            otherProcesses: self.otherProcesses,
+            nodeProcessGroups: self.nodeProcessGroups,
+            aiTools: aiTools,
+            diagnostics: self.diagnostics
         )
     }
 
