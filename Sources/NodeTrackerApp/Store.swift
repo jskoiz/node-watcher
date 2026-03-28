@@ -395,7 +395,9 @@ final class NodeTrackerStore: ObservableObject {
 
     func visibleOtherProcesses() -> [TrackedProcessSnapshot] {
         self.snapshot.otherProcesses.filter { process in
-            self.settings.showNonNodeListeners || process.isWatchedConflict
+            self.settings.showNonNodeListeners
+                || process.isWatchedConflict
+                || process.process.isDevServer
         }
     }
 

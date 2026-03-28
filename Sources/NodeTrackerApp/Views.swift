@@ -57,7 +57,7 @@ struct PopoverRootView: View {
                     )
                 }
 
-                if self.settings.showNonNodeListeners, !visibleOtherProcesses.isEmpty {
+                if !visibleOtherProcesses.isEmpty {
                     Divider()
                     OtherListenersSection(processes: visibleOtherProcesses)
                 }
@@ -1252,6 +1252,10 @@ private enum ResolutionAdvisor {
         // infrastructure — no action button, just informational display.
         if self.applicationBundlePath(from: command)?.localizedCaseInsensitiveContains("/Docker.app") == true {
             return nil
+        }
+
+        if process.process.isDevServer, ProcessActionPolicy.canTerminate(process) {
+            return ResolutionAction(title: "Stop server", tone: .conflict, kind: .terminate)
         }
 
         if ProcessActionPolicy.canTerminate(process) {
