@@ -303,8 +303,11 @@ final class NodeTrackerStore: ObservableObject {
     let useSampleData: Bool
 
     private let snapshotService = SnapshotService()
+    private let aiToolProbe = AIToolProbe()
     private var refreshTimer: Timer?
     private var previousConflictPorts: Set<Int> = []
+    private var cachedAITools: AIToolSnapshot = .empty
+    private var aiToolScanTask: Task<Void, Never>?
 
     init(useSampleData: Bool) {
         let settings = SettingsStore()
@@ -322,6 +325,7 @@ final class NodeTrackerStore: ObservableObject {
         self.applyLaunchAtLogin()
         self.scheduleRefreshTimer()
         self.refreshNow()
+        self.refreshAIToolsInBackground()
     }
 
     func stop() {
@@ -349,7 +353,8 @@ final class NodeTrackerStore: ObservableObject {
 
             self.isRefreshing = false
             switch result {
-            case let .success(snapshot):
+            case var .success(snapshot):
+                snapshot = snapshot.withAITools(self.cachedAITools)
                 self.snapshot = snapshot
                 self.checkForNewConflicts(in: snapshot)
             case let .failure(error):
@@ -359,11 +364,25 @@ final class NodeTrackerStore: ObservableObject {
         }
     }
 
+    private func refreshAIToolsInBackground() {
+        self.aiToolScanTask?.cancel()
+        let probe = self.aiToolProbe
+        self.aiToolScanTask = Task {
+            let result = await Task.detached(priority: .utility) {
+                try? probe.scan()
+            }.value
+            guard !Task.isCancelled, let aiTools = result else { return }
+            self.cachedAITools = aiTools
+            self.snapshot = self.snapshot.withAITools(aiTools)
+        }
+    }
+
     func setPopoverPresented(_ presented: Bool) {
         self.isPopoverPresented = presented
         self.scheduleRefreshTimer()
         if presented {
             self.refreshNow()
+            self.refreshAIToolsInBackground()
         }
     }
 
@@ -462,6 +481,57 @@ final class NodeTrackerStore: ObservableObject {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         process.arguments = ["-a", "Terminal", path]
         try? process.run()
+    }
+
+    // MARK: - AI Tool Actions
+
+    func revealWorktree(_ entry: AIWorktreeEntry) {
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: entry.path)])
+    }
+
+    func deleteWorktree(_ entry: AIWorktreeEntry) {
+        let alert = NSAlert()
+        alert.messageText = "Delete worktree \"\(entry.name)\"?"
+        alert.informativeText = "\(entry.formattedSize) at \(entry.path)"
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .warning
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        do {
+            try FileManager.default.removeItem(atPath: entry.path)
+            self.refreshNow()
+        } catch {
+            self.lastError = "Failed to delete: \(error.localizedDescription)"
+        }
+    }
+
+    func deleteAllWorktrees(_ entries: [AIWorktreeEntry]) {
+        guard !entries.isEmpty else { return }
+        let totalSize = entries.reduce(Int64(0)) { $0 + $1.sizeBytes }
+        let mb = Double(totalSize) / (1024 * 1024)
+        let formattedSize = mb >= 1024 ? String(format: "%.1f GB", mb / 1024) : String(format: "%.0f MB", mb)
+
+        let alert = NSAlert()
+        alert.messageText = "Delete \(entries.count) worktree\(entries.count == 1 ? "" : "s")?"
+        alert.informativeText = "This will free \(formattedSize)."
+        alert.addButton(withTitle: "Delete All")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .warning
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        var failCount = 0
+        for entry in entries {
+            do {
+                try FileManager.default.removeItem(atPath: entry.path)
+            } catch {
+                failCount += 1
+            }
+        }
+        if failCount > 0 {
+            self.lastError = "Failed to delete \(failCount) worktree\(failCount == 1 ? "" : "s")"
+        }
+        self.refreshNow()
     }
 
     func terminate(process: TrackedProcessSnapshot) {
