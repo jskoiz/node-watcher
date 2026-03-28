@@ -23,7 +23,7 @@ export const notificationsApi = {
     ),
   markAllRead: async () =>
     withErrorLogging('notifications', 'markAllRead', () =>
-      client.post<{ updated: number }>('/notifications/mark-all-read'),
+      client.patch<{ updated: number }>('/notifications/mark-all-read'),
     ),
   getPreferences: async () =>
     withErrorLogging('notifications', 'getPreferences', () =>
