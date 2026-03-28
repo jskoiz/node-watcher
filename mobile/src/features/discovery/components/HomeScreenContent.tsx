@@ -59,7 +59,7 @@ export function HomeScreenContent({
   filterState: FilterModalState;
   feed: User[];
   greeting: string;
-  intentOption: { color: string; label: string };
+  intentOption: { color: string; label: string } | null;
   isActing: boolean;
   completenessScore: number;
   onPressCompleteness: () => void;

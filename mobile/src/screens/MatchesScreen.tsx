@@ -191,7 +191,6 @@ export default function MatchesScreen({ navigation }: MainTabScreenProps<'Inbox'
             </View>
           }
           keyExtractor={(item) => item.id}
-          estimatedItemSize={Math.round(cardWidth * 1.3) + GRID_GAP}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={
