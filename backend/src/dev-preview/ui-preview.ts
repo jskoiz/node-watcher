@@ -7,10 +7,10 @@ export const UI_PREVIEW_USERS = [
     firstName: 'Lana',
     birthdate: '1996-04-14',
     gender: 'woman',
-    photoFiles: [
-      'uifaces-popular-avatar.jpg',
-      'uifaces-popular-avatar (2).jpg',
-      'uifaces-human-avatar (4).jpg',
+    photoUrls: [
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&h=800&fit=crop&crop=faces',
+      'https://images.unsplash.com/photo-1552674605-469523170d9e?w=600&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=800&fit=crop',
     ],
     profile: {
       city: 'Honolulu',
@@ -42,9 +42,9 @@ export const UI_PREVIEW_USERS = [
     firstName: 'Mason',
     birthdate: '1993-11-02',
     gender: 'man',
-    photoFiles: [
-      'uifaces-popular-avatar (1).jpg',
-      'uifaces-human-avatar (1).jpg',
+    photoUrls: [
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop&crop=faces',
+      'https://images.unsplash.com/photo-1483721310020-03333e577078?w=600&h=800&fit=crop',
     ],
     profile: {
       city: 'Kakaako',
@@ -76,7 +76,10 @@ export const UI_PREVIEW_USERS = [
     firstName: 'Niko',
     birthdate: '1995-07-22',
     gender: 'man',
-    photoFiles: ['uifaces-human-avatar.jpg'],
+    photoUrls: [
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=800&fit=crop&crop=faces',
+      'https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=800&fit=crop',
+    ],
     profile: {
       city: 'Manoa',
       country: 'US',
