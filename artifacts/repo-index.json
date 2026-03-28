@@ -764,6 +764,7 @@
           "mobile/src/features/profile/components/profile.helpers.ts",
           "mobile/src/features/profile/components/profile.styles.ts",
           "mobile/src/features/profile/components/profileDetail.styles.ts",
+          "mobile/src/features/profile/hooks/__tests__/profileCompletenessSync.test.tsx",
           "mobile/src/features/profile/hooks/__tests__/profilePhotoHelpers.test.ts",
           "mobile/src/features/profile/hooks/__tests__/usePhotoManager.test.ts",
           "mobile/src/features/profile/hooks/__tests__/useProfile.test.ts",

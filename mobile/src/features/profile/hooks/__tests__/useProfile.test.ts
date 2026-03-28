@@ -94,6 +94,126 @@ describe('useProfile', () => {
     expect(mockInvalidateProfileSurfaces).toHaveBeenCalledWith(queryClient);
   });
 
+  it('updates cached bio completeness immediately after a successful profile save', async () => {
+    const initialProfile = {
+      id: 'u1',
+      firstName: 'Alice',
+      birthdate: '1994-05-10T00:00:00.000Z',
+      photos: [{ id: 'photo-1' }, { id: 'photo-2' }],
+      profile: { bio: '', city: 'Honolulu' },
+      fitnessProfile: {
+        intensityLevel: 'moderate',
+        primaryGoal: 'connection',
+        prefersMorning: true,
+        prefersEvening: false,
+      },
+    };
+    const updatedProfile = {
+      ...initialProfile,
+      profile: {
+        ...initialProfile.profile,
+        bio: 'Sunrise runs, surf checks, and low-pressure plans.',
+      },
+    };
+    mockGetProfile.mockResolvedValue({ data: initialProfile });
+    mockUpdateProfile.mockResolvedValue({ data: updatedProfile });
+
+    const { queryClient, wrapper } = createQueryTestHarness();
+    queryClient.setQueryData(queryKeys.discovery.profileCompleteness(), {
+      score: 88,
+      total: 8,
+      earned: 7,
+      prompts: ['Write a bio (20+ chars) so people know your vibe.'],
+      missing: [{ field: 'bio', label: 'Add a bio', route: 'EditProfile' }],
+    });
+
+    const { result } = renderHook(() => useProfile(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    await act(async () => {
+      await result.current.updateProfile({
+        bio: updatedProfile.profile.bio,
+      });
+    });
+
+    expect(queryClient.getQueryData(queryKeys.discovery.profileCompleteness())).toEqual({
+      score: 100,
+      total: 8,
+      earned: 8,
+      prompts: [],
+      missing: [],
+    });
+  });
+
+  it('does not regress completed bio state when the next fitness response carries stale profile basics', async () => {
+    const initialProfile = {
+      id: 'u1',
+      firstName: 'Alice',
+      birthdate: '1994-05-10T00:00:00.000Z',
+      photos: [{ id: 'photo-1' }, { id: 'photo-2' }],
+      profile: { bio: '', city: 'Honolulu' },
+      fitnessProfile: {
+        intensityLevel: 'moderate',
+        primaryGoal: 'connection',
+        prefersMorning: true,
+        prefersEvening: false,
+      },
+    };
+    const updatedProfile = {
+      ...initialProfile,
+      profile: {
+        ...initialProfile.profile,
+        bio: 'Sunrise runs, surf checks, and low-pressure plans.',
+      },
+    };
+    const staleFitnessResponse = {
+      ...updatedProfile,
+      profile: initialProfile.profile,
+      fitnessProfile: {
+        ...updatedProfile.fitnessProfile,
+        intensityLevel: 'high',
+      },
+    };
+    mockGetProfile.mockResolvedValue({ data: initialProfile });
+    mockUpdateProfile.mockResolvedValue({ data: updatedProfile });
+    mockUpdateFitness.mockResolvedValue({ data: staleFitnessResponse });
+
+    const { queryClient, wrapper } = createQueryTestHarness();
+    queryClient.setQueryData(queryKeys.discovery.profileCompleteness(), {
+      score: 88,
+      total: 8,
+      earned: 7,
+      prompts: ['Write a bio (20+ chars) so people know your vibe.'],
+      missing: [{ field: 'bio', label: 'Add a bio', route: 'EditProfile' }],
+    });
+
+    const { result } = renderHook(() => useProfile(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    await act(async () => {
+      await result.current.updateProfile({
+        bio: updatedProfile.profile.bio,
+      });
+      await result.current.updateFitness({
+        intensityLevel: 'high',
+      });
+    });
+
+    expect(queryClient.getQueryData(queryKeys.profile.current())).toEqual({
+      ...updatedProfile,
+      fitnessProfile: staleFitnessResponse.fitnessProfile,
+    });
+    expect(queryClient.getQueryData(queryKeys.discovery.profileCompleteness())).toEqual({
+      score: 100,
+      total: 8,
+      earned: 8,
+      prompts: [],
+      missing: [],
+    });
+  });
+
   it('exposes mutation helpers', async () => {
     mockGetProfile.mockResolvedValue({ data: { id: 'u1' } });
 

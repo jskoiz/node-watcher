@@ -6,6 +6,7 @@ import type { PhotoOperationState } from '../features/profile/hooks/usePhotoMana
 import { LOW_CONTRAST_HERO_PHOTO, makeUser, makeUserPhoto, withStoryScreenFrame } from './support';
 
 function ProfileScreenContentStory({
+  bio,
   completenessEarned = 8,
   completenessMissing = [],
   editMode = false,
@@ -17,6 +18,7 @@ function ProfileScreenContentStory({
   completenessScore = 100,
   completenessTotal = 8,
 }: {
+  bio?: string;
   completenessEarned?: number;
   completenessMissing?: ProfileCompletenessMissingItem[];
   editMode?: boolean;
@@ -53,7 +55,7 @@ function ProfileScreenContentStory({
       completenessTotal={completenessTotal}
       deletingAccount={false}
       editingPhotos={Boolean(photoOperation)}
-      bio={profile.profile?.bio ?? ''}
+      bio={bio ?? profile.profile?.bio ?? ''}
       city={profile.profile?.city ?? ''}
       editMode={editMode}
       errorMessage={errorMessage}
@@ -146,6 +148,18 @@ export const Saving: Story = {
 export const ErrorState: Story = {
   args: {
     errorMessage: 'Could not save profile changes. Try again.',
+  },
+};
+
+export const ShortFirstBioValidation: Story = {
+  args: {
+    editMode: true,
+    bio: '',
+    errorMessage: 'Bio must be at least 20 characters to count toward profile completion.',
+    completenessEarned: 7,
+    completenessScore: 88,
+    completenessTotal: 8,
+    completenessMissing: [{ field: 'bio', label: 'Add a bio', route: 'EditProfile' }],
   },
 };
 

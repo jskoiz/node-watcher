@@ -55,7 +55,7 @@ export function ProfileBasicsSection({
           label="Bio"
           value={bio}
           onChangeText={onSetBio}
-          placeholder="Write a short bio"
+          placeholder="Write a bio (20+ chars)"
           editMode={editMode}
           multiline
           inputProps={{

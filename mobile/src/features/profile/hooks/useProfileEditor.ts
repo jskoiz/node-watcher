@@ -13,6 +13,9 @@ import {
 
 const PARTIAL_SAVE_ERROR =
   'Profile basics were saved, but fitness settings could not be saved. Please try again.';
+const PROFILE_COMPLETENESS_BIO_MIN_CHARS = 20;
+const BIO_COMPLETENESS_ERROR =
+  `Bio must be at least ${PROFILE_COMPLETENESS_BIO_MIN_CHARS} characters to count toward profile completion.`;
 
 function toggleValue(values: string[], nextValue: string) {
   return values.includes(nextValue)
@@ -158,6 +161,17 @@ export function useProfileEditor({
     }
 
     setError(null);
+    const nextBio = f.bio.trim();
+    const currentBio = profileRef.current?.profile?.bio?.trim() ?? '';
+    const isAddingFirstBio = currentBio.length === 0 && nextBio.length > 0;
+    if (
+      isAddingFirstBio &&
+      nextBio.length < PROFILE_COMPLETENESS_BIO_MIN_CHARS
+    ) {
+      void triggerErrorHaptic();
+      setError(BIO_COMPLETENESS_ERROR);
+      return;
+    }
     let basicsSaved = false;
     let fitnessSaved = false;
     try {
@@ -167,7 +181,7 @@ export function useProfileEditor({
       );
 
       await updateProfile({
-        bio: f.bio.trim(),
+        bio: nextBio,
         city: f.city.trim(),
         latitude: f.citySelection?.latitude,
         longitude: f.citySelection?.longitude,

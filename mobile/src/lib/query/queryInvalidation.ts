@@ -49,7 +49,6 @@ export function invalidateProfileSurfaces(queryClient: QueryClient) {
       queryKey: queryKeys.profile.all(),
       refetchType: 'inactive',
     }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.discovery.profileCompleteness() }),
     queryClient.invalidateQueries({ queryKey: queryKeys.discovery.feeds() }),
     queryClient.invalidateQueries({ queryKey: queryKeys.matches.list() }),
   ]);

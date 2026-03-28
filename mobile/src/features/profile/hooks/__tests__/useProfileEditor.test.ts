@@ -109,7 +109,7 @@ describe('useProfileEditor', () => {
       intentFriends: false,
     });
     expect(updateFitness).toHaveBeenCalledWith({
-      intensityLevel: 'high',
+      intensityLevel: 'ADVANCED',
       weeklyFrequencyBand: '5+',
       primaryGoal: 'strength',
       favoriteActivities: 'Running, Surfing',
@@ -165,7 +165,7 @@ describe('useProfileEditor', () => {
       intentFriends: false,
     });
     expect(updateFitness).toHaveBeenCalledWith({
-      intensityLevel: 'moderate',
+      intensityLevel: 'INTERMEDIATE',
       weeklyFrequencyBand: '3-4',
       primaryGoal: 'connection',
       favoriteActivities: 'Running',
@@ -257,6 +257,53 @@ describe('useProfileEditor', () => {
     expect(mockTriggerSuccessHaptic).toHaveBeenCalled();
     expect(mockTriggerErrorHaptic).not.toHaveBeenCalled();
     expect(mockShowToast).toHaveBeenCalledWith('Profile saved', 'success');
+  });
+
+  it('blocks saving a newly-short bio that would not satisfy profile completion', async () => {
+    const updateProfile = jest.fn().mockResolvedValue(undefined);
+    const updateFitness = jest.fn().mockResolvedValue(undefined);
+    const base = makeProfile();
+    const profile = {
+      ...base,
+      profile: {
+        ...base.profile,
+        bio: '',
+      },
+    };
+
+    const { result } = renderHook(() =>
+      useProfileEditor({
+        profile: profile as never,
+        updateProfile,
+        updateFitness,
+      }),
+    );
+
+    act(() => {
+      void result.current.save();
+    });
+
+    await waitFor(() => {
+      expect(result.current.editMode).toBe(true);
+    });
+
+    act(() => {
+      result.current.setBio('Too short');
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(updateProfile).not.toHaveBeenCalled();
+    expect(updateFitness).not.toHaveBeenCalled();
+    expect(result.current.editMode).toBe(true);
+    expect(result.current.error).toBe(
+      'Bio must be at least 20 characters to count toward profile completion.',
+    );
+    expect(mockTriggerErrorHaptic).toHaveBeenCalled();
+    expect(mockTriggerSuccessHaptic).not.toHaveBeenCalled();
+    expect(mockShowToast).not.toHaveBeenCalled();
   });
 
   it('clears saved coordinates when the user replaces a selected city with freeform text', async () => {

@@ -142,7 +142,7 @@ describe('Profile flow integration', () => {
     );
     expect(mockUpdateFitnessFn).toHaveBeenCalledWith(
       expect.objectContaining({
-        intensityLevel: 'high',
+        intensityLevel: 'ADVANCED',
       }),
     );
     expect(result.current.editMode).toBe(false);

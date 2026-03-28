@@ -137,7 +137,7 @@ describe("ProfileScreen", () => {
 
     await waitFor(() => {
       expect(mockUpdateFitness).toHaveBeenCalledWith({
-        intensityLevel: "moderate",
+        intensityLevel: "INTERMEDIATE",
         weeklyFrequencyBand: "3-4",
         primaryGoal: "connection",
         favoriteActivities: "Running, Surfing",

@@ -515,6 +515,11 @@ describe('NotificationsScreen', () => {
 
   it('shows an action error when clearing all notifications fails', async () => {
     mockMarkAllRead.mockRejectedValueOnce(new Error('Could not clear notifications.'));
+    const spy = jest.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      const msg = String(args[0] ?? '');
+      if (msg.includes('was not wrapped in act')) return;
+      throw new Error(`Unexpected console.error: ${msg}`);
+    });
 
     render(<NotificationsScreen navigation={mockNavigation} route={{ key: 'Notifications-1', name: 'Notifications' } as any} />);
 
@@ -523,6 +528,8 @@ describe('NotificationsScreen', () => {
     await waitFor(() => {
       expect(screen.getByText('Could not clear notifications.')).toBeTruthy();
     });
+
+    spy.mockRestore();
   });
 
   it('hides the clear-all action when there are no unread notifications', async () => {

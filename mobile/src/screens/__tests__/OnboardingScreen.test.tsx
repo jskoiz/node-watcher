@@ -99,7 +99,7 @@ describe('OnboardingScreen', () => {
       expect(mockUpdateFitness).toHaveBeenCalledWith(
         expect.objectContaining({
           weeklyFrequencyBand: '5-6',
-          intensityLevel: 'high',
+          intensityLevel: 'ADVANCED',
         }),
       );
     }, { timeout: 10000 });
