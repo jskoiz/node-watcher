@@ -96,6 +96,8 @@ This is the normal BRDG TestFlight/App Store path. The root scripts pin `--mode 
 
 The release wrapper uses [`scripts/release-ios-fast-path.mjs`](../scripts/release-ios-fast-path.mjs) to classify whether the existing generated iOS project can be safely reused or whether the run must fall back to a clean Expo prebuild.
 
+Before the Xcode archive step, the wrapper also re-syncs the native iOS AppIcon asset from [`mobile/assets/icon.png`](../mobile/assets/icon.png) and rewrites the Expo updates plist, so the shipped archive does not depend on stale checked-in native artwork or update headers.
+
 In `xcode` mode the wrapper uses a conservative native fast path. It only skips `npx expo prebuild --clean -p ios --npm` when the diff since the latest release tag is limited to known non-native-affecting paths such as `mobile/src/**`, tests, Storybook, docs, backend, and shared contracts. Changes to `mobile/app.config.ts`, `mobile/eas.json`, `mobile/package.json`, `mobile/package-lock.json`, `mobile/ios/**`, or release-critical icon/splash assets force a clean prebuild. If the classifier is uncertain, it falls back to a clean prebuild.
 
 The native fast-path decision is implemented by [`scripts/release-ios-fast-path.mjs`](../scripts/release-ios-fast-path.mjs). Treat it as an internal release helper invoked by [`scripts/release-ios.sh`](../scripts/release-ios.sh), not as a standalone release entrypoint.

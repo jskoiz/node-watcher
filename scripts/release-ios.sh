@@ -614,6 +614,17 @@ PY
   echo "release-ios: synced Expo updates config at $expo_plist (runtime=$APP_VERSION channel=${update_channel:-none})"
 }
 
+sync_ios_app_icon() {
+  local source_icon="$MOBILE_DIR/assets/icon.png"
+  local target_icon="$IOS_DIR/BRDG/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png"
+
+  [[ -f "$source_icon" ]] || fail "unable to locate source app icon at $source_icon"
+  [[ -f "$target_icon" ]] || fail "unable to locate iOS app icon at $target_icon"
+
+  cp "$source_icon" "$target_icon"
+  echo "release-ios: synced iOS AppIcon asset at $target_icon"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --check-only)
@@ -870,6 +881,7 @@ case "$MODE" in
     fi
 
     sync_ios_updates_config
+    sync_ios_app_icon
 
     IFS=":" read -r XCODE_CONTAINER_KIND XCODE_CONTAINER_PATH <<<"$(detect_xcode_container)"
     XCODE_SCHEME="$(detect_xcode_scheme "$XCODE_CONTAINER_PATH")"
