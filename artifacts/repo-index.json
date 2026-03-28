@@ -36,6 +36,7 @@
     "release:ios:fast-path:classify",
     "release:ios:notes",
     "release:ios:prepare",
+    "release:ios:prepare:fast",
     "release:ios:ship",
     "repo:index",
     "repo:index:check",

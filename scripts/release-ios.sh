@@ -247,23 +247,32 @@ resolve_asc_live_state() {
     return
   fi
 
+  # When ASC API-key auth is available, always verify live state even if env vars are pre-set.
+  # This prevents stale .env.production values from causing build-number collisions.
+  if [[ "$AUTH_MODE" == "app-store-connect-api-key" ]]; then
+    asc_json="$(
+      node "$ROOT_DIR/scripts/app-store-connect-build.mjs" latest-build --bundle-id "$IOS_BUNDLE_IDENTIFIER"
+    )"
+    local live_build
+    live_build="$(json_field "$asc_json" latestBuild.buildNumber 2>/dev/null || true)"
+    if [[ -n "$live_build" ]]; then
+      if [[ -n "${ASC_LIVE_BUILD_NUMBER:-}" && "$ASC_LIVE_BUILD_NUMBER" != "$live_build" ]]; then
+        echo "release-ios: WARNING: ASC_LIVE_BUILD_NUMBER ($ASC_LIVE_BUILD_NUMBER) differs from live ASC state ($live_build); using live value"
+      fi
+      ASC_LIVE_BUILD_NUMBER="$live_build"
+      ASC_BUILD_NUMBER_VERIFIED_AT="$BRDG_BUILD_DATE"
+      export ASC_LIVE_BUILD_NUMBER ASC_BUILD_NUMBER_VERIFIED_AT
+      return
+    fi
+    # If API call failed to return a build, fall through to manual check below
+  fi
+
   if [[ -n "${ASC_LIVE_BUILD_NUMBER:-}" && -n "${ASC_BUILD_NUMBER_VERIFIED_AT:-}" ]]; then
     return
   fi
 
-  if [[ "$AUTH_MODE" != "app-store-connect-api-key" ]]; then
-    [[ -n "${ASC_LIVE_BUILD_NUMBER:-}" ]] || fail "ASC_LIVE_BUILD_NUMBER must be set from live App Store Connect state before running a release"
-    [[ -n "${ASC_BUILD_NUMBER_VERIFIED_AT:-}" ]] || fail "ASC_BUILD_NUMBER_VERIFIED_AT must record when the live App Store Connect build number was checked"
-    return
-  fi
-
-  asc_json="$(
-    node "$ROOT_DIR/scripts/app-store-connect-build.mjs" latest-build --bundle-id "$IOS_BUNDLE_IDENTIFIER"
-  )"
-  set_if_unset "ASC_LIVE_BUILD_NUMBER" "$(json_field "$asc_json" latestBuild.buildNumber 2>/dev/null || true)" "app-store-connect-api"
-  set_if_unset "ASC_BUILD_NUMBER_VERIFIED_AT" "$BRDG_BUILD_DATE" "app-store-connect-api"
-
-  [[ -n "${ASC_LIVE_BUILD_NUMBER:-}" ]] || fail "unable to resolve the latest live App Store Connect build number"
+  [[ -n "${ASC_LIVE_BUILD_NUMBER:-}" ]] || fail "ASC_LIVE_BUILD_NUMBER must be set from live App Store Connect state before running a release"
+  [[ -n "${ASC_BUILD_NUMBER_VERIFIED_AT:-}" ]] || fail "ASC_BUILD_NUMBER_VERIFIED_AT must record when the live App Store Connect build number was checked"
 }
 
 resolve_ios_build_number() {
@@ -465,8 +474,27 @@ context_path.write_text(json.dumps(context, indent=2) + "\n", encoding="utf-8")
 PY
 }
 
+auto_refresh_repo_index() {
+  echo "release-ios: checking repo-index freshness"
+  (
+    cd "$ROOT_DIR"
+    if ! npm run repo:index:check --silent 2>/dev/null; then
+      echo "release-ios: repo-index is stale, refreshing"
+      npm run repo:index
+      run_git add artifacts/repo-index.json
+      run_git commit -m "chore: refresh repo index [release]"
+      run_git push origin "$BRANCH"
+      BRDG_GIT_SHA="$(run_git rev-parse HEAD)"
+      echo "release-ios: repo-index refreshed and pushed ($BRDG_GIT_SHA)"
+    else
+      echo "release-ios: repo-index is current"
+    fi
+  )
+}
+
 run_repo_validation() {
-  echo "release-ios: running repo validation"
+  local timeout_seconds=300
+  echo "release-ios: running repo validation (timeout: ${timeout_seconds}s)"
   (
     cd "$ROOT_DIR"
     env \
@@ -488,7 +516,17 @@ run_repo_validation() {
       -u NATIVE_PREP_REASON \
       -u NATIVE_PREP_BASE_REF \
       npm run check
-  )
+  ) &
+  local check_pid=$!
+  ( sleep "$timeout_seconds" && kill -TERM -"$check_pid" 2>/dev/null ) &
+  local watchdog_pid=$!
+  wait "$check_pid" 2>/dev/null
+  local rc=$?
+  kill "$watchdog_pid" 2>/dev/null
+  wait "$watchdog_pid" 2>/dev/null
+  if [[ $rc -ne 0 ]]; then
+    fail "repo validation failed or timed out after ${timeout_seconds}s"
+  fi
 }
 
 print_preflight_summary() {
@@ -579,8 +617,8 @@ if [[ "$PHASE" == "prepare" && "$DRY_RUN_BUILD_NUMBER" == "1" && "${GITHUB_ACTIO
   CI_RELEASE_DRY_RUN=1
 fi
 
-if [[ "$SKIP_REPO_VALIDATION" == "1" && "$CI_RELEASE_DRY_RUN" != "1" ]]; then
-  fail "--skip-repo-validation is only allowed for GitHub Actions prepare dry-runs"
+if [[ "$SKIP_REPO_VALIDATION" == "1" && "$CI_RELEASE_DRY_RUN" != "1" && "${RELEASE_SKIP_VALIDATION:-}" != "1" ]]; then
+  fail "--skip-repo-validation is only allowed for CI dry-runs or with RELEASE_SKIP_VALIDATION=1"
 fi
 
 BRANCH="$(run_git branch --show-current)"
@@ -695,9 +733,54 @@ if [[ "$PHASE" == "prepare" || "$PHASE" == "full" ]]; then
   if [[ "$SKIP_REPO_VALIDATION" == "1" ]]; then
     echo "release-ios: skipping repo validation because CI already ran the same checks upstream"
   else
+    auto_refresh_repo_index
     run_repo_validation
   fi
 fi
+
+check_expo_sdk_consistency() {
+  echo "release-ios: checking Expo SDK consistency"
+  local sdk_version
+  sdk_version="$(node -e "
+    const pkg = require('$MOBILE_DIR/package.json');
+    const expoVer = pkg.dependencies?.expo || '';
+    const m = expoVer.match(/(\d+)\./);
+    console.log(m ? m[1] : '');
+  ")"
+  if [[ -z "$sdk_version" ]]; then
+    echo "release-ios: WARNING: could not determine Expo SDK version"
+    return
+  fi
+  local mismatched
+  mismatched="$(node -e "
+    const pkg = require('$MOBILE_DIR/package.json');
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    const expo = deps.expo || '';
+    const sdkMajor = (expo.match(/(\d+)\./) || [])[1];
+    if (!sdkMajor) { process.exit(0); }
+    const nativePkgs = Object.keys(deps).filter(k => k.startsWith('expo-'));
+    const bad = [];
+    for (const p of nativePkgs) {
+      try {
+        const pPkg = require(require.resolve(p + '/package.json', { paths: ['$MOBILE_DIR'] }));
+        const peerExpo = pPkg.peerDependencies?.expo || '';
+        const peerMajor = (peerExpo.match(/(\d+)\./) || [])[1];
+        if (peerMajor && peerMajor !== sdkMajor) {
+          bad.push(p + ' (wants SDK ' + peerMajor + ', app is SDK ' + sdkMajor + ')');
+        }
+      } catch {}
+    }
+    if (bad.length) console.log(bad.join('\n'));
+  ")"
+  if [[ -n "$mismatched" ]]; then
+    echo "release-ios: ERROR: Expo SDK version mismatch detected:"
+    echo "$mismatched"
+    fail "native packages are built for a different Expo SDK version than the app. Fix mobile/package.json dependencies before releasing."
+  fi
+  echo "release-ios: Expo SDK $sdk_version — all native packages consistent"
+}
+
+check_expo_sdk_consistency
 
 if [[ "$PHASE" == "prepare" ]]; then
   write_release_metadata 1

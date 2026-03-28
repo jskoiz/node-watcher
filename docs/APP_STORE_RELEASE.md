@@ -118,7 +118,21 @@ In CI, the `release-readiness` lane is manual-only and runs from `workflow_dispa
 
 The native fast-path classifier lives in `./scripts/release-ios-fast-path.mjs` and is invoked by `./scripts/release-ios.sh` during `--native-mode auto`.
 
-If `npm run release:ios:prepare` fails on repo policy because `artifacts/repo-index.json` is stale, run `npm run repo:index`, commit that generated change if it reflects real repo state, push the branch, and rerun release preflight.
+### Quick release (CI already green on main)
+
+When CI has already validated the main commit you want to release, skip re-running the full test suite locally:
+
+```bash
+git checkout main && git pull --ff-only
+npm run release:ios:prepare:fast    # skips full npm run check
+npm run release:ios:ship
+```
+
+This sets `RELEASE_SKIP_VALIDATION=1` and `SKIP_REPO_VALIDATION=1` so prepare only validates git state, env config, and release metadata — it does not re-run typecheck, lint, or Jest suites. Use this when CI is green and you want a fast local release without fighting test flakiness.
+
+The standard `npm run release:ios:prepare` path (without `:fast`) still runs the full validation suite and is required for releases from branches where CI has not run.
+
+Note: `release:ios:prepare` now auto-refreshes `artifacts/repo-index.json` if it detects staleness, so you no longer need to manually regenerate and push it before a release.
 
 If you intentionally need the Expo/EAS path instead, call it explicitly:
 
