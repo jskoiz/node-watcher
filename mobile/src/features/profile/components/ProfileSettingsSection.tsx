@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { buildInfo } from '../../../config/buildInfo';
+import { useResolvedBuildDisplayInfo } from '../../../config/buildDisplayInfo';
 import { Card, SectionBlock } from '../../../design/primitives';
 import { useTheme } from '../../../theme/useTheme';
 import { profileStyles as styles } from './profile.styles';
@@ -88,14 +89,22 @@ function BuildInfoRow({ label, value }: { label: string; value: string }) {
 }
 
 function BuildProvenancePanel() {
+  const resolvedBuildInfo = useResolvedBuildDisplayInfo();
   const buildRows = [
-    { label: 'App env', value: buildInfo.appEnv },
-    { label: 'Version', value: `${buildInfo.version} (${buildInfo.iosBuildNumber})` },
-    { label: 'Branch', value: buildInfo.gitBranch },
-    { label: 'Git SHA', value: buildInfo.gitSha },
-    { label: 'API URL', value: buildInfo.apiBaseUrl || 'not set' },
-    { label: 'Built at', value: buildInfo.buildDate },
-    { label: 'Release path', value: buildInfo.releaseMode },
+    { label: 'App env', value: resolvedBuildInfo.appEnv },
+    { label: 'Version', value: `${resolvedBuildInfo.version} (${resolvedBuildInfo.iosBuildNumber})` },
+    { label: 'Binary branch', value: resolvedBuildInfo.binaryBranch },
+    { label: 'Binary git SHA', value: resolvedBuildInfo.binaryGitSha },
+    { label: 'API URL', value: resolvedBuildInfo.apiBaseUrl || 'not set' },
+    { label: 'Binary built at', value: resolvedBuildInfo.binaryBuiltAt },
+    { label: 'Binary release path', value: resolvedBuildInfo.binaryReleasePath },
+    ...(buildInfo.releaseMode === 'runtime'
+      ? [
+          { label: 'Bundle git SHA', value: buildInfo.gitSha },
+          { label: 'Bundle built at', value: buildInfo.buildDate },
+          { label: 'Bundle release path', value: buildInfo.releaseMode },
+        ]
+      : []),
   ];
 
   return (

@@ -24,8 +24,10 @@ import {
   setHapticsEnabled,
 } from '../lib/interaction/feedback';
 import { buildInfo } from '../config/buildInfo';
+import { useResolvedBuildDisplayInfo } from '../config/buildDisplayInfo';
 import { useProfileEditor } from '../features/profile/hooks/useProfileEditor';
 import { useProfile } from '../features/profile/hooks/useProfile';
+import { useCurrentOtaInfo } from '../core/updates/otaInfo';
 import {
   DISCOVERY_PREFERENCE_OPTIONS,
 } from '../features/profile/components/profile.helpers';
@@ -41,6 +43,8 @@ export default function SettingsScreen({
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [hapticsOn, setHapticsOn] = useState(isHapticsEnabled);
   const [showBuildInfo, setShowBuildInfo] = useState(false);
+  const otaInfo = useCurrentOtaInfo();
+  const resolvedBuildInfo = useResolvedBuildDisplayInfo();
 
   const { profile, updateProfile } = useProfile();
   const editor = useProfileEditor({
@@ -192,19 +196,36 @@ export default function SettingsScreen({
         <View style={styles.sectionGutter}>
           <TouchableOpacity onPress={() => setShowBuildInfo((v) => !v)} activeOpacity={0.7}>
             <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>
-              Build Info {showBuildInfo ? '▾' : '›'}
+              {otaInfo.headerLabel} {showBuildInfo ? '▾' : '›'}
             </Text>
           </TouchableOpacity>
           {showBuildInfo ? (
             <Card style={[styles.card, { backgroundColor: theme.surfaceElevated }]}>
               {[
-                { label: 'App env', value: buildInfo.appEnv },
-                { label: 'Version', value: `${buildInfo.version} (${buildInfo.iosBuildNumber})` },
-                { label: 'Branch', value: buildInfo.gitBranch },
-                { label: 'Git SHA', value: buildInfo.gitSha },
-                { label: 'API URL', value: buildInfo.apiBaseUrl || 'not set' },
-                { label: 'Built at', value: buildInfo.buildDate },
-                { label: 'Release path', value: buildInfo.releaseMode },
+                { label: 'Update source', value: otaInfo.launchSourceLabel },
+                { label: 'Update ID', value: otaInfo.updateId ?? 'unavailable' },
+                { label: 'Update channel', value: otaInfo.channel ?? 'unavailable' },
+                { label: 'Runtime version', value: otaInfo.runtimeVersion ?? 'unavailable' },
+                { label: 'Update published', value: otaInfo.publishedSummary },
+                { label: 'Update received', value: otaInfo.firstSeenSummary },
+                { label: 'App env', value: resolvedBuildInfo.appEnv },
+                {
+                  label: 'Version',
+                  value: `${resolvedBuildInfo.version} (${resolvedBuildInfo.iosBuildNumber})`,
+                },
+                { label: 'Binary branch', value: resolvedBuildInfo.binaryBranch },
+                { label: 'Binary git SHA', value: resolvedBuildInfo.binaryGitSha },
+                { label: 'Binary built at', value: resolvedBuildInfo.binaryBuiltAt },
+                { label: 'Binary release path', value: resolvedBuildInfo.binaryReleasePath },
+                { label: 'API URL', value: resolvedBuildInfo.apiBaseUrl || 'not set' },
+                ...(otaInfo.launchSource === 'downloaded'
+                  ? [
+                      { label: 'Bundle branch', value: buildInfo.gitBranch },
+                      { label: 'Bundle git SHA', value: buildInfo.gitSha },
+                      { label: 'Bundle built at', value: buildInfo.buildDate },
+                      { label: 'Bundle release path', value: buildInfo.releaseMode },
+                    ]
+                  : []),
               ].map((row, index, arr) => (
                 <React.Fragment key={row.label}>
                   <View style={styles.buildRow}>

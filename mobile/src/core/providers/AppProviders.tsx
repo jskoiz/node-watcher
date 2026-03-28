@@ -16,6 +16,8 @@ import {
   registerForPushNotifications,
 } from '../../lib/pushNotifications';
 import { loadHapticsPreference } from '../../lib/interaction/feedback';
+import { ensureCurrentOtaFirstSeenAt } from '../updates/otaInfo';
+import { ensureStoredBuildProvenance } from '../../config/buildDisplayInfo';
 
 initSentry();
 installGlobalErrorHandler();
@@ -23,6 +25,12 @@ installGlobalErrorHandler();
 export function AppProviders({ children }: PropsWithChildren) {
   useEffect(() => {
     configureNotificationHandler();
+    ensureCurrentOtaFirstSeenAt().catch(() => {
+      // Non-critical — settings can still show publish metadata without a local receipt timestamp.
+    });
+    ensureStoredBuildProvenance().catch(() => {
+      // Non-critical — binary provenance can fall back to native version/build only.
+    });
 
     const bootstrapTask = InteractionManager.runAfterInteractions(() => {
       registerForPushNotifications().catch((error) => {

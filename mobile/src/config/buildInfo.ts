@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 
-type BuildProvenance = {
+export type BuildProvenance = {
   appEnv: string;
   apiBaseUrl: string | null;
   version: string;
