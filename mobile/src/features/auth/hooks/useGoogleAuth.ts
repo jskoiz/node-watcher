@@ -2,16 +2,30 @@ import { useState, useCallback } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
 import { env } from '../../../config/env';
 
+const NOOP_RESULT = {
+  signIn: async (): Promise<string | null> => null,
+  isLoading: false,
+  isReady: false,
+} as const;
+
 export function useGoogleAuth() {
+  if (!env.googleClientId) {
+    return NOOP_RESULT;
+  }
+
+  return useGoogleAuthImpl(env.googleClientId);
+}
+
+function useGoogleAuthImpl(clientId: string) {
   const [isLoading, setIsLoading] = useState(false);
 
   const [request, , promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: env.googleClientId ?? undefined,
-    clientId: env.googleClientId ?? undefined,
+    iosClientId: clientId,
+    clientId,
   });
 
   const signIn = useCallback(async (): Promise<string | null> => {
-    if (!env.googleClientId || !promptAsync) {
+    if (!promptAsync) {
       return null;
     }
 
