@@ -7,6 +7,10 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
+      "cache": {
+        "key": "v1",
+        "paths": ["node_modules"]
+      },
       "env": {
         "APP_ENV": "development"
       }
@@ -14,6 +18,10 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "cache": {
+        "key": "v1",
+        "paths": ["node_modules"]
+      },
       "env": {
         "APP_ENV": "preview"
       }
@@ -24,7 +32,7 @@
         "APP_ENV": "production",
         "EXPO_PUBLIC_API_URL": "https://api.brdg.social",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "IOS_BUILD_NUMBER": "20"
+        "IOS_BUILD_NUMBER": "21"
       }
     }
   },

@@ -106,6 +106,7 @@ export function MatchPickerSheet({
           data={matches}
           keyExtractor={keyExtractor}
           renderItem={renderMatch}
+          estimatedItemSize={68}
         />
       )}
     </AppBottomSheet>
