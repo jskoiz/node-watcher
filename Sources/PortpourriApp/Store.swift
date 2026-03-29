@@ -180,7 +180,7 @@ enum DestructiveActionAdvisor {
     }
 }
 
-private enum DestructiveActionPolicy {
+enum DestructiveActionPolicy {
     static func hasMeaningfulDirectory(_ process: TrackedProcessSnapshot) -> Bool {
         guard let cwd = process.process.cwd, cwd != "/" else { return false }
         return FileManager.default.fileExists(atPath: cwd)
@@ -524,12 +524,12 @@ final class PortpourriStore: ObservableObject {
     }
 
     func terminate(process: TrackedProcessSnapshot, portContext: Int? = nil) {
-        if self.settings.confirmBeforeTerminate,
-           let confirmation = DestructiveActionAdvisor.confirmation(for: process, portContext: portContext) {
+        if self.settings.confirmBeforeTerminate {
+            let confirmation = DestructiveActionAdvisor.confirmation(for: process, portContext: portContext)
             let alert = NSAlert()
-            alert.messageText = confirmation.messageText
-            alert.informativeText = confirmation.informativeText
-            alert.addButton(withTitle: confirmation.confirmButtonTitle)
+            alert.messageText = confirmation?.messageText ?? "Terminate process \(process.process.pid)?"
+            alert.informativeText = confirmation?.informativeText ?? process.process.commandLine
+            alert.addButton(withTitle: confirmation?.confirmButtonTitle ?? "Terminate")
             alert.addButton(withTitle: "Cancel")
             if alert.runModal() != .alertFirstButtonReturn {
                 return

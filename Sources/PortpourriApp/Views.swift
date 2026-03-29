@@ -465,6 +465,7 @@ private struct ProcessDetailRow: View {
                         ProcessActionsMenu(
                             store: self.store,
                             process: self.process,
+                            portContext: self.portContext,
                             canTerminate: ProcessActionPolicy.canTerminate(self.process)
                         )
                     }
@@ -610,6 +611,7 @@ private struct CompactHeader: View {
 private struct ProcessActionsMenu: View {
     @ObservedObject var store: PortpourriStore
     let process: TrackedProcessSnapshot
+    let portContext: Int?
     let canTerminate: Bool
 
     var body: some View {
@@ -623,7 +625,7 @@ private struct ProcessActionsMenu: View {
             if self.canTerminate {
                 Divider()
                 Button(self.terminateLabel, role: .destructive) {
-                    self.store.terminate(process: self.process)
+                    self.store.terminate(process: self.process, portContext: self.portContext)
                 }
             }
         } label: {
@@ -639,7 +641,7 @@ private struct ProcessActionsMenu: View {
     }
 
     private var terminateLabel: String {
-        DestructiveActionAdvisor.kind(for: self.process, portContext: nil)?.label ?? "Stop process"
+        DestructiveActionAdvisor.kind(for: self.process, portContext: self.portContext)?.label ?? "Stop process"
     }
 }
 
@@ -958,27 +960,7 @@ private struct AIToolGroupView: View {
 
 // MARK: - Business Logic
 
-private enum ProcessActionPolicy {
-    static func hasMeaningfulDirectory(_ process: TrackedProcessSnapshot) -> Bool {
-        guard let cwd = process.process.cwd, cwd != "/" else { return false }
-        return FileManager.default.fileExists(atPath: cwd)
-    }
-
-    static func canTerminate(_ process: TrackedProcessSnapshot) -> Bool {
-        if process.process.isNodeFamily {
-            return true
-        }
-
-        guard hasMeaningfulDirectory(process) else { return false }
-
-        let command = process.process.commandLine
-        if command.hasPrefix("/System/") || command.hasPrefix("/usr/") || command.hasPrefix("/Applications/") {
-            return false
-        }
-
-        return true
-    }
-}
+private typealias ProcessActionPolicy = DestructiveActionPolicy
 
 private struct ResolutionAction {
     enum Kind {
