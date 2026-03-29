@@ -133,13 +133,43 @@ The menu bar glyph, popover hierarchy, settings copy, and website all reinforce 
 
 The next phase may assume:
 - the semantic model is locked
+- Dot Matrix 4-state contract is implemented and documented
+- popover follows the contract section order (watched ports → other listeners → process groups → AI tools)
+- action labels are ownership-aware (Stop server / Free port / Stop tunnel / Kill group)
+- settings have a Ports tab, Notifications is merged into General, Display has live previews
+- AI tools section is wired into the popover as read-only display
+- tooltip is dynamic with port-status summary
+- site homepage leads with literal conflict-first story
 - screenshots and copy reflect the new story
 - the website no longer leads with metaphor-heavy messaging
+- docs/ui.md matches the implementation
+
+### Phase 2 completion summary (2026-03-28)
+Implementation summary pending final closeout. Phase 2 should not be marked
+complete until manual verification passes.
+
+Remaining manual checks:
+- sample-mode app launch
+- live-mode app launch
+- live-site verification after merge
+
+Recent fixes:
+- AI/worktree scanning moved off the main refresh loop onto a separate async refresh path
+- `Show non-Node listeners` toggle behavior restored in the popover
+Files changed:
+- `Sources/PortpourriApp/Store.swift` — dotMatrix mode, separate AI refresh path
+- `Sources/PortpourriApp/StatusBarController.swift` — DotMatrix renderer, dynamic tooltip, WatchedPortDotState
+- `Sources/PortpourriApp/Views.swift` — popover reorder, WatchedPortsSection, AIToolsSection, action labels, settings restructure
+- `site/index.html` — conflict-first hero, trust strip, problem/solution, contract-ordered mock
+- `site/css/style.css` — new section styles
+- `site/js/main.js` — toggleOther function
+- `docs/ui.md` — full rewrite
+- `docs/plans/relaunch/status.md` — phase completion
+
+Validation: swift build pass, 11/11 tests pass, snapshot --json valid. Manual
+launch and live-site verification still pending.
 
 ## Agent instruction block
 
-Use plan mode first, then implement.
-
-Complete Phase 2 only.
-Your job is semantic alignment and product clarity.
-Do not start architecture cleanup yet unless a tiny structural change is required to finish UI semantics safely.
+Phase 2 remains active until the required manual verification is complete.
+Do not start Phase 2.5 until this phase is explicitly closed in status.md.

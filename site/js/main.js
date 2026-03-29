@@ -47,6 +47,12 @@ function toggleAI(el) {
   }
 }
 
+function toggleOther(el) {
+  el.classList.toggle('open');
+  const detail = document.getElementById('other-list');
+  if (detail) detail.classList.toggle('show');
+}
+
 // Live clock
 function updateTime() {
   const el = document.getElementById('liveTime');

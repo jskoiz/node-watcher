@@ -61,7 +61,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         button.action = #selector(self.togglePopover(_:))
         button.target = self
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        button.toolTip = "Portpourri (\u{2303}\u{21E7}P)"
+        self.updateTooltip()
     }
 
     private func configurePopover() {
@@ -134,9 +134,24 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             return nil
         }
 
-        // Update tooltip
+        self.updateTooltip()
+    }
+
+    private func updateTooltip() {
         let symbolStr = Self.modifierSymbols(self.store.settings.hotkeyModifiers) + self.store.settings.hotkeyKey.uppercased()
-        self.statusItem.button?.toolTip = "Portpourri (\(symbolStr))"
+        let summary = self.store.snapshot.summary
+        var parts: [String] = []
+        if summary.nodeProjectCount > 0 {
+            parts.append("\(summary.nodeProjectCount) project\(summary.nodeProjectCount == 1 ? "" : "s")")
+        }
+        if summary.watchedBusyCount > 0 {
+            parts.append("\(summary.watchedBusyCount) watched port\(summary.watchedBusyCount == 1 ? "" : "s") busy")
+        }
+        if summary.watchedNonNodeConflictCount > 0 {
+            parts.append("\(summary.watchedNonNodeConflictCount) conflict\(summary.watchedNonNodeConflictCount == 1 ? "" : "s")")
+        }
+        let status = parts.isEmpty ? "Idle" : parts.joined(separator: " \u{00B7} ")
+        self.statusItem.button?.toolTip = "\(status) (\(symbolStr))"
     }
 
     static func parseModifiers(_ str: String) -> NSEvent.ModifierFlags {
@@ -227,6 +242,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         let summary = self.store.snapshot.summary
         let isIdle = summary.nodeProjectCount == 0 && summary.watchedBusyCount == 0
 
+        self.updateTooltip()
+
         // Hide the status item entirely when idle if the user opted in
         if self.store.settings.hideWhenIdle && isIdle && !self.popover.isShown {
             self.statusItem.isVisible = false
@@ -240,6 +257,30 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         let hasConflicts = conflicts > 0
         let showBadge = self.store.settings.showConflictBadge
         let displayMode = self.store.settings.menuBarDisplayMode
+
+        if displayMode == .dotMatrix {
+            let watchedPorts = Array(self.store.snapshot.watchedPorts.sorted(by: { $0.port < $1.port }).prefix(5))
+            let projectCount = min(summary.nodeProjectCount, 5)
+            if hasConflicts && showBadge {
+                let buttonAppearance = button.effectiveAppearance
+                let image = StatusChipRenderer.dotMatrixImageWithBadge(
+                    watchedPorts: watchedPorts,
+                    projectCount: projectCount,
+                    conflicts: conflicts,
+                    buttonAppearance: buttonAppearance
+                )
+                image.isTemplate = false
+                button.image = image
+            } else {
+                let image = StatusChipRenderer.dotMatrixTemplateImage(
+                    watchedPorts: watchedPorts,
+                    projectCount: projectCount
+                )
+                image.isTemplate = true
+                button.image = image
+            }
+            return
+        }
 
         // Build the status text based on display mode
         let statusText = StatusChipRenderer.statusText(for: summary, displayMode: displayMode)
@@ -386,6 +427,49 @@ extension StatusBarController: UNUserNotificationCenterDelegate {
     }
 }
 
+// MARK: - Dot Matrix State Contract
+
+enum WatchedPortDotState {
+    case free      // dim — port not busy
+    case owned     // green — busy, your Node project, no conflict
+    case blocked   // amber — busy, non-Node owner
+    case conflict  // red — busy, multiple Node owners fighting
+
+    init(from status: WatchedPortStatus) {
+        if !status.isBusy {
+            self = .free
+        } else if !status.isConflict {
+            self = .owned
+        } else if !status.isNodeOwned {
+            self = .blocked
+        } else {
+            self = .conflict
+        }
+    }
+
+    var templateColor: NSColor {
+        switch self {
+        case .free: .black.withAlphaComponent(0.25)
+        case .owned: .black.withAlphaComponent(0.85)
+        case .blocked: .black.withAlphaComponent(0.65)
+        case .conflict: .black
+        }
+    }
+
+    func color(isDark: Bool) -> NSColor {
+        switch self {
+        case .free:
+            isDark ? .white.withAlphaComponent(0.20) : .black.withAlphaComponent(0.20)
+        case .owned:
+            NSColor(calibratedRed: 0.30, green: 0.52, blue: 0.38, alpha: 1)
+        case .blocked:
+            NSColor(calibratedRed: 0.75, green: 0.55, blue: 0.20, alpha: 1)
+        case .conflict:
+            NSColor(calibratedRed: 0.68, green: 0.32, blue: 0.30, alpha: 1)
+        }
+    }
+}
+
 enum StatusChipRenderer {
 
     /// Format memory bytes into compact string: "2.1G", "362M", etc.
@@ -425,6 +509,10 @@ enum StatusChipRenderer {
                 }
                 return memStr
             }
+            return "N"
+
+        case .dotMatrix:
+            // Dot matrix uses graphical rendering, not text. Fallback label only.
             return "N"
         }
     }
@@ -514,6 +602,111 @@ enum StatusChipRenderer {
                 height: strSize.height
             )
             str.draw(in: textRect)
+
+            let badgeRect = NSRect(
+                x: totalWidth - badgeSize,
+                y: height - badgeSize,
+                width: badgeSize,
+                height: badgeSize
+            )
+            (isDark ? NSColor.white.withAlphaComponent(0.85) : NSColor.black.withAlphaComponent(0.70)).setFill()
+            NSBezierPath(ovalIn: badgeRect).fill()
+
+            let badgeTextColor: NSColor = isDark ? .black : .white
+            let badgeAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 8, weight: .bold),
+                .foregroundColor: badgeTextColor,
+                .paragraphStyle: paragraphStyle,
+            ]
+            let badgeText = NSAttributedString(string: "\(min(conflicts, 9))", attributes: badgeAttrs)
+            let badgeTextSize = badgeText.size()
+            let badgeTextRect = NSRect(
+                x: badgeRect.midX - badgeTextSize.width / 2,
+                y: badgeRect.midY - badgeTextSize.height / 2,
+                width: badgeTextSize.width,
+                height: badgeTextSize.height
+            )
+            badgeText.draw(in: badgeTextRect)
+            return true
+        }
+    }
+
+    // MARK: - Dot Matrix Rendering
+
+    private static let dotSize: CGFloat = 3
+    private static let dotGap: CGFloat = 2
+    private static let rowGap: CGFloat = 3
+
+    /// Template dot matrix image (no badge) — macOS auto-inverts for dark/light.
+    static func dotMatrixTemplateImage(watchedPorts: [WatchedPortStatus], projectCount: Int) -> NSImage {
+        let cols = max(watchedPorts.count, projectCount, 1)
+        let width = CGFloat(cols) * (dotSize + dotGap) - dotGap + 4
+        let height: CGFloat = 18
+        let size = NSSize(width: width, height: height)
+
+        return NSImage(size: size, flipped: false) { _ in
+            let topY = (height + rowGap) / 2
+            let bottomY = (height - rowGap) / 2 - dotSize
+
+            // Top row: project dots
+            for i in 0..<projectCount {
+                let x = 2 + CGFloat(i) * (dotSize + dotGap)
+                let color: NSColor = .black.withAlphaComponent(0.85)
+                color.setFill()
+                NSBezierPath(ovalIn: NSRect(x: x, y: topY, width: dotSize, height: dotSize)).fill()
+            }
+
+            // Bottom row: watched-port dots
+            for (i, status) in watchedPorts.enumerated() {
+                let x = 2 + CGFloat(i) * (dotSize + dotGap)
+                let state = WatchedPortDotState(from: status)
+                state.templateColor.setFill()
+                NSBezierPath(ovalIn: NSRect(x: x, y: bottomY, width: dotSize, height: dotSize)).fill()
+            }
+            return true
+        }
+    }
+
+    /// Non-template dot matrix image with conflict badge.
+    static func dotMatrixImageWithBadge(
+        watchedPorts: [WatchedPortStatus],
+        projectCount: Int,
+        conflicts: Int,
+        buttonAppearance: NSAppearance? = nil
+    ) -> NSImage {
+        let isDark = buttonAppearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+
+        let cols = max(watchedPorts.count, projectCount, 1)
+        let dotsWidth = CGFloat(cols) * (dotSize + dotGap) - dotGap + 4
+        let badgeSize: CGFloat = 12
+        let badgeGap: CGFloat = 2
+        let totalWidth = dotsWidth + badgeGap + badgeSize
+        let height: CGFloat = 18
+        let size = NSSize(width: totalWidth, height: height)
+
+        return NSImage(size: size, flipped: false) { _ in
+            let topY = (height + rowGap) / 2
+            let bottomY = (height - rowGap) / 2 - dotSize
+
+            // Top row: project dots (green)
+            let projectColor = WatchedPortDotState.owned.color(isDark: isDark)
+            for i in 0..<projectCount {
+                let x = 2 + CGFloat(i) * (dotSize + dotGap)
+                projectColor.setFill()
+                NSBezierPath(ovalIn: NSRect(x: x, y: topY, width: dotSize, height: dotSize)).fill()
+            }
+
+            // Bottom row: watched-port dots (colored by state)
+            for (i, status) in watchedPorts.enumerated() {
+                let x = 2 + CGFloat(i) * (dotSize + dotGap)
+                let state = WatchedPortDotState(from: status)
+                state.color(isDark: isDark).setFill()
+                NSBezierPath(ovalIn: NSRect(x: x, y: bottomY, width: dotSize, height: dotSize)).fill()
+            }
+
+            // Badge
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = .center
 
             let badgeRect = NSRect(
                 x: totalWidth - badgeSize,
