@@ -1,24 +1,19 @@
 current_phase: phase-2-product-ui
-phase_state: in_progress
+phase_state: completed
 
 phase_owner:
   agent: codex
   human: jerry
 
 started_at: 2026-03-28
-completed_at:
+completed_at: 2026-03-28
 
-blockers:
-  - description: >
-      Manual verification still pending: sample-mode app launch, live-mode app
-      launch, and live-site verification for the new Phase 2 homepage.
-    severity: blocking-completion
-    phase: phase-2
+blockers: []
 
 exact_next_task: >
-  Finish Phase 2 closeout by manually verifying sample-mode app launch,
-  live-mode app launch, and the live homepage, then mark the phase complete
-  if those checks pass.
+  Phase 2 is complete. The next phase is Phase 2.5 (safety gate) which
+  covers destructive action boundaries, confirmation prompts, and
+  AI tool cleanup actions.
 
 files_allowed_to_change:
   - site/**
@@ -61,6 +56,11 @@ validation_results:
   stale_string_scan: zero hits for "Kill all" or old "Free port" on Node processes
   ai_refresh_path: separate from main snapshot refresh
   show_non_node_toggle: restored — Other listeners section follows the Display setting
+  sample_mode_launch: pass
+  live_mode_launch: pass
+  settings_structure: pass — General, Display, Ports, Advanced, About
+  tooltip: pass — dynamic watched-port summary shown in live mode
+  live_site: pass — homepage reflects the literal watched-port ownership story
 
 noted_exceptions: []
 
@@ -84,10 +84,13 @@ canonical_decisions:
   popover_sections: "Watched Ports, Other Listeners, Process Groups, AI Tools"
 
 handoff_notes: >
-  Phase 2 implementation is in place, but the phase remains in_progress until
-  manual verification is completed. The Dot Matrix contract, popover ordering,
+  Phase 2 completed on 2026-03-28. The Dot Matrix contract, popover ordering,
   ownership-aware labels, settings restructure, tooltip, homepage rewrite, and
-  docs updates are done. AI/worktree scanning now runs on its own async refresh
-  path instead of blocking the main port snapshot refresh, and the non-Node
-  listener toggle is functional again. Remaining checks before completion:
-  sample-mode app launch, live-mode app launch, and live-site verification.
+  docs updates are all implemented and manually verified. AI/worktree scanning
+  now runs on its own async refresh path instead of blocking the main port
+  snapshot refresh, the non-Node listener toggle is functional again, sample-
+  mode and live-mode app launches passed, settings structure passed, the live
+  tooltip showed a dynamic watched-port summary, and the live homepage now
+  reflects the literal watched-port ownership story. Phase 2.5 should focus on
+  destructive action boundaries, confirmation prompts, and AI tool cleanup
+  actions.

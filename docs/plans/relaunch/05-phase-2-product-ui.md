@@ -145,12 +145,14 @@ The next phase may assume:
 - docs/ui.md matches the implementation
 
 ### Phase 2 completion summary (2026-03-28)
-Implementation summary pending final closeout. Phase 2 should not be marked
-complete until manual verification passes.
+Phase 2 is complete.
 
-Remaining manual checks:
+Manual verification passed:
 - sample-mode app launch
 - live-mode app launch
+- settings structure
+- `Show non-Node listeners` toggle behavior
+- dynamic tooltip in live mode
 - live-site verification after merge
 
 Recent fixes:
@@ -167,9 +169,9 @@ Files changed:
 - `docs/plans/relaunch/status.md` — phase completion
 
 Validation: swift build pass, 11/11 tests pass, snapshot --json valid. Manual
-launch and live-site verification still pending.
+launch and live-site verification passed.
 
 ## Agent instruction block
 
-Phase 2 remains active until the required manual verification is complete.
-Do not start Phase 2.5 until this phase is explicitly closed in status.md.
+Phase 2 is complete. Do not re-enter this phase.
+The next phase is Phase 2.5 (safety gate).
