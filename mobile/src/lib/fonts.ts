@@ -1,16 +1,14 @@
 import {
   useFonts,
-  PlayfairDisplay_400Regular,
-  PlayfairDisplay_600SemiBold,
-  PlayfairDisplay_700Bold,
-  PlayfairDisplay_400Regular_Italic,
-} from '@expo-google-fonts/playfair-display';
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+} from '@expo-google-fonts/instrument-serif';
 
 export const fontFamily = {
-  serif: 'PlayfairDisplay_400Regular',
-  serifSemiBold: 'PlayfairDisplay_600SemiBold',
-  serifBold: 'PlayfairDisplay_700Bold',
-  serifItalic: 'PlayfairDisplay_400Regular_Italic',
+  serif: 'InstrumentSerif_400Regular',
+  serifSemiBold: 'InstrumentSerif_400Regular', // Instrument Serif has a single weight
+  serifBold: 'InstrumentSerif_400Regular',
+  serifItalic: 'InstrumentSerif_400Regular_Italic',
   sans: undefined, // system default (SF Pro / Roboto)
 } as const;
 
@@ -25,10 +23,8 @@ export const fontIntent = {
 
 export function useFontsLoaded(): boolean {
   const [loaded] = useFonts({
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_600SemiBold,
-    PlayfairDisplay_700Bold,
-    PlayfairDisplay_400Regular_Italic,
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
   });
   return loaded;
 }
