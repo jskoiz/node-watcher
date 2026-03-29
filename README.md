@@ -1,62 +1,61 @@
-<p align="center">
-  <img src=".github/images/logo-wordmark.svg" alt="Portpourri" height="48">
-  <br><br>
-  <p align="center">
-    A macOS menu bar app that shows which local ports are in use, who owns them, and whether it's your dev server or something blocking it.
-  </p>
-  <p align="center">
-    <a href="https://github.com/jskoiz/portpourri/actions/workflows/ci.yml"><img src="https://github.com/jskoiz/portpourri/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-    <a href="https://github.com/jskoiz/portpourri/releases/latest"><img src="https://img.shields.io/github/v/release/jskoiz/portpourri?label=release&color=green" alt="Latest Release"></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-    <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-black.svg" alt="macOS 14+"></a>
-    <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift 6.0"></a>
-  </p>
-</p>
+# Portpourri
 
----
+[![CI](https://github.com/jskoiz/portpourri/actions/workflows/ci.yml/badge.svg)](https://github.com/jskoiz/portpourri/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black.svg)](https://www.apple.com/macos/)
+[![Swift 6.0](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 
-If you've ever had multiple projects fighting over ports 3000, 5173, or 8081 and resorted to a pile of `lsof` and `ps` commands — Portpourri replaces all of that with a single glance at your menu bar.
+A macOS menu bar app that answers one question instantly: **which local ports are in use, who owns them, and is it my dev server or something blocking it?**
 
-<p align="center">
-  <img src=".github/images/popover-detail.png" width="520" alt="Portpourri popover showing watched ports, project names, and conflict resolution">
-</p>
+If you've ever had multiple projects fighting over ports 3000, 5173, or 8081 and resorted to a pile of `lsof` and `ps` commands, Portpourri replaces that with a single glance.
 
 ## Features
 
-- **Live port monitoring** — compact menu bar summary with dot matrix or numeric display modes
+- **Live port monitoring** in the menu bar with a compact summary
 - **Project-aware** — maps Node processes back to their project root (`package.json`, `.git`, lockfiles)
 - **Smart classification** — identifies Vite, Next.js, Expo, Storybook, Nest, and other Node-family tools by name
 - **Conflict detection** — distinguishes "your app owns this port" from "Docker is blocking it" or "an SSH tunnel is occupying it"
-- **AI tool tracking** — shows Claude Code and Codex worktrees, session counts, and disk usage with cleanup actions
-- **Dark mode** — follows system appearance automatically
-- **Safe actions** — context-aware resolution (free port, stop tunnel, kill process groups) with confirmation
-- **Configurable** — watched ports, refresh cadence, display modes, hotkeys, and grouping
+- **Safe actions** — context-aware resolution (free port, stop tunnel, configurable port command template) with no destructive force-kill
+- **Configurable** — settings for watched ports, refresh cadence, display modes, hotkeys, port command template, and grouping
 - **CLI included** — `portpourri snapshot --json` for scripting and CI
+
+## Requirements
+
+- macOS 14 (Sonoma) or later
+- Swift 6.0+ toolchain (Xcode 16+)
 
 ## Install
 
-### Download (recommended)
-
-Grab the latest signed and notarized `.app` from [**Releases**](https://github.com/jskoiz/portpourri/releases/latest), unzip, and drag to Applications.
-
-Requires macOS 14 (Sonoma) or later.
-
-### Homebrew
-
-```bash
-brew tap jskoiz/portpourri
-brew install --cask portpourri
-```
-
 ### Build from source
-
-Requires Swift 6.0+ (Xcode 16+):
 
 ```bash
 git clone https://github.com/jskoiz/portpourri.git
 cd portpourri
+swift build -c release
+```
+
+### Run the app
+
+```bash
+# As a menu bar app
 ./Scripts/package_app.sh
 open .build/Portpourri.app
+
+# Or directly (development mode)
+swift run PortpourriApp
+
+# With sample data (no real processes needed)
+swift run PortpourriApp --sample-data
+```
+
+### CLI
+
+```bash
+# Live snapshot of all listening processes
+swift run portpourri snapshot --json
+
+# Dump test fixtures
+swift run portpourri fixtures --name mixed --json
 ```
 
 ## How It Works
@@ -72,19 +71,6 @@ Portpourri builds a snapshot of local listening processes in a pipeline:
 
 This is why Portpourri says "3000 is blocked by Docker" or "8081 is owned by the Expo app in `~/projects/mobile`" instead of just "PID 12345 is using port 3000."
 
-## CLI
-
-```bash
-# Live snapshot of all listening processes
-portpourri snapshot --json
-
-# Pretty-print with port filtering
-portpourri snapshot --json | jq '.projects'
-
-# Dump test fixtures
-portpourri fixtures --name mixed --json
-```
-
 ## Architecture
 
 ```
@@ -97,48 +83,14 @@ Tests/
 Scripts/
   package_app.sh      # Build and wrap into .app bundle
   dev_harness.sh      # Spin up local test listeners for manual testing
+docs/
+  product.md          # Product spec and design philosophy
+  architecture.md     # Module boundaries and data flow
+  ui.md               # Menu bar and popover layout
+  dev-harness.md      # Testing strategy and validation commands
 ```
 
 The core library (`PortpourriCore`) is deliberately free of AppKit/SwiftUI so it can be tested independently and reused by both the GUI and CLI.
-
-## Roadmap
-
-### Next up
-
-- [ ] **Cached AI tool sizes** — persist worktree sizes to disk, only rescan on change (currently ~90s for large Codex dirs)
-- [ ] **Session cleanup** — expose Codex archived sessions and log files for deletion (currently 656MB+ unmanaged)
-- [ ] **Memory alerts** — notify when Node processes exceed a configurable memory threshold
-
-### Planned
-
-- [ ] **Port history** — show which project last used a port and when
-- [ ] **Quick-switch ports** — one-click to restart a dev server on a suggested alternate port
-- [ ] **Monorepo awareness** — better grouping for Turborepo/Nx/pnpm workspace projects
-- [ ] **Process tree view** — visualize parent-child relationships (e.g., which `node` spawned which)
-
-### Considering
-
-- [ ] **Profiles** — save port configurations per project or workspace
-- [ ] **Export/share** — copy a snapshot as Markdown or JSON for bug reports
-- [ ] **Plugin system** — user-defined classifiers for non-Node dev servers (Python, Go, Ruby)
-
-### Shipped (recent)
-
-- [x] **AI tool tracking** — Claude Code and Codex worktree/session visibility with cleanup actions
-- [x] **Dot matrix menu bar** — visual project dots + memory gauge blocks
-- [x] **Dark mode** — follows system appearance
-- [x] **Brand icons** — Claude and Codex logos via SVG assets
-- [x] **Expandable process groups** — click to reveal Kill all + Copy PIDs
-- [x] **Hover highlights** — interactive rows highlight on hover
-- [x] **Idle state** — calm display when no processes are running
-
-### Not planned
-
-- General process manager features (use Activity Monitor)
-- Remote server monitoring (this is a local-only tool)
-- Windows/Linux support (macOS-native by design)
-
-Have an idea? [Open a feature request](https://github.com/jskoiz/portpourri/issues/new?template=feature_request.md).
 
 ## Development
 
@@ -156,7 +108,7 @@ swift run PortpourriApp --sample-data
 ./Scripts/dev_harness.sh
 ```
 
-See [`docs/dev-harness.md`](docs/dev-harness.md) for the full testing strategy and [`docs/architecture.md`](docs/architecture.md) for module boundaries.
+See [`docs/dev-harness.md`](docs/dev-harness.md) for the full testing strategy.
 
 ## Contributing
 

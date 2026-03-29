@@ -26,8 +26,8 @@ Thanks for your interest in contributing! This guide will help you get started.
 ```bash
 swift build                              # Build all targets
 swift test                               # Run all tests
-swift run portpourri snapshot --json     # Live port snapshot
-swift run PortpourriApp --sample-data    # Launch app with fixture data
+swift run portpourri snapshot --json    # Live port snapshot
+swift run PortpourriApp --sample-data   # Launch app with fixture data
 ./Scripts/dev_harness.sh                 # Spin up test listeners
 ```
 
@@ -59,7 +59,7 @@ swift run PortpourriApp --sample-data    # Launch app with fixture data
    ```bash
    swift build
    swift test
-   swift run portpourri snapshot --json   # Should produce valid output
+   swift run portpourri snapshot --json  # Should produce valid output
    ```
 4. **Update docs** if you changed architecture or module boundaries (see `docs/`)
 

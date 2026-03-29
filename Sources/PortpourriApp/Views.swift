@@ -11,19 +11,16 @@ struct PopoverRootView: View {
         self._settings = ObservedObject(wrappedValue: store.settings)
     }
 
-    @State private var showProcessDrawer = true
+    @State private var showProcessDrawer = false
 
     var body: some View {
         let conflicts = self.store.snapshot.watchedPorts.filter(\.isConflict)
-            .filter { !$0.ownerSummary.localizedCaseInsensitiveContains("ControlCenter") }
             .sorted(by: DisplayText.compareWatchedPorts)
         let nodeOwnedPorts = self.store.snapshot.watchedPorts
             .filter { $0.isBusy && $0.isNodeOwned && !$0.isConflict }
             .sorted(by: DisplayText.compareWatchedPorts)
         let allProjects = SnapshotDetails.sortedProjects(self.store.snapshot.projects)
         let visibleOtherProcesses = self.store.visibleOtherProcesses()
-        let devServers = visibleOtherProcesses.filter { $0.process.isDevServer }
-        let otherListeners = visibleOtherProcesses.filter { !$0.process.isDevServer }
         let significantGroups = self.store.snapshot.nodeProcessGroups.filter { $0.count >= 3 }
 
         ZStack {
@@ -34,13 +31,8 @@ struct PopoverRootView: View {
                     snapshot: self.store.snapshot,
                     useSampleData: self.store.useSampleData,
                     conflictCount: conflicts.count,
-                    projectCount: allProjects.count + devServers.count
+                    projectCount: allProjects.count
                 )
-
-                if conflicts.isEmpty && allProjects.isEmpty && nodeOwnedPorts.isEmpty
-                    && significantGroups.isEmpty {
-                    IdleStateView()
-                }
 
                 if !conflicts.isEmpty {
                     ConflictSection(
@@ -59,14 +51,9 @@ struct PopoverRootView: View {
                     )
                 }
 
-                if !devServers.isEmpty {
+                if self.settings.showNonNodeListeners, !visibleOtherProcesses.isEmpty {
                     Divider()
-                    OtherListenersSection(title: "Dev servers", processes: devServers)
-                }
-
-                if !otherListeners.isEmpty {
-                    Divider()
-                    OtherListenersSection(title: "Other listeners", processes: otherListeners)
+                    OtherListenersSection(processes: visibleOtherProcesses)
                 }
 
                 // Bottom drawer toggle for node process groups
@@ -90,14 +77,12 @@ struct PopoverRootView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-
-                Divider()
-                AIToolsSection(store: self.store, aiTools: self.store.snapshot.aiTools)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+            .animation(.easeInOut(duration: 0.2), value: self.showProcessDrawer)
         }
-        .frame(width: 330)
+        .frame(width: 340)
         .overlay(alignment: .bottomTrailing) {
             if let notice = self.store.clipboardNotice {
                 Text(notice)
@@ -160,12 +145,12 @@ private struct ConflictCard: View {
             PortBadge(port: self.status.port, tone: .conflict)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text(DisplayText.watchedPortHeadline(self.status, blockers: self.blockers))
+                Text(DisplayText.watchedPortHeadline(self.status))
                     .font(.caption)
                     .fontWeight(.medium)
                     .lineLimit(1)
-                if let detail = DisplayText.blockerDetail(self.blockers) {
-                    Text(detail)
+                if let process = self.primaryBlocker {
+                    Text(DisplayText.blockerDetail(process))
                         .font(.caption2)
                         .foregroundStyle(Readability.secondaryText)
                         .lineLimit(1)
@@ -200,8 +185,7 @@ private struct ConflictCard: View {
                     self.store.openApplication(at: path)
                 }
             }
-        } else if self.projects.contains(where: { !$0.processes.isEmpty }),
-                  let suggested = self.store.nextAvailablePort(after: self.status.port) {
+        } else if let suggested = self.store.nextAvailablePort(after: self.status.port) {
             InlineAccentButton("Use \(suggested)", tone: .node) {
                 self.store.copySuggestedPort(after: self.status.port)
             }
@@ -209,26 +193,7 @@ private struct ConflictCard: View {
     }
 
     private var primaryBlocker: TrackedProcessSnapshot? {
-        self.blockers.min(by: { lhs, rhs in
-            let lhsPriority = ResolutionAdvisor.displayPriority(for: lhs)
-            let rhsPriority = ResolutionAdvisor.displayPriority(for: rhs)
-            if lhsPriority != rhsPriority {
-                return lhsPriority < rhsPriority
-            }
-            let lhsLabel = DisplayText.blockerName(lhs)
-            let rhsLabel = DisplayText.blockerName(rhs)
-            let labelComparison = lhsLabel.localizedCaseInsensitiveCompare(rhsLabel)
-            if labelComparison != .orderedSame {
-                return labelComparison == .orderedAscending
-            }
-            return lhs.process.pid < rhs.process.pid
-        })
-    }
-
-    private var blockers: [TrackedProcessSnapshot] {
-        let combined = self.otherProcesses + self.projects.flatMap(\.processes)
-        var seen: Set<Int> = []
-        return combined.filter { seen.insert($0.process.pid).inserted }
+        self.otherProcesses.first ?? self.projects.flatMap(\.processes).first
     }
 }
 
@@ -258,14 +223,11 @@ private struct ProjectDashboardRow: View {
     @ObservedObject var store: PortpourriStore
     let project: ProjectSnapshot
     @State private var isExpanded = false
-    @State private var isHovered = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    self.isExpanded.toggle()
-                }
+                self.isExpanded.toggle()
             } label: {
                 HStack(alignment: .center, spacing: 6) {
                     Circle()
@@ -274,7 +236,7 @@ private struct ProjectDashboardRow: View {
 
                     Text(self.project.displayName)
                         .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .fontWeight(.medium)
                         .foregroundStyle(.primary)
                         .lineLimit(1)
 
@@ -291,11 +253,9 @@ private struct ProjectDashboardRow: View {
 
                     PortBadgeRow(ports: self.project.ports)
 
-                    Image(systemName: "chevron.right")
+                    Image(systemName: self.isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption2)
                         .foregroundStyle(Readability.secondaryText)
-                        .rotationEffect(.degrees(self.isExpanded ? 90 : 0))
-                        .animation(.easeInOut(duration: 0.15), value: self.isExpanded)
                 }
                 .contentShape(Rectangle())
             }
@@ -327,15 +287,6 @@ private struct ProjectDashboardRow: View {
                 }
             }
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 2)
-        .background(
-            RoundedRectangle(cornerRadius: 5)
-                .fill(self.isHovered ? Color.primary.opacity(0.04) : Color.clear)
-        )
-        .onHover { hovering in
-            self.isHovered = hovering
-        }
     }
 }
 
@@ -348,9 +299,7 @@ private struct NodeProcessDrawerToggle: View {
 
     var body: some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                self.isOpen.toggle()
-            }
+            self.isOpen.toggle()
         } label: {
             HStack(alignment: .center, spacing: 6) {
                 Text("Node processes")
@@ -371,11 +320,9 @@ private struct NodeProcessDrawerToggle: View {
                             : Readability.secondaryText
                     )
                 Spacer()
-                Image(systemName: "chevron.right")
+                Image(systemName: self.isOpen ? "chevron.down" : "chevron.up")
                     .font(.caption2)
                     .foregroundStyle(Readability.secondaryText)
-                    .rotationEffect(.degrees(self.isOpen ? 90 : 0))
-                    .animation(.easeInOut(duration: 0.15), value: self.isOpen)
             }
             .contentShape(Rectangle())
         }
@@ -394,71 +341,30 @@ private struct NodeProcessDrawerToggle: View {
 private struct NodeProcessGroupRow: View {
     @ObservedObject var store: PortpourriStore
     let group: NodeProcessGroup
-    @State private var isExpanded = false
-    @State private var isHovered = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    self.isExpanded.toggle()
-                }
-            } label: {
-                HStack(alignment: .center, spacing: 6) {
-                    Text("\(self.group.count)\u{00D7}")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(Readability.secondaryText)
-                        .frame(width: 30, alignment: .trailing)
+        HStack(alignment: .center, spacing: 6) {
+            Text("\(self.group.count)\u{00D7}")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(Readability.secondaryText)
+                .frame(width: 28, alignment: .trailing)
 
-                    Text(self.group.toolLabel)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .lineLimit(1)
+            Text(self.group.toolLabel)
+                .font(.caption)
+                .fontWeight(.medium)
+                .lineLimit(1)
 
-                    Spacer(minLength: 4)
+            Spacer(minLength: 4)
 
-                    Text(self.group.formattedMemory)
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(
-                            self.group.totalMemoryBytes > 500 * 1024 * 1024
-                                ? Palette.mutedRed
-                                : Readability.secondaryText
-                        )
+            Text(self.group.formattedMemory)
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(Readability.secondaryText)
 
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9))
-                        .foregroundStyle(Readability.secondaryText)
-                        .rotationEffect(.degrees(self.isExpanded ? 90 : 0))
-                        .animation(.easeInOut(duration: 0.15), value: self.isExpanded)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if self.isExpanded {
-                HStack(spacing: 8) {
-                    InlineAccentButton("Kill all", tone: .conflict) {
-                        self.store.terminateGroup(self.group)
-                    }
-
-                    InlineTextButton("Copy PIDs") {
-                        let pids = self.group.pids.map(String.init).joined(separator: ", ")
-                        self.store.copyText(pids, label: "PIDs")
-                    }
-                }
-                .padding(.top, 6)
-                .padding(.leading, 34)
+            InlineAccentButton("Kill all", tone: .conflict) {
+                self.store.terminateGroup(self.group)
             }
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(self.isHovered || self.isExpanded ? Color.primary.opacity(0.03) : Color.clear)
-        )
-        .onHover { hovering in
-            self.isHovered = hovering
-        }
+        .padding(.vertical, 2)
     }
 }
 
@@ -551,14 +457,13 @@ private struct ProcessDetailRow: View {
 // MARK: - Other Listeners (optional)
 
 private struct OtherListenersSection: View {
-    let title: String
     let processes: [TrackedProcessSnapshot]
     @State private var isExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             DisclosureToggle(
-                title: self.title,
+                title: "Other listeners",
                 countText: "\(self.processes.count)",
                 isExpanded: self.$isExpanded
             )
@@ -604,7 +509,6 @@ private struct OtherListenerSummaryRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .help(self.process.process.commandLine)
     }
 }
 
@@ -617,21 +521,20 @@ private struct CompactHeader: View {
     let projectCount: Int
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: "network")
-                .font(.caption)
-                .foregroundStyle(Readability.secondaryText)
-            Text("Portpourri")
-                .font(.subheadline)
-                .fontWeight(.semibold)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text("Portpourri")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Spacer()
+                Text(self.useSampleData ? "Sample data mode" : self.relativeUpdatedText)
+                    .font(.caption)
+                    .foregroundStyle(Readability.secondaryText)
+            }
 
             self.summaryLine
                 .font(.caption)
-
-            Spacer()
-            Text(self.relativeUpdatedText)
-                .font(.caption)
-                .foregroundStyle(Readability.secondaryText)
+                .foregroundStyle(.primary)
         }
     }
 
@@ -643,8 +546,8 @@ private struct CompactHeader: View {
 
     private var relativeUpdatedText: String {
         let elapsed = Date().timeIntervalSince(self.snapshot.generatedAt)
-        guard elapsed > 3 else { return "Just now" }
-        return Self.relativeDateFormatter.localizedString(fromTimeInterval: -elapsed)
+        guard elapsed > 3 else { return "Updated just now" }
+        return "Updated \(Self.relativeDateFormatter.localizedString(fromTimeInterval: -elapsed))"
     }
 
     private var summaryLine: Text {
@@ -657,12 +560,9 @@ private struct CompactHeader: View {
             )
         }
         if self.projectCount > 0 {
-            parts.append(
-                Text("\(Image(systemName: "circle.fill"))").font(.system(size: 5)).foregroundColor(Palette.mutedGreen)
-                + Text(" \(self.projectCount) running")
-            )
+            parts.append(Text("\(self.projectCount) running"))
         }
-        let separator = Text(" \u{00B7} ").foregroundColor(Readability.secondaryText)
+        let separator = Text("  \u{00B7}  ").foregroundColor(Readability.secondaryText)
         var result = Text("")
         for (i, part) in parts.enumerated() {
             if i > 0 { result = result + separator }
@@ -734,21 +634,6 @@ private struct DisclosureToggle: View {
 }
 
 
-private struct IdleStateView: View {
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "moon.zzz")
-                .font(.system(size: 24))
-                .foregroundStyle(Color.primary.opacity(0.20))
-            Text("No Node processes running")
-                .font(.caption)
-                .foregroundStyle(Readability.secondaryText)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-    }
-}
-
 private struct CompactRowDivider: View {
     var body: some View {
         Divider()
@@ -796,7 +681,7 @@ private enum Palette {
 }
 
 private enum Readability {
-    static let secondaryText = Color(nsColor: .secondaryLabelColor)
+    static let secondaryText = Color.primary.opacity(0.78)
 }
 
 private struct PortBadge: View {
@@ -805,10 +690,10 @@ private struct PortBadge: View {
 
     var body: some View {
         Text(verbatim: String(self.port))
-            .font(.system(.caption, design: .monospaced))
-            .fontWeight(.medium)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
+            .font(.system(.caption2, design: .monospaced))
+            .fontWeight(.semibold)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
             .background(self.tone.fill, in: Capsule())
     }
 }
@@ -831,7 +716,7 @@ private struct StatusTag: View {
 
     var body: some View {
         Text(self.text)
-            .font(.system(size: 10, weight: .semibold))
+            .font(.system(size: 9, weight: .semibold))
             .foregroundStyle(self.tone.foreground)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)
@@ -883,263 +768,13 @@ private struct InlineAccentButton: View {
     }
 }
 
-// MARK: - AI Tools Section
-
-private struct AIToolsSection: View {
-    @ObservedObject var store: PortpourriStore
-    let aiTools: AIToolSnapshot
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if !self.aiTools.hasContent {
-                HStack(spacing: 6) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Scanning worktrees\u{2026}")
-                        .font(.caption)
-                        .foregroundStyle(Readability.secondaryText)
-                }
-                .padding(.vertical, 4)
-            } else {
-                if !self.aiTools.claudeWorktrees.isEmpty || self.aiTools.claudeSessionCount > 0 {
-                    AIToolSourceRow(
-                        store: self.store,
-                        iconImage: BrandIcon.claude,
-                        label: "Claude Code",
-                        worktrees: self.aiTools.claudeWorktrees,
-                        sessionCount: self.aiTools.claudeSessionCount,
-                        totalSize: self.aiTools.claudeTotalSize
-                    )
-                }
-
-                if !self.aiTools.codexWorktrees.isEmpty || self.aiTools.codexSessionCount > 0 {
-                    AIToolSourceRow(
-                        store: self.store,
-                        iconImage: BrandIcon.codex,
-                        label: "Codex",
-                        worktrees: self.aiTools.codexWorktrees,
-                        sessionCount: self.aiTools.codexSessionCount,
-                        totalSize: self.aiTools.codexTotalSize
-                    )
-                }
-
-                if self.aiTools.totalStaleCount > 0 {
-                    HStack {
-                        Text("\(self.aiTools.totalStaleCount) stale (3+ days)")
-                            .font(.caption)
-                            .foregroundStyle(Readability.secondaryText)
-                        Spacer()
-                        InlineAccentButton("Clear stale", tone: .conflict) {
-                            self.store.deleteStaleWorktrees()
-                        }
-                    }
-                    .padding(.top, 2)
-                }
-            }
-        }
-    }
-}
-
-private struct AIToolSourceRow: View {
-    @ObservedObject var store: PortpourriStore
-    let iconImage: NSImage?
-    let label: String
-    let worktrees: [AIWorktreeEntry]
-    let sessionCount: Int
-    let totalSize: Int64
-    @State private var isExpanded = false
-    @State private var isHovered = false
-
-    private var formattedSize: String {
-        let mb = Double(self.totalSize) / (1024 * 1024)
-        if mb >= 1024 {
-            return String(format: "%.1f GB", mb / 1024)
-        }
-        return String(format: "%.0f MB", mb)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    self.isExpanded.toggle()
-                }
-            } label: {
-                HStack(alignment: .center, spacing: 6) {
-                    Group {
-                        if let img = self.iconImage {
-                            Image(nsImage: img)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 13, height: 13)
-                        } else {
-                            Image(systemName: "questionmark.circle")
-                                .font(.caption)
-                        }
-                    }
-                    .frame(width: 16)
-
-                    Text(self.label)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-
-                    Text("\(self.worktrees.count) worktree\(self.worktrees.count == 1 ? "" : "s")")
-                        .font(.caption)
-                        .foregroundStyle(Readability.secondaryText)
-
-                    if self.sessionCount > 0 {
-                        Text("\u{00B7} \(self.sessionCount) sessions")
-                            .font(.caption)
-                            .foregroundStyle(Readability.secondaryText)
-                    }
-
-                    Spacer(minLength: 4)
-
-                    Text(self.formattedSize)
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(
-                            self.totalSize > 1024 * 1024 * 1024
-                                ? Palette.mutedRed
-                                : Readability.secondaryText
-                        )
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9))
-                        .foregroundStyle(Readability.secondaryText)
-                        .rotationEffect(.degrees(self.isExpanded ? 90 : 0))
-                        .animation(.easeInOut(duration: 0.15), value: self.isExpanded)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if self.isExpanded {
-                VStack(alignment: .leading, spacing: 0) {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 0) {
-                            ForEach(self.worktrees) { entry in
-                                AIWorktreeRow(store: self.store, entry: entry)
-                            }
-                        }
-                    }
-                    .frame(maxHeight: 180)
-
-                    if self.worktrees.count > 1 {
-                        HStack {
-                            Spacer()
-                            InlineAccentButton("Clear all", tone: .conflict) {
-                                self.store.deleteAllWorktrees(self.worktrees)
-                            }
-                        }
-                        .padding(.top, 4)
-                    }
-                }
-                .padding(.leading, 20)
-                .padding(.top, 4)
-            }
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 5)
-                .fill(self.isHovered ? Color.primary.opacity(0.04) : Color.clear)
-        )
-        .onHover { hovering in
-            self.isHovered = hovering
-        }
-    }
-}
-
-private struct AIWorktreeRow: View {
-    @ObservedObject var store: PortpourriStore
-    let entry: AIWorktreeEntry
-    @State private var isExpanded = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    self.isExpanded.toggle()
-                }
-            } label: {
-                HStack(alignment: .center, spacing: 6) {
-                    Text(self.entry.name)
-                        .font(.caption)
-                        .foregroundStyle(self.entry.isStale ? Readability.secondaryText : .primary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-
-                    if let project = self.entry.projectName {
-                        Text(project)
-                            .font(.caption2)
-                            .foregroundStyle(Readability.secondaryText)
-                            .lineLimit(1)
-                    }
-
-                    if self.entry.daysSinceModified > 0 {
-                        Text("\(self.entry.daysSinceModified)d")
-                            .font(.caption2)
-                            .foregroundStyle(self.entry.isStale ? Palette.mutedRed : Readability.secondaryText)
-                    }
-
-                    Spacer(minLength: 4)
-
-                    Text(self.entry.formattedSize)
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(Readability.secondaryText)
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 7))
-                        .foregroundStyle(Readability.secondaryText)
-                        .rotationEffect(.degrees(self.isExpanded ? 90 : 0))
-                        .animation(.easeInOut(duration: 0.15), value: self.isExpanded)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(.vertical, 3)
-
-            if self.isExpanded {
-                HStack(spacing: 8) {
-                    InlineTextButton("Reveal") {
-                        self.store.revealWorktree(self.entry)
-                    }
-                    InlineAccentButton("Delete", tone: .conflict) {
-                        self.store.deleteWorktree(self.entry)
-                    }
-                }
-                .padding(.leading, 4)
-                .padding(.bottom, 4)
-            }
-        }
-    }
-}
-
-// MARK: - Brand Icons
-
-@MainActor
-private enum BrandIcon {
-    static let claude: NSImage? = loadIcon("ProviderIcon-claude")
-    static let codex: NSImage? = loadIcon("ProviderIcon-codex")
-
-    private static func loadIcon(_ name: String) -> NSImage? {
-        guard let url = Bundle.module.url(forResource: name, withExtension: "svg"),
-              let image = NSImage(contentsOf: url) else {
-            return nil
-        }
-        image.size = NSSize(width: 14, height: 14)
-        image.isTemplate = true
-        return image
-    }
-}
-
 // MARK: - Visual Effects
 
 private struct PopoverMaterialBackground: View {
     var body: some View {
         ZStack {
-            VisualEffectView(material: .popover, blendingMode: .behindWindow, state: .active, isEmphasized: true)
-            Color(nsColor: .windowBackgroundColor).opacity(0.3)
+            VisualEffectView(material: .popover, blendingMode: .behindWindow, state: .active)
+            Color.white.opacity(0.10)
         }
         .ignoresSafeArea()
     }
@@ -1147,7 +782,10 @@ private struct PopoverMaterialBackground: View {
 
 private struct PopoverCapsuleBackground: View {
     var body: some View {
-        VisualEffectView(material: .sidebar, blendingMode: .withinWindow, state: .active)
+        ZStack {
+            VisualEffectView(material: .sidebar, blendingMode: .withinWindow, state: .active)
+            Color.white.opacity(0.12)
+        }
     }
 }
 
@@ -1155,14 +793,13 @@ private struct VisualEffectView: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blendingMode: NSVisualEffectView.BlendingMode
     let state: NSVisualEffectView.State
-    var isEmphasized: Bool = false
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = self.material
         view.blendingMode = self.blendingMode
         view.state = self.state
-        view.isEmphasized = self.isEmphasized
+        view.isEmphasized = false
         return view
     }
 
@@ -1170,7 +807,7 @@ private struct VisualEffectView: NSViewRepresentable {
         nsView.material = self.material
         nsView.blendingMode = self.blendingMode
         nsView.state = self.state
-        nsView.isEmphasized = self.isEmphasized
+        nsView.isEmphasized = false
     }
 }
 
@@ -1210,37 +847,6 @@ private struct ResolutionAction {
 }
 
 private enum ResolutionAdvisor {
-    static func displayPriority(for process: TrackedProcessSnapshot) -> Int {
-        let command = process.process.commandLine.lowercased()
-        let tool = process.process.toolLabel.lowercased()
-        let listenerIsSSH = process.listeners.contains {
-            let name = $0.commandName.lowercased()
-            return name == "ssh" || name == "sshd"
-        }
-
-        if tool == "ssh" || tool == "sshd" || command.hasPrefix("ssh ") || listenerIsSSH {
-            return 0
-        }
-
-        if process.process.isNodeFamily {
-            return 1
-        }
-
-        if self.applicationBundlePath(from: process.process.commandLine)?.localizedCaseInsensitiveContains("/Docker.app") == true {
-            return 2
-        }
-
-        if process.process.commandLine.hasPrefix("/System/") {
-            return 3
-        }
-
-        if ProcessActionPolicy.canTerminate(process) {
-            return 4
-        }
-
-        return 5
-    }
-
     static func primaryAction(for process: TrackedProcessSnapshot, portContext: Int?) -> ResolutionAction? {
         let command = process.process.commandLine
         let lowercasedCommand = command.lowercased()
@@ -1261,10 +867,6 @@ private enum ResolutionAdvisor {
         // infrastructure — no action button, just informational display.
         if self.applicationBundlePath(from: command)?.localizedCaseInsensitiveContains("/Docker.app") == true {
             return nil
-        }
-
-        if process.process.isDevServer, ProcessActionPolicy.canTerminate(process) {
-            return ResolutionAction(title: "Stop server", tone: .conflict, kind: .terminate)
         }
 
         if ProcessActionPolicy.canTerminate(process) {
@@ -1375,8 +977,8 @@ private enum DisplayText {
         NSString(string: path).abbreviatingWithTildeInPath
     }
 
-    static func watchedPortHeadline(_ status: WatchedPortStatus, blockers: [TrackedProcessSnapshot]) -> String {
-        let owner = self.watchedPortOwner(status, blockers: blockers)
+    static func watchedPortHeadline(_ status: WatchedPortStatus) -> String {
+        let owner = self.watchedPortOwner(status)
         if status.isConflict {
             return "Blocked by \(owner)"
         }
@@ -1386,19 +988,12 @@ private enum DisplayText {
         return "In use by \(owner)"
     }
 
-    static func blockerDetail(_ blockers: [TrackedProcessSnapshot]) -> String? {
-        guard !blockers.isEmpty else { return nil }
-        if blockers.count == 1 {
-            let process = blockers[0]
-            let pid = "PID \(process.process.pid)"
-            if let cwd = process.process.cwd, cwd != "/" {
-                return "\(pid) \u{00B7} \(self.path(cwd))"
-            }
-            return pid
+    static func blockerDetail(_ process: TrackedProcessSnapshot) -> String {
+        let pid = "PID \(process.process.pid)"
+        if let cwd = process.process.cwd, cwd != "/" {
+            return "\(pid) \u{00B7} \(self.path(cwd))"
         }
-
-        let summaries = blockers.map { "\(blockerName($0)) PID \($0.process.pid)" }
-        return "2 blockers: " + summaries.joined(separator: ", ")
+        return pid
     }
 
     static func processDetail(_ process: ProcessSnapshot) -> String? {
@@ -1420,31 +1015,7 @@ private enum DisplayText {
         return tools.joined(separator: " \u{2022} ")
     }
 
-    static func blockerName(_ process: TrackedProcessSnapshot) -> String {
-        let tool = process.process.toolLabel
-        let command = process.process.commandLine.lowercased()
-
-        if tool.caseInsensitiveCompare("com.docker.backend") == .orderedSame {
-            return "Docker"
-        }
-        if tool.caseInsensitiveCompare("ControlCenter") == .orderedSame {
-            return "Control Center"
-        }
-        if tool.caseInsensitiveCompare("ssh") == .orderedSame
-            || tool.caseInsensitiveCompare("sshd") == .orderedSame
-            || command.hasPrefix("ssh ") {
-            return "SSH tunnel"
-        }
-
-        return tool
-    }
-
-    private static func watchedPortOwner(_ status: WatchedPortStatus, blockers: [TrackedProcessSnapshot]) -> String {
-        let ownerNames = blockers.map(blockerName)
-        if !ownerNames.isEmpty {
-            return formatOwnerNames(ownerNames)
-        }
-
+    private static func watchedPortOwner(_ status: WatchedPortStatus) -> String {
         let owners = status.ownerSummary
             .split(separator: ",")
             .map { stripPID(from: $0.trimmingCharacters(in: .whitespacesAndNewlines)) }
@@ -1458,20 +1029,6 @@ private enum DisplayText {
         }
 
         return "\(firstOwner) +\(owners.count - 1)"
-    }
-
-    private static func formatOwnerNames(_ owners: [String]) -> String {
-        let uniqueOwners = Array(NSOrderedSet(array: owners)) as? [String] ?? owners
-        switch uniqueOwners.count {
-        case 0:
-            return "another process"
-        case 1:
-            return uniqueOwners[0]
-        case 2:
-            return "\(uniqueOwners[0]) and \(uniqueOwners[1])"
-        default:
-            return "\(uniqueOwners[0]), \(uniqueOwners[1]), and \(uniqueOwners.count - 2) more"
-        }
     }
 
     private static func command(_ process: ProcessSnapshot) -> String {
@@ -1532,7 +1089,6 @@ private enum DisplayText {
 struct SettingsRootView: View {
     @ObservedObject var store: PortpourriStore
     @ObservedObject private var settings: SettingsStore
-    @State private var showPortOnboarding = false
 
     init(store: PortpourriStore) {
         self.store = store
@@ -1554,15 +1110,6 @@ struct SettingsRootView: View {
         }
         .padding(20)
         .frame(width: 560, height: 440)
-        .onAppear {
-            self.showPortOnboarding = !self.settings.hasCompletedPortOnboarding
-        }
-        .sheet(isPresented: self.$showPortOnboarding) {
-            WatchedPortsOnboardingView(
-                settings: self.settings,
-                isPresented: self.$showPortOnboarding
-            )
-        }
     }
 }
 
@@ -1651,7 +1198,6 @@ private struct GeneralSettingsView: View {
 
 private struct DisplaySettingsView: View {
     @ObservedObject var settings: SettingsStore
-    @State private var showPortOnboarding = false
 
     var body: some View {
         Form {
@@ -1685,11 +1231,8 @@ private struct DisplaySettingsView: View {
             }
 
             Section("Watched Ports") {
-                Button("Choose common ports…") {
-                    self.showPortOnboarding = true
-                }
                 TextField("Ports", text: self.$settings.watchedPortsText, prompt: Text("3000,5173,8081"))
-                Text("Pick presets for common local ports, then use the comma-separated field for anything custom.")
+                Text("Comma-separated list of ports to highlight in the menu bar and popover.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -1705,82 +1248,6 @@ private struct DisplaySettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .sheet(isPresented: self.$showPortOnboarding) {
-            WatchedPortsOnboardingView(
-                settings: self.settings,
-                isPresented: self.$showPortOnboarding
-            )
-        }
-    }
-}
-
-private struct WatchedPortsOnboardingView: View {
-    @ObservedObject var settings: SettingsStore
-    @Binding var isPresented: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Choose watched ports")
-                .font(.title3)
-                .fontWeight(.semibold)
-
-            Text("Portpourri only flags the ports you care about. Start with the common presets below, then add anything custom in Display settings.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(SettingsStore.watchedPortPresets) { preset in
-                    Toggle(isOn: self.binding(for: preset)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text(preset.title)
-                                    .fontWeight(.medium)
-                                if preset.isRecommended {
-                                    StatusTag(text: "recommended", tone: .node)
-                                }
-                            }
-                            Text("\(preset.detail) · \(preset.ports.map(String.init).joined(separator: ", "))")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .toggleStyle(.checkbox)
-                }
-            }
-
-            Text(self.selectionSummary)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-
-            HStack {
-                Spacer()
-                Button("Not now") {
-                    self.isPresented = false
-                }
-                Button("Save") {
-                    self.settings.completePortOnboarding()
-                    self.isPresented = false
-                }
-                .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(24)
-        .frame(width: 460)
-    }
-
-    private var selectionSummary: String {
-        let ports = self.settings.watchedPorts
-        if ports.isEmpty {
-            return "No watched ports selected."
-        }
-        return "Watching \(ports.map(String.init).joined(separator: ", "))"
-    }
-
-    private func binding(for preset: WatchedPortPreset) -> Binding<Bool> {
-        Binding(
-            get: { self.settings.includesPreset(preset) },
-            set: { self.settings.setPreset(preset, enabled: $0) }
-        )
     }
 }
 
@@ -1883,7 +1350,7 @@ private struct AboutSettingsView: View {
             }
 
             Section("Links") {
-                Link(destination: URL(string: "https://github.com/jskoiz/portpourri")!) {
+                Link(destination: URL(string: "https://github.com/nicktoonz/portpourri")!) {
                     HStack {
                         Image(systemName: "chevron.left.forwardslash.chevron.right")
                             .frame(width: 20)

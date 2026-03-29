@@ -6,7 +6,7 @@ import UserNotifications
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let store = PortpourriStore(
         useSampleData: ProcessInfo.processInfo.arguments.contains("--sample-data") ||
-            ProcessInfo.processInfo.environment["PORTPOURRI_SAMPLE_DATA"] == "1"
+            ProcessInfo.processInfo.environment["NODETRACKER_SAMPLE_DATA"] == "1"
     )
 
     private var statusBarController: StatusBarController?
@@ -24,12 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func requestNotificationPermissions() {
         guard Bundle.main.bundleIdentifier != nil else { return }
-        // `requestAuthorization` may complete off the main thread. Avoid passing a
-        // MainActor-isolated callback from app launch, which can trip dispatch
-        // assertions in packaged builds.
-        Task.detached(priority: .utility) {
-            _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
-        }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 }
 

@@ -22,7 +22,6 @@ enum RefreshCadence: Double, CaseIterable, Identifiable {
 }
 
 enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
-    case dotMatrix
     case countAndMemory
     case countOnly
     case memoryOnly
@@ -32,7 +31,6 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .dotMatrix: "Dot Matrix"
         case .countAndMemory: "Projects + Memory"
         case .countOnly: "Project Count"
         case .memoryOnly: "Memory Usage"
@@ -42,7 +40,6 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
 
     var description: String {
         switch self {
-        case .dotMatrix: "\u{25CF}\u{25CF}\u{25CF}  \u{25A0}\u{25A0}\u{25A1}"
         case .countAndMemory: "3 \u{00B7} 2.1G"
         case .countOnly: "3"
         case .memoryOnly: "2.1G"
@@ -65,67 +62,9 @@ enum GroupMode: String, CaseIterable, Identifiable {
     }
 }
 
-struct WatchedPortPreset: Identifiable, Hashable {
-    let id: String
-    let title: String
-    let detail: String
-    let ports: [Int]
-    let isRecommended: Bool
-}
-
 @MainActor
 final class SettingsStore: ObservableObject {
-    static let watchedPortPresets: [WatchedPortPreset] = [
-        WatchedPortPreset(
-            id: "frontend",
-            title: "Frontend dev servers",
-            detail: "React, Next, Vite and similar local apps",
-            ports: [3000, 3001, 5173],
-            isRecommended: true
-        ),
-        WatchedPortPreset(
-            id: "storybook",
-            title: "Storybook",
-            detail: "Component playgrounds",
-            ports: [6006],
-            isRecommended: true
-        ),
-        WatchedPortPreset(
-            id: "backend",
-            title: "Backend APIs",
-            detail: "Common local API ports",
-            ports: [8080, 8081],
-            isRecommended: true
-        ),
-        WatchedPortPreset(
-            id: "debugger",
-            title: "Node inspector",
-            detail: "Debugger and attach workflows",
-            ports: [9229],
-            isRecommended: false
-        ),
-        WatchedPortPreset(
-            id: "python",
-            title: "Python and Flask",
-            detail: "Optional local servers like port 5000",
-            ports: [5000],
-            isRecommended: false
-        ),
-        WatchedPortPreset(
-            id: "data",
-            title: "Datastores",
-            detail: "Postgres and Redis defaults",
-            ports: [5432, 5433, 6379],
-            isRecommended: false
-        ),
-    ]
-
-    static let recommendedWatchedPorts = watchedPortPresets
-        .filter(\.isRecommended)
-        .flatMap(\.ports)
-        .sorted()
-
-    static let defaultWatchedPortsText = recommendedWatchedPorts.map(String.init).joined(separator: ",")
+    static let defaultWatchedPortsText = SnapshotService.defaultWatchedPorts.map(String.init).joined(separator: ",")
 
     var onChange: (() -> Void)?
 
@@ -168,12 +107,6 @@ final class SettingsStore: ObservableObject {
         didSet {
             UserDefaults.standard.set(self.watchedPortsText, forKey: "watchedPortsText")
             self.onChange?()
-        }
-    }
-
-    @Published var hasCompletedPortOnboarding: Bool {
-        didSet {
-            UserDefaults.standard.set(self.hasCompletedPortOnboarding, forKey: "hasCompletedPortOnboarding")
         }
     }
 
@@ -242,15 +175,13 @@ final class SettingsStore: ObservableObject {
 
     init() {
         let defaults = UserDefaults.standard
-        let storedWatchedPortsText = defaults.string(forKey: "watchedPortsText")
         self.launchAtLogin = defaults.object(forKey: "launchAtLogin") as? Bool ?? false
         let rawCadence = defaults.double(forKey: "refreshCadence")
         self.refreshCadence = RefreshCadence(rawValue: rawCadence == 0 ? 60 : rawCadence) ?? .oneMinute
         self.confirmBeforeTerminate = defaults.object(forKey: "confirmBeforeTerminate") as? Bool ?? true
         self.groupMode = GroupMode(rawValue: defaults.string(forKey: "groupMode") ?? GroupMode.project.rawValue) ?? .project
         self.showNonNodeListeners = defaults.object(forKey: "showNonNodeListeners") as? Bool ?? false
-        self.watchedPortsText = storedWatchedPortsText ?? Self.defaultWatchedPortsText
-        self.hasCompletedPortOnboarding = defaults.object(forKey: "hasCompletedPortOnboarding") as? Bool ?? (storedWatchedPortsText != nil)
+        self.watchedPortsText = defaults.string(forKey: "watchedPortsText") ?? Self.defaultWatchedPortsText
         self.menuBarDisplayMode = MenuBarDisplayMode(rawValue: defaults.string(forKey: "menuBarDisplayMode") ?? "") ?? .countAndMemory
         self.enableConflictNotifications = defaults.object(forKey: "enableConflictNotifications") as? Bool ?? true
         self.notificationSound = defaults.object(forKey: "notificationSound") as? Bool ?? true
@@ -263,31 +194,7 @@ final class SettingsStore: ObservableObject {
     }
 
     var watchedPorts: [Int] {
-        Self.parsePorts(from: self.watchedPortsText)
-    }
-
-    func includesPreset(_ preset: WatchedPortPreset) -> Bool {
-        let watched = Set(self.watchedPorts)
-        return preset.ports.allSatisfy { watched.contains($0) }
-    }
-
-    func setPreset(_ preset: WatchedPortPreset, enabled: Bool) {
-        var updated = Set(self.watchedPorts)
-        if enabled {
-            updated.formUnion(preset.ports)
-        } else {
-            updated.subtract(preset.ports)
-        }
-        self.watchedPortsText = updated.sorted().map(String.init).joined(separator: ",")
-    }
-
-    func completePortOnboarding() {
-        self.hasCompletedPortOnboarding = true
-        self.onChange?()
-    }
-
-    private static func parsePorts(from text: String) -> [Int] {
-        let ports = text
+        let ports = self.watchedPortsText
             .split(separator: ",")
             .compactMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
         return Array(Set(ports)).sorted()
@@ -302,27 +209,18 @@ final class PortpourriStore: ObservableObject {
     @Published var isPopoverPresented = false
     @Published var clipboardNotice: String?
 
-    let settings: SettingsStore
+    let settings = SettingsStore()
     let useSampleData: Bool
 
     private let snapshotService = SnapshotService()
-    private let aiToolProbe = AIToolProbe()
     private var refreshTimer: Timer?
     private var previousConflictPorts: Set<Int> = []
-    private var cachedAITools: AIToolSnapshot = .empty
-    private var aiToolScanTask: Task<Void, Never>?
 
     init(useSampleData: Bool) {
-        let settings = SettingsStore()
-        self.settings = settings
         self.useSampleData = useSampleData
-        let initialSnapshot = useSampleData
-            ? SnapshotService.sampleSnapshot(watchedPorts: settings.watchedPorts)
-            : AppSnapshot.empty(watchedPorts: settings.watchedPorts)
-        self.snapshot = initialSnapshot
-        if useSampleData {
-            self.cachedAITools = initialSnapshot.aiTools
-        }
+        self.snapshot = useSampleData
+            ? SnapshotService.sampleSnapshot()
+            : AppSnapshot.empty(watchedPorts: SnapshotService.defaultWatchedPorts)
         self.settings.onChange = { [weak self] in
             self?.settingsDidChange()
         }
@@ -332,7 +230,6 @@ final class PortpourriStore: ObservableObject {
         self.applyLaunchAtLogin()
         self.scheduleRefreshTimer()
         self.refreshNow()
-        self.refreshAIToolsInBackground()
     }
 
     func stop() {
@@ -341,7 +238,7 @@ final class PortpourriStore: ObservableObject {
     }
 
     func refreshNow() {
-        let watchedPorts = self.settings.watchedPorts
+        let watchedPorts = self.settings.watchedPorts.isEmpty ? SnapshotService.defaultWatchedPorts : self.settings.watchedPorts
         let useSampleData = self.useSampleData
         let service = self.snapshotService
 
@@ -360,8 +257,7 @@ final class PortpourriStore: ObservableObject {
 
             self.isRefreshing = false
             switch result {
-            case var .success(snapshot):
-                snapshot = snapshot.withAITools(self.cachedAITools)
+            case let .success(snapshot):
                 self.snapshot = snapshot
                 self.checkForNewConflicts(in: snapshot)
             case let .failure(error):
@@ -371,33 +267,17 @@ final class PortpourriStore: ObservableObject {
         }
     }
 
-    private func refreshAIToolsInBackground() {
-        self.aiToolScanTask?.cancel()
-        let probe = self.aiToolProbe
-        self.aiToolScanTask = Task {
-            let result = await Task.detached(priority: .utility) {
-                try? probe.scan()
-            }.value
-            guard !Task.isCancelled, let aiTools = result else { return }
-            self.cachedAITools = aiTools
-            self.snapshot = self.snapshot.withAITools(aiTools)
-        }
-    }
-
     func setPopoverPresented(_ presented: Bool) {
         self.isPopoverPresented = presented
         self.scheduleRefreshTimer()
         if presented {
             self.refreshNow()
-            self.refreshAIToolsInBackground()
         }
     }
 
     func visibleOtherProcesses() -> [TrackedProcessSnapshot] {
         self.snapshot.otherProcesses.filter { process in
-            self.settings.showNonNodeListeners
-                || process.isWatchedConflict
-                || process.process.isDevServer
+            self.settings.showNonNodeListeners || process.isWatchedConflict
         }
     }
 
@@ -490,63 +370,6 @@ final class PortpourriStore: ObservableObject {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         process.arguments = ["-a", "Terminal", path]
         try? process.run()
-    }
-
-    // MARK: - AI Tool Actions
-
-    func revealWorktree(_ entry: AIWorktreeEntry) {
-        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: entry.path)])
-    }
-
-    func deleteWorktree(_ entry: AIWorktreeEntry) {
-        let alert = NSAlert()
-        alert.messageText = "Delete worktree \"\(entry.name)\"?"
-        alert.informativeText = "\(entry.formattedSize) at \(entry.path)"
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .warning
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-
-        do {
-            try FileManager.default.removeItem(atPath: entry.path)
-            self.refreshNow()
-        } catch {
-            self.lastError = "Failed to delete: \(error.localizedDescription)"
-        }
-    }
-
-    func deleteStaleWorktrees() {
-        let stale = self.snapshot.aiTools.staleClaudeWorktrees + self.snapshot.aiTools.staleCodexWorktrees
-        guard !stale.isEmpty else { return }
-        self.deleteAllWorktrees(stale)
-    }
-
-    func deleteAllWorktrees(_ entries: [AIWorktreeEntry]) {
-        guard !entries.isEmpty else { return }
-        let totalSize = entries.reduce(Int64(0)) { $0 + $1.sizeBytes }
-        let mb = Double(totalSize) / (1024 * 1024)
-        let formattedSize = mb >= 1024 ? String(format: "%.1f GB", mb / 1024) : String(format: "%.0f MB", mb)
-
-        let alert = NSAlert()
-        alert.messageText = "Delete \(entries.count) worktree\(entries.count == 1 ? "" : "s")?"
-        alert.informativeText = "This will free \(formattedSize)."
-        alert.addButton(withTitle: "Delete All")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .warning
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-
-        var failCount = 0
-        for entry in entries {
-            do {
-                try FileManager.default.removeItem(atPath: entry.path)
-            } catch {
-                failCount += 1
-            }
-        }
-        if failCount > 0 {
-            self.lastError = "Failed to delete \(failCount) worktree\(failCount == 1 ? "" : "s")"
-        }
-        self.refreshNow()
     }
 
     func terminate(process: TrackedProcessSnapshot) {

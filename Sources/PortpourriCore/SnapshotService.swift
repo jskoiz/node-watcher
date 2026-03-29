@@ -68,11 +68,6 @@ public struct SnapshotService: Sendable {
         let listenersByPID = Dictionary(grouping: listeners, by: \.pid)
         let tracked = processes
             .filter { listenersByPID[$0.pid] != nil }
-            .filter { process in
-                // Drop pure macOS system daemons — they're never actionable
-                let commandName = listenersByPID[process.pid]?.first?.commandName ?? ""
-                return !self.classifier.isSystemProcess(commandName: commandName)
-            }
             .map { process -> TrackedProcessSnapshot in
                 let ownedListeners = (listenersByPID[process.pid] ?? []).sorted {
                     if $0.port == $1.port {
@@ -82,7 +77,7 @@ public struct SnapshotService: Sendable {
                 }
                 let displayProcess = self.decorate(process: process, listeners: ownedListeners)
                 let ports = Array(Set(ownedListeners.map(\.port))).sorted()
-                let isWatchedConflict = ports.contains(where: watchedPorts.contains) && !displayProcess.isNodeFamily && !displayProcess.isDevServer
+                let isWatchedConflict = ports.contains(where: watchedPorts.contains) && !displayProcess.isNodeFamily
                 return TrackedProcessSnapshot(
                     process: displayProcess,
                     listeners: ownedListeners,
@@ -90,7 +85,6 @@ public struct SnapshotService: Sendable {
                     isWatchedConflict: isWatchedConflict
                 )
             }
-            .filter { !self.shouldHideFromUI($0.process) }
 
         var projectGroups: [String: (ResolvedProject, [TrackedProcessSnapshot])] = [:]
         var otherProcesses: [TrackedProcessSnapshot] = []
@@ -185,17 +179,6 @@ public struct SnapshotService: Sendable {
 
         let nodeProcesses = rawProcesses.filter {
             self.classifier.isNodeFamily(commandLine: $0.commandLine, parentCommandLine: nil)
-                && !self.shouldHideFromUI(
-                    self.classifier.classify(
-                        pid: $0.pid,
-                        ppid: 0,
-                        state: "",
-                        uptime: "",
-                        commandLine: $0.commandLine,
-                        parentCommandLine: nil,
-                        cwd: nil
-                    )
-                )
         }
 
         var groups: [String: (count: Int, totalBytes: Int, pids: [Int])] = [:]
@@ -248,7 +231,7 @@ public struct SnapshotService: Sendable {
             }
             .joined(separator: ", ")
 
-        let nodeOwned = isBusy && owners.allSatisfy { $0.process.isNodeFamily || $0.process.isDevServer }
+        let nodeOwned = isBusy && owners.allSatisfy { $0.process.isNodeFamily }
         let isConflict = isBusy && (!nodeOwned || owners.count > 1)
 
         return WatchedPortStatus(
@@ -261,9 +244,7 @@ public struct SnapshotService: Sendable {
     }
 
     private func decorate(process: ProcessSnapshot, listeners: [ListenerSnapshot]) -> ProcessSnapshot {
-        // Node family and dev servers already have good labels from the classifier
-        guard !process.isNodeFamily, !process.isDevServer,
-              let commandName = listeners.first?.commandName, !commandName.isEmpty else {
+        guard !process.isNodeFamily, let commandName = listeners.first?.commandName, !commandName.isEmpty else {
             return process
         }
 
@@ -276,29 +257,8 @@ public struct SnapshotService: Sendable {
             parentCommandLine: process.parentCommandLine,
             cwd: process.cwd,
             isNodeFamily: process.isNodeFamily,
-            isDevServer: process.isDevServer,
             toolLabel: commandName
         )
-    }
-
-    private func shouldHideFromUI(_ process: ProcessSnapshot) -> Bool {
-        let tool = process.toolLabel.lowercased()
-        let command = process.commandLine.lowercased()
-        let parent = (process.parentCommandLine ?? "").lowercased()
-        let cwd = (process.cwd ?? "").lowercased()
-
-        if tool == "playwright-mcp" || tool == "mcp-server" {
-            return true
-        }
-
-        if command.contains("playwright-mcp")
-            || parent.contains("playwright-mcp")
-            || command.contains("/ms-playwright/mcp-chrome")
-            || cwd.contains("/ms-playwright/") {
-            return true
-        }
-
-        return false
     }
 
     private static func compareProjects(lhs: ProjectSnapshot, rhs: ProjectSnapshot, watchedPorts: [Int]) -> Bool {
