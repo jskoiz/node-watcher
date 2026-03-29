@@ -12,51 +12,46 @@ struct PopoverRootView: View {
     }
 
     @State private var showProcessDrawer = false
+    @State private var showAITools = false
 
     var body: some View {
-        let conflicts = self.store.snapshot.watchedPorts.filter(\.isConflict)
+        let allWatchedPorts = self.store.snapshot.watchedPorts
             .sorted(by: DisplayText.compareWatchedPorts)
-        let nodeOwnedPorts = self.store.snapshot.watchedPorts
-            .filter { $0.isBusy && $0.isNodeOwned && !$0.isConflict }
-            .sorted(by: DisplayText.compareWatchedPorts)
-        let allProjects = SnapshotDetails.sortedProjects(self.store.snapshot.projects)
         let visibleOtherProcesses = self.store.visibleOtherProcesses()
         let significantGroups = self.store.snapshot.nodeProcessGroups.filter { $0.count >= 3 }
+        let conflictCount = allWatchedPorts.filter(\.isConflict).count
+        let projectCount = SnapshotDetails.sortedProjects(self.store.snapshot.projects).count
+        let aiSnapshot = self.store.aiSnapshot
+        let hasAITools = !aiSnapshot.claudeWorktrees.isEmpty || !aiSnapshot.codexWorktrees.isEmpty
 
         ZStack {
             PopoverMaterialBackground()
 
             VStack(alignment: .leading, spacing: 8) {
+                // 1. Header
                 CompactHeader(
                     snapshot: self.store.snapshot,
                     useSampleData: self.store.useSampleData,
-                    conflictCount: conflicts.count,
-                    projectCount: allProjects.count
+                    conflictCount: conflictCount,
+                    projectCount: projectCount
                 )
 
-                if !conflicts.isEmpty {
-                    ConflictSection(
+                // 2. Watched Ports
+                if !allWatchedPorts.isEmpty {
+                    WatchedPortsSection(
                         store: self.store,
-                        conflicts: conflicts,
-                        visibleOtherProcesses: visibleOtherProcesses
+                        watchedPorts: allWatchedPorts,
+                        otherProcesses: visibleOtherProcesses
                     )
                 }
 
-                if !allProjects.isEmpty || !nodeOwnedPorts.isEmpty {
-                    Divider()
-                    ProjectDashboardSection(
-                        store: self.store,
-                        projects: allProjects,
-                        nodeOwnedPorts: nodeOwnedPorts
-                    )
-                }
-
+                // 3. Other listeners / Blockers
                 if self.settings.showNonNodeListeners, !visibleOtherProcesses.isEmpty {
                     Divider()
                     OtherListenersSection(processes: visibleOtherProcesses)
                 }
 
-                // Bottom drawer toggle for node process groups
+                // 4. Process groups
                 if !significantGroups.isEmpty {
                     Divider()
                     NodeProcessDrawerToggle(
@@ -77,10 +72,17 @@ struct PopoverRootView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
+
+                // 5. AI tools / workspace cleanup
+                if hasAITools {
+                    Divider()
+                    AIToolsSection(aiSnapshot: aiSnapshot, isExpanded: self.$showAITools)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .animation(.easeInOut(duration: 0.2), value: self.showProcessDrawer)
+            .animation(.easeInOut(duration: 0.2), value: self.showAITools)
         }
         .frame(width: 340)
         .overlay(alignment: .bottomTrailing) {
@@ -107,22 +109,22 @@ struct PopoverRootView: View {
     }
 }
 
-// MARK: - Zone 1: Conflict Triage
+// MARK: - Zone 1: Watched Ports
 
-private struct ConflictSection: View {
+private struct WatchedPortsSection: View {
     @ObservedObject var store: PortpourriStore
-    let conflicts: [WatchedPortStatus]
-    let visibleOtherProcesses: [TrackedProcessSnapshot]
+    let watchedPorts: [WatchedPortStatus]
+    let otherProcesses: [TrackedProcessSnapshot]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            ForEach(self.conflicts, id: \.id) { status in
-                ConflictCard(
+            ForEach(self.watchedPorts, id: \.id) { status in
+                WatchedPortRow(
                     store: self.store,
                     status: status,
                     otherProcesses: SnapshotDetails.processes(
                         for: status.port,
-                        from: self.visibleOtherProcesses
+                        from: self.otherProcesses
                     ),
                     projects: SnapshotDetails.projects(
                         for: status.port,
@@ -134,15 +136,28 @@ private struct ConflictSection: View {
     }
 }
 
-private struct ConflictCard: View {
+private struct WatchedPortRow: View {
     @ObservedObject var store: PortpourriStore
     let status: WatchedPortStatus
     let otherProcesses: [TrackedProcessSnapshot]
     let projects: [ProjectSnapshot]
 
+    private var dotState: WatchedPortDotState {
+        WatchedPortDotState(from: self.status)
+    }
+
+    private var portTone: AccentTone {
+        switch self.dotState {
+        case .free: .neutral
+        case .owned: .node
+        case .blocked: .amber
+        case .conflict: .conflict
+        }
+    }
+
     var body: some View {
         HStack(spacing: 8) {
-            PortBadge(port: self.status.port, tone: .conflict)
+            PortBadge(port: self.status.port, tone: self.portTone)
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(DisplayText.watchedPortHeadline(self.status))
@@ -167,8 +182,17 @@ private struct ConflictCard: View {
         .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 7))
         .overlay(
             RoundedRectangle(cornerRadius: 7)
-                .stroke(Palette.mutedRed.opacity(0.30), lineWidth: 0.5)
+                .stroke(self.borderColor.opacity(0.30), lineWidth: 0.5)
         )
+    }
+
+    private var borderColor: Color {
+        switch self.dotState {
+        case .conflict: Palette.mutedRed
+        case .blocked: Palette.mutedAmber
+        case .owned: Palette.mutedGreen
+        case .free: Color.primary
+        }
     }
 
     @ViewBuilder
@@ -185,7 +209,7 @@ private struct ConflictCard: View {
                     self.store.openApplication(at: path)
                 }
             }
-        } else if let suggested = self.store.nextAvailablePort(after: self.status.port) {
+        } else if self.status.isConflict, let suggested = self.store.nextAvailablePort(after: self.status.port) {
             InlineAccentButton("Use \(suggested)", tone: .node) {
                 self.store.copySuggestedPort(after: self.status.port)
             }
@@ -197,12 +221,11 @@ private struct ConflictCard: View {
     }
 }
 
-// MARK: - Zone 2: Project Dashboard
+// MARK: - Zone 2: Project Dashboard (kept for expanded process details)
 
 private struct ProjectDashboardSection: View {
     @ObservedObject var store: PortpourriStore
     let projects: [ProjectSnapshot]
-    let nodeOwnedPorts: [WatchedPortStatus]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -360,7 +383,7 @@ private struct NodeProcessGroupRow: View {
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(Readability.secondaryText)
 
-            InlineAccentButton("Kill all", tone: .conflict) {
+            InlineAccentButton("Kill group", tone: .conflict) {
                 self.store.terminateGroup(self.group)
             }
         }
@@ -646,12 +669,14 @@ private struct CompactRowDivider: View {
 private enum AccentTone {
     case neutral
     case node
+    case amber
     case conflict
 
     var fill: Color {
         switch self {
         case .neutral: Color.primary.opacity(0.06)
         case .node: Palette.softGreenFill
+        case .amber: Palette.softAmberFill
         case .conflict: Palette.softRedFill
         }
     }
@@ -660,6 +685,7 @@ private enum AccentTone {
         switch self {
         case .neutral: .primary
         case .node: Palette.mutedGreen
+        case .amber: Palette.mutedAmber
         case .conflict: Palette.mutedRed
         }
     }
@@ -667,6 +693,7 @@ private enum AccentTone {
     var solidBackground: Color {
         switch self {
         case .node: Palette.mutedGreen
+        case .amber: Palette.mutedAmber
         case .conflict: Palette.mutedRed
         case .neutral: Color.primary.opacity(0.45)
         }
@@ -676,7 +703,9 @@ private enum AccentTone {
 private enum Palette {
     static let mutedRed = Color(nsColor: NSColor(calibratedRed: 0.68, green: 0.32, blue: 0.30, alpha: 1))
     static let mutedGreen = Color(nsColor: NSColor(calibratedRed: 0.30, green: 0.52, blue: 0.38, alpha: 1))
+    static let mutedAmber = Color(nsColor: NSColor(calibratedRed: 0.75, green: 0.55, blue: 0.20, alpha: 1))
     static let softGreenFill = Color(nsColor: NSColor(calibratedRed: 0.30, green: 0.52, blue: 0.38, alpha: 1)).opacity(0.10)
+    static let softAmberFill = Color(nsColor: NSColor(calibratedRed: 0.75, green: 0.55, blue: 0.20, alpha: 1)).opacity(0.10)
     static let softRedFill = Color(nsColor: NSColor(calibratedRed: 0.68, green: 0.32, blue: 0.30, alpha: 1)).opacity(0.10)
 }
 
@@ -811,6 +840,108 @@ private struct VisualEffectView: NSViewRepresentable {
     }
 }
 
+// MARK: - AI Tools Section
+
+private struct AIToolsSection: View {
+    let aiSnapshot: AIToolSnapshot
+    @Binding var isExpanded: Bool
+
+    private var totalWorktrees: Int {
+        self.aiSnapshot.claudeWorktrees.count + self.aiSnapshot.codexWorktrees.count
+    }
+
+    private var formattedSize: String {
+        let mb = Double(self.aiSnapshot.totalSizeBytes) / (1024 * 1024)
+        if mb >= 1024 {
+            return String(format: "%.1f GB", mb / 1024)
+        }
+        return String(format: "%.0f MB", mb)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            DisclosureToggle(
+                title: "AI tools",
+                countText: "\(self.totalWorktrees) worktree\(self.totalWorktrees == 1 ? "" : "s") \u{00B7} \(self.formattedSize)",
+                isExpanded: self.$isExpanded
+            )
+
+            if self.isExpanded {
+                VStack(alignment: .leading, spacing: 4) {
+                    if !self.aiSnapshot.claudeWorktrees.isEmpty {
+                        AIToolGroupView(
+                            label: "Claude Code",
+                            sessionCount: self.aiSnapshot.claudeSessionCount,
+                            worktrees: self.aiSnapshot.claudeWorktrees
+                        )
+                    }
+                    if !self.aiSnapshot.codexWorktrees.isEmpty {
+                        AIToolGroupView(
+                            label: "Codex",
+                            sessionCount: self.aiSnapshot.codexSessionCount,
+                            worktrees: self.aiSnapshot.codexWorktrees
+                        )
+                    }
+                }
+                .padding(.leading, 4)
+            }
+        }
+    }
+}
+
+private struct AIToolGroupView: View {
+    let label: String
+    let sessionCount: Int
+    let worktrees: [AIWorktreeEntry]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(self.label)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                Text("\(self.worktrees.count) worktree\(self.worktrees.count == 1 ? "" : "s") \u{00B7} \(self.sessionCount) session\(self.sessionCount == 1 ? "" : "s")")
+                    .font(.caption2)
+                    .foregroundStyle(Readability.secondaryText)
+            }
+            ForEach(self.worktrees, id: \.path) { wt in
+                HStack(spacing: 6) {
+                    Text(wt.name)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    if let project = wt.projectName {
+                        Text(project)
+                            .font(.caption2)
+                            .foregroundStyle(Readability.secondaryText)
+                            .lineLimit(1)
+                    }
+                    if Self.isStale(wt) {
+                        StatusTag(text: "stale", tone: .amber)
+                    }
+                    Spacer(minLength: 4)
+                    Text(Self.formattedSize(wt.sizeBytes))
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(Readability.secondaryText)
+                }
+            }
+        }
+    }
+
+    private static func isStale(_ entry: AIWorktreeEntry) -> Bool {
+        let days = Calendar.current.dateComponents([.day], from: entry.lastModified, to: Date()).day ?? 0
+        return days >= 3
+    }
+
+    private static func formattedSize(_ bytes: Int64) -> String {
+        let mb = Double(bytes) / (1024 * 1024)
+        if mb >= 1024 {
+            return String(format: "%.1f GB", mb / 1024)
+        }
+        return String(format: "%.0f MB", mb)
+    }
+}
+
 // MARK: - Business Logic
 
 private enum ProcessActionPolicy {
@@ -853,7 +984,7 @@ private enum ResolutionAdvisor {
         let tool = process.process.toolLabel.lowercased()
 
         if process.process.isNodeFamily, portContext != nil {
-            return ResolutionAction(title: "Free port", tone: .node, kind: .terminate)
+            return ResolutionAction(title: "Stop server", tone: .node, kind: .terminate)
         }
 
         let listenerIsSSH = process.listeners.contains {
@@ -870,7 +1001,8 @@ private enum ResolutionAdvisor {
         }
 
         if ProcessActionPolicy.canTerminate(process) {
-            return ResolutionAction(title: "Stop blocker", tone: .conflict, kind: .terminate)
+            let label = portContext != nil ? "Free port" : "Stop blocker"
+            return ResolutionAction(title: label, tone: .conflict, kind: .terminate)
         }
 
         return nil
@@ -1099,17 +1231,17 @@ struct SettingsRootView: View {
         TabView {
             GeneralSettingsView(store: self.store, settings: self.settings)
                 .tabItem { Label("General", systemImage: "gearshape") }
-            DisplaySettingsView(settings: self.settings)
+            DisplaySettingsView(settings: self.settings, snapshot: self.store.snapshot)
                 .tabItem { Label("Display", systemImage: "eye") }
-            NotificationsSettingsView(settings: self.settings)
-                .tabItem { Label("Notifications", systemImage: "bell") }
+            PortsSettingsView(settings: self.settings)
+                .tabItem { Label("Ports", systemImage: "network") }
             AdvancedSettingsView(store: self.store)
                 .tabItem { Label("Advanced", systemImage: "wrench") }
             AboutSettingsView(store: self.store, settings: self.settings)
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
         .padding(20)
-        .frame(width: 560, height: 440)
+        .frame(width: 560, height: 480)
     }
 }
 
@@ -1176,6 +1308,15 @@ private struct GeneralSettingsView: View {
                 Toggle("Confirm before terminate", isOn: self.$settings.confirmBeforeTerminate)
             }
 
+            Section("Notifications") {
+                Toggle("Notify on port conflicts", isOn: self.$settings.enableConflictNotifications)
+                Toggle("Play notification sound", isOn: self.$settings.notificationSound)
+                    .disabled(!self.settings.enableConflictNotifications)
+                Text("Notifications appear when a non-Node process occupies a watched port.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             if self.store.useSampleData {
                 Section {
                     Label("Running in sample-data mode", systemImage: "testtube.2")
@@ -1198,6 +1339,7 @@ private struct GeneralSettingsView: View {
 
 private struct DisplaySettingsView: View {
     @ObservedObject var settings: SettingsStore
+    let snapshot: AppSnapshot
 
     var body: some View {
         Form {
@@ -1214,11 +1356,38 @@ private struct DisplaySettingsView: View {
                         .tag(mode)
                     }
                 }
+
+                // Live preview
+                HStack {
+                    Text("Preview")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    MenuBarPreview(
+                        displayMode: self.settings.menuBarDisplayMode,
+                        summary: self.snapshot.summary,
+                        watchedPorts: self.snapshot.watchedPorts
+                    )
+                }
+
                 Toggle("Show conflict badge", isOn: self.$settings.showConflictBadge)
                 Toggle("Hide icon when idle", isOn: self.$settings.hideWhenIdle)
                 Text("Hides the menu bar icon when no Node processes are running.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+
+            if self.settings.menuBarDisplayMode == .dotMatrix {
+                Section("Dot Matrix Legend") {
+                    HStack(spacing: 16) {
+                        DotLegendItem(color: Palette.mutedGreen, label: "Your project")
+                        DotLegendItem(color: Palette.mutedAmber, label: "Non-owned")
+                        DotLegendItem(color: Palette.mutedRed, label: "Conflict")
+                        DotLegendItem(color: Color.primary.opacity(0.25), label: "Free")
+                    }
+                    Text("Top row = active projects. Bottom row = watched port status.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("Popover") {
@@ -1229,10 +1398,88 @@ private struct DisplaySettingsView: View {
                 }
                 Toggle("Show non-Node listeners", isOn: self.$settings.showNonNodeListeners)
             }
+        }
+        .formStyle(.grouped)
+    }
+}
 
+private struct DotLegendItem: View {
+    let color: Color
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(self.color)
+                .frame(width: 6, height: 6)
+            Text(self.label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct MenuBarPreview: View {
+    let displayMode: MenuBarDisplayMode
+    let summary: SnapshotSummary
+    let watchedPorts: [WatchedPortStatus]
+
+    var body: some View {
+        HStack(spacing: 2) {
+            if self.displayMode == .dotMatrix {
+                self.dotMatrixPreview
+            } else {
+                Text(StatusChipRenderer.statusText(for: self.summary, displayMode: self.displayMode))
+                    .font(.system(.caption, design: .monospaced))
+                    .fontWeight(.medium)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.quaternary)
+        .cornerRadius(6)
+    }
+
+    @ViewBuilder
+    private var dotMatrixPreview: some View {
+        let ports = Array(self.watchedPorts.sorted(by: { $0.port < $1.port }).prefix(5))
+        let projects = min(self.summary.nodeProjectCount, 5)
+        VStack(spacing: 2) {
+            HStack(spacing: 2) {
+                ForEach(0..<max(ports.count, projects, 1), id: \.self) { i in
+                    Circle()
+                        .fill(i < projects ? Palette.mutedGreen : Color.clear)
+                        .frame(width: 4, height: 4)
+                }
+            }
+            HStack(spacing: 2) {
+                ForEach(Array(ports.enumerated()), id: \.offset) { _, status in
+                    Circle()
+                        .fill(Self.dotColor(for: status))
+                        .frame(width: 4, height: 4)
+                }
+            }
+        }
+    }
+
+    private static func dotColor(for status: WatchedPortStatus) -> Color {
+        switch WatchedPortDotState(from: status) {
+        case .free: return Color.primary.opacity(0.25)
+        case .owned: return Palette.mutedGreen
+        case .blocked: return Palette.mutedAmber
+        case .conflict: return Palette.mutedRed
+        }
+    }
+}
+
+private struct PortsSettingsView: View {
+    @ObservedObject var settings: SettingsStore
+
+    var body: some View {
+        Form {
             Section("Watched Ports") {
                 TextField("Ports", text: self.$settings.watchedPortsText, prompt: Text("3000,5173,8081"))
-                Text("Comma-separated list of ports to highlight in the menu bar and popover.")
+                Text("Comma-separated list of ports to monitor. These ports are shown in the menu bar Dot Matrix and highlighted in the popover.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -1246,24 +1493,6 @@ private struct DisplaySettingsView: View {
                     .font(.system(.footnote, design: .monospaced))
                     .foregroundStyle(.tertiary)
             }
-        }
-        .formStyle(.grouped)
-    }
-}
-
-private struct NotificationsSettingsView: View {
-    @ObservedObject var settings: SettingsStore
-
-    var body: some View {
-        Form {
-            Section("Port Conflicts") {
-                Toggle("Notify on port conflicts", isOn: self.$settings.enableConflictNotifications)
-                Toggle("Play notification sound", isOn: self.$settings.notificationSound)
-                    .disabled(!self.settings.enableConflictNotifications)
-            }
-            Text("Notifications appear when a non-Node process occupies a watched port.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
     }
@@ -1357,11 +1586,33 @@ private struct AboutSettingsView: View {
                             .foregroundStyle(.tertiary)
                     }
                 }
+                Link(destination: URL(string: "https://github.com/jskoiz/portpourri/issues")!) {
+                    HStack {
+                        Image(systemName: "exclamationmark.bubble")
+                            .frame(width: 20)
+                        Text("Issues & Feedback")
+                        Spacer()
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                Link(destination: URL(string: "https://github.com/jskoiz/portpourri/releases")!) {
+                    HStack {
+                        Image(systemName: "tag")
+                            .frame(width: 20)
+                        Text("Release Notes")
+                        Spacer()
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
                 Link(destination: URL(string: "https://x.com/jskoiz")!) {
                     HStack {
                         Image(systemName: "at")
                             .frame(width: 20)
-                        Text("Follow on X (Twitter)")
+                        Text("@jskoiz on X")
                         Spacer()
                         Image(systemName: "arrow.up.right.square")
                             .font(.caption)

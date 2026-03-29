@@ -10,16 +10,15 @@ completed_at:
 
 blockers:
   - description: >
-      Pre-existing test failure: testSampleSnapshotCollapsesDuplicateIPv4IPv6Listener.
-      Sample data fixture does not match current SampleData shape. This issue
-      predates the Phase 1 work and should not be treated as a regression.
-    severity: low
-    phase: pre-existing
+      Manual verification still pending: sample-mode app launch, live-mode app
+      launch, and live-site verification for the new Phase 2 homepage.
+    severity: blocking-completion
+    phase: phase-2
 
 exact_next_task: >
-  Align the app UI and website around the watched-port ownership story:
-  Dot Matrix semantics, popover hierarchy, settings structure, and a
-  conflict-first homepage.
+  Finish Phase 2 closeout by manually verifying sample-mode app launch,
+  live-mode app launch, and the live homepage, then mark the phase complete
+  if those checks pass.
 
 files_allowed_to_change:
   - site/**
@@ -53,35 +52,42 @@ stop_condition: >
 
 validation_results:
   swift_build: pass
-  swift_test: 10/11 pass (1 pre-existing failure in testSampleSnapshotCollapsesDuplicateIPv4IPv6Listener)
+  swift_test: 11/11 pass (0 failures)
+  snapshot_json: valid output with source "live"
   package_app_version: 0.3.2 matches VERSION
   homepage_version: 0.3.2 in hero badge fallback and release-manifest.json
-  download_link: https://github.com/jskoiz/portpourri/releases/latest (302 → v0.3.2)
-  asset_url: https://github.com/jskoiz/portpourri/releases/download/v0.3.2/Portpourri-0.3.2-mac.zip (302 → CDN)
-  github_link: https://github.com/jskoiz/portpourri (verified in site/index.html lines 281, 299, 410)
-  stale_string_scan: zero hits for nicktoonz, NODETRACKER, NodeWatcher, NodeTracker in source files
+  download_link: https://github.com/jskoiz/portpourri/releases/latest
+  github_link: https://github.com/jskoiz/portpourri
+  stale_string_scan: zero hits for "Kill all" or old "Free port" on Node processes
+  ai_refresh_path: separate from main snapshot refresh
+  show_non_node_toggle: restored — Other listeners section follows the Display setting
 
-noted_exceptions:
-  - file: Sources/PortpourriCore/Models.swift
-    classification: acceptable exception required to restore build health
-    reason: >
-      Restored AIToolSnapshot and AIWorktreeEntry structs that were lost in a rename
-      merge (commit b9a3055). Byte-identical to originals from commit 46faa7e. Without
-      these types, swift build fails on origin/main — they are required by AIToolProbe.swift
-      which references them. This is not new code; it is recovery of existing code that
-      was accidentally dropped.
+noted_exceptions: []
 
 canonical_decisions:
   version: "0.3.2"
   website_url: "https://www.portpourri.com"
   repo_url: "https://github.com/jskoiz/portpourri"
   asset_naming: "Portpourri-{version}-mac.zip"
+  dot_matrix_states:
+    free: "dim — port not busy"
+    owned: "green — busy, single Node owner, no conflict"
+    blocked: "amber — busy, non-Node owner"
+    conflict: "red — busy, multiple Node owners"
+  action_labels:
+    node_owned: "Stop server"
+    external_blocker: "Free port"
+    ssh_tunnel: "Stop tunnel"
+    generic: "Stop blocker"
+    group: "Kill group"
+  settings_tabs: "General, Display, Ports, Advanced, About"
+  popover_sections: "Watched Ports, Other Listeners, Process Groups, AI Tools"
 
 handoff_notes: >
-  Phase 1 completed on 2026-03-28. The website now lives under site/ in the
-  canonical app repo, root VERSION and release-manifest.json drive packaging
-  and site metadata, the fake updater UI is removed, About links point to the
-  canonical jskoiz surfaces, and the live Vercel deployment is serving the
-  merged main branch at https://www.portpourri.com with the manifest-driven
-  v0.3.2 hero and canonical GitHub/download links. Phase 2 is now active and
-  should focus only on semantic/UI alignment around watched-port ownership.
+  Phase 2 implementation is in place, but the phase remains in_progress until
+  manual verification is completed. The Dot Matrix contract, popover ordering,
+  ownership-aware labels, settings restructure, tooltip, homepage rewrite, and
+  docs updates are done. AI/worktree scanning now runs on its own async refresh
+  path instead of blocking the main port snapshot refresh, and the non-Node
+  listener toggle is functional again. Remaining checks before completion:
+  sample-mode app launch, live-mode app launch, and live-site verification.

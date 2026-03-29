@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portpourri — A fresh mix of everything on your ports</title>
-  <meta name="description" content="The macOS menu bar app that maps your ports to projects, sniffs out conflicts, and keeps your dev environment tidy.">
+  <title>Portpourri — See who owns your ports</title>
+  <meta name="description" content="Portpourri is a macOS menu bar tool that shows which project owns each watched port and gives you safe next actions when something is blocking.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%236ee7b7' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M6 16h20c-.5 5.5-4 10-10 10S6.5 21.5 6 16z' fill='%236ee7b7' opacity='0.2'/><path d='M6 16h20c-.5 5.5-4 10-10 10S6.5 21.5 6 16z'/><path d='M11 14c-1-3-4-5-6-4 .5 3 2.5 5 6 4z'/><path d='M16 12c0-4 1.5-7 3.5-8-.5 2.5-.5 5.5-3.5 8z'/><path d='M21 14c1-3 4-4.5 6-3.5-.5 3-2.5 4.5-6 3.5z'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,6 +13,7 @@
 </head>
 <body>
 
+  <!-- 1. Literal hero -->
   <section class="hero">
     <div class="hero-logo">
       <div class="bowl-particles"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
@@ -39,12 +40,37 @@
       </svg>
       <span class="logo-text"><span class="lt" style="--i:0">P</span><span class="lt" style="--i:1">O</span><span class="lt" style="--i:2">R</span><span class="lt" style="--i:3">T</span><span class="lt accent" style="--i:4">P</span><span class="lt accent" style="--i:5">O</span><span class="lt accent" style="--i:6">U</span><span class="lt accent" style="--i:7">R</span><span class="lt accent" style="--i:8">R</span><span class="lt accent" style="--i:9">I</span></span>
     </div>
-    <h1>A fresh mix of everything<br>on your ports</h1>
-    <p class="hero-sub">The macOS menu bar app that maps your ports to projects, sniffs out conflicts, and keeps your dev environment tidy.</p>
-    <div class="hero-badge" id="heroBadge"><span class="nav-dot" style="width:6px;height:6px;"></span> <span id="heroVersion">v0.3.2</span> &mdash; <span id="heroHighlight">Renamed to Portpourri with new app icon</span></div>
+    <h1>See who owns your ports</h1>
+    <p class="hero-sub">A macOS menu bar tool that shows which project owns each watched port and gives you safe next actions when something is blocking.</p>
+    <div class="hero-badge" id="heroBadge"><span class="nav-dot" style="width:6px;height:6px;"></span> <span id="heroVersion">v0.3.2</span> &mdash; <span id="heroHighlight">Watched-port ownership and conflict detection</span></div>
   </section>
 
-  <!-- Interactive demo + install side by side -->
+  <!-- 2. Trust strip -->
+  <section class="trust-strip">
+    <span>Open source</span>
+    <span class="trust-sep">&middot;</span>
+    <span>Local only</span>
+    <span class="trust-sep">&middot;</span>
+    <span>No telemetry</span>
+    <span class="trust-sep">&middot;</span>
+    <span>macOS 14+</span>
+  </section>
+
+  <!-- 3. Problem / Solution -->
+  <section class="problem-section reveal">
+    <div class="problem-grid">
+      <div class="problem-card">
+        <h3>The problem</h3>
+        <p>You run <code>npm run dev</code> and get <code>EADDRINUSE :3000</code>. Something has your port. Is it your other project? Docker? An SSH tunnel? A zombie Node process? You waste minutes hunting through <code>lsof</code> output every time.</p>
+      </div>
+      <div class="problem-card solution">
+        <h3>The solution</h3>
+        <p>Portpourri watches your important ports and tells you exactly who owns each one. When something is blocking, you get a labeled action button &mdash; <strong>Stop server</strong>, <strong>Free port</strong>, or <strong>Stop tunnel</strong> &mdash; not a cryptic PID.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Primary demo (conflict-first, contract-ordered sections) -->
   <section class="demo-section">
     <div class="demo-columns">
     <div class="menubar-wrap">
@@ -55,15 +81,14 @@
       </div>
       <div class="menubar-strip">
         <div class="mb-dots" id="mbDots">
-          <span class="g"></span><span class="g"></span><span class="a"></span><span class="d"></span>
-          <span class="d"></span><span class="g"></span><span class="d"></span><span class="d"></span>
+          <span class="g"></span><span class="g"></span><span class="g"></span>
+          <span class="g"></span><span class="r"></span><span class="a"></span><span class="d"></span><span class="d"></span>
         </div>
         <span class="mb-icon"><svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></span>
         <span class="mb-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
         <span class="mb-time" id="liveTime"></span>
       </div>
     </div>
-    <!-- Triangle notch — points UP toward menu bar -->
     <div class="menubar-notch"><svg viewBox="0 0 20 10" xmlns="http://www.w3.org/2000/svg"><path d="M0 10 L10 1 L20 10 Z" fill="var(--pop-bg)"/><path d="M0 10 L10 1 L20 10" fill="none" stroke="var(--pop-border)" stroke-width="1"/></svg></div>
 
     <div class="popover-mock">
@@ -73,136 +98,118 @@
         <div class="pop-header">
           <svg style="width:14px;height:14px;color:var(--accent);flex-shrink:0;" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16h20c-.5 5.5-4 10-10 10S6.5 21.5 6 16z"/><path d="M11 14c-1-3-4-5-6-4 .5 3 2.5 5 6 4z"/><path d="M16 12c0-4 1.5-7 3.5-8-.5 2.5-.5 5.5-3.5 8z"/><path d="M21 14c1-3 4-4.5 6-3.5-.5 3-2.5 4.5-6 3.5z"/></svg>
           <span class="title">Portpourri</span>
-          <span class="summary"><span class="gdot"></span> 3 running</span>
+          <span class="summary"><span class="rdot"></span> 1 conflict <span class="gdot"></span> 3 running</span>
           <span class="time">Just now</span>
         </div>
 
         <div class="pop-divider"></div>
 
-        <!-- Projects -->
-        <div class="pop-project" onclick="toggleDetail(this)">
-          <span class="dot"></span>
-          <span class="name">api</span>
-          <span class="tools">nest start &middot; node</span>
+        <!-- Section 1: Watched Ports -->
+        <div class="pop-watched-port conflict-port">
+          <span class="port-badge conflict">3000</span>
+          <span class="wp-label">Blocked by <strong>postgres</strong></span>
           <span class="spacer"></span>
-          <span class="port-badge">3000</span>
+          <button class="pill-btn danger" onclick="event.stopPropagation()">Free port</button>
+        </div>
+        <div class="pop-watched-port owned-port">
+          <span class="port-badge owned">3001</span>
+          <span class="wp-label">next dev</span>
+          <span class="spacer"></span>
+          <button class="pill-btn node" onclick="event.stopPropagation()">Stop server</button>
+        </div>
+        <div class="pop-watched-port owned-port">
+          <span class="port-badge owned">8081</span>
+          <span class="wp-label">expo start</span>
+          <span class="spacer"></span>
+        </div>
+        <div class="pop-watched-port free-port">
+          <span class="port-badge free">5173</span>
+          <span class="wp-label dim">Free</span>
+        </div>
+        <div class="pop-watched-port free-port">
+          <span class="port-badge free">6006</span>
+          <span class="wp-label dim">Free</span>
+        </div>
+
+        <div class="pop-divider"></div>
+
+        <!-- Section 2: Other listeners / Blockers -->
+        <div class="pop-other-header" onclick="toggleOther(this)">
+          <span>Other listeners</span>
+          <span>2</span>
+          <span class="spacer" style="flex:1;"></span>
           <span class="chev">&#x276F;</span>
         </div>
-        <div class="pop-detail" id="detail-api">
+        <div class="pop-other-detail" id="other-list">
           <div>
-            <div class="path">~/myapp/apps/api</div>
-            <div class="proc"><span class="plabel">nest start</span> <span class="spacer" style="flex:1"></span> <button class="pill-btn danger" onclick="event.stopPropagation()">Free port</button></div>
-            <div class="proc"><span class="plabel">node</span> <span style="color:var(--pop-secondary);font-size:11px;">dist/main.js</span></div>
-          </div>
-        </div>
-
-        <div style="height:1px;background:var(--pop-border);margin:0 4px;opacity:0.5;"></div>
-
-        <div class="pop-project" onclick="toggleDetail(this)">
-          <span class="dot"></span>
-          <span class="name">web</span>
-          <span class="tools">next dev &middot; storybook</span>
-          <span class="spacer"></span>
-          <span class="port-badge">3001</span>
-          <span class="port-badge" style="margin-left:4px;">6006</span>
-          <span class="chev">&#x276F;</span>
-        </div>
-        <div class="pop-detail" id="detail-web">
-          <div>
-            <div class="path">~/myapp/apps/web</div>
-            <div class="proc"><span class="plabel">next dev</span> <span style="color:var(--pop-secondary);font-size:11px;">--turbopack</span></div>
-            <div class="proc"><span class="plabel">storybook</span> <span style="color:var(--pop-secondary);font-size:11px;">dev -p 6006</span></div>
-          </div>
-        </div>
-
-        <div style="height:1px;background:var(--pop-border);margin:0 4px;opacity:0.5;"></div>
-
-        <div class="pop-project" onclick="toggleDetail(this)">
-          <span class="dot"></span>
-          <span class="name">mobile</span>
-          <span class="wt-tag">worktree</span>
-          <span class="tools">expo start</span>
-          <span class="spacer"></span>
-          <span class="port-badge">8081</span>
-          <span class="chev">&#x276F;</span>
-        </div>
-        <div class="pop-detail" id="detail-mobile">
-          <div>
-            <div class="path">~/myapp/.claude/worktrees/feature-auth/apps/mobile</div>
-            <div class="proc"><span class="plabel">expo start</span></div>
+            <div class="pop-other-row">
+              <span class="port-badge neutral">5432</span>
+              <span class="plabel">postgres</span>
+              <span class="spacer"></span>
+              <span style="color:var(--pop-secondary);font-size:11px;">PID 1234</span>
+            </div>
+            <div class="pop-other-row">
+              <span class="port-badge neutral">6379</span>
+              <span class="plabel">redis-server</span>
+              <span class="spacer"></span>
+              <span style="color:var(--pop-secondary);font-size:11px;">PID 5678</span>
+            </div>
           </div>
         </div>
 
         <div class="pop-divider"></div>
 
-        <!-- Node processes -->
-        <div class="pop-procs-header open" onclick="toggleProcs(this)">
+        <!-- Section 3: Process groups -->
+        <div class="pop-procs-header" onclick="toggleProcs(this)">
           <span>Node processes</span>
-          <span>28</span>
+          <span>18</span>
           <span>&middot;</span>
-          <span style="font-weight:500;">1.0 GB</span>
+          <span style="font-weight:500;">820 MB</span>
           <span class="spacer" style="flex:1;"></span>
           <span class="chev">&#x276F;</span>
         </div>
 
-        <div class="proc-card" id="proc-list">
+        <div class="proc-card collapsed" id="proc-list">
           <div>
-            <div class="pop-proc-group" onclick="toggleProcActions(this)">
-              <span class="count">12&times;</span>
+            <div class="pop-proc-group">
+              <span class="count">8&times;</span>
               <span class="glabel">node</span>
               <span class="spacer"></span>
-              <span class="mem">420 MB</span>
-              <span class="chev">&#x276F;</span>
+              <span class="mem">380 MB</span>
+              <button class="pill-btn danger" style="margin-left:6px;" onclick="event.stopPropagation()">Kill group</button>
             </div>
-            <div class="pop-proc-actions"><div><div style="display:flex;gap:8px;"><button class="pill-btn danger">Kill all</button><button class="pill-btn ghost">Copy PIDs</button></div></div></div>
-
-            <div class="pop-proc-group" onclick="toggleProcActions(this)">
+            <div class="pop-proc-group">
               <span class="count">4&times;</span>
               <span class="glabel">next dev</span>
               <span class="spacer"></span>
-              <span class="mem">310 MB</span>
-              <span class="chev">&#x276F;</span>
+              <span class="mem">280 MB</span>
+              <button class="pill-btn danger" style="margin-left:6px;" onclick="event.stopPropagation()">Kill group</button>
             </div>
-            <div class="pop-proc-actions"><div><div style="display:flex;gap:8px;"><button class="pill-btn danger">Kill all</button><button class="pill-btn ghost">Copy PIDs</button></div></div></div>
-
-            <div class="pop-proc-group" onclick="toggleProcActions(this)">
-              <span class="count">6&times;</span>
-              <span class="glabel">npm</span>
-              <span class="spacer"></span>
-              <span class="mem">145 MB</span>
-              <span class="chev">&#x276F;</span>
-            </div>
-            <div class="pop-proc-actions"><div><div style="display:flex;gap:8px;"><button class="pill-btn danger">Kill all</button><button class="pill-btn ghost">Copy PIDs</button></div></div></div>
-
-            <div class="pop-proc-group" onclick="toggleProcActions(this)">
-              <span class="count">3&times;</span>
-              <span class="glabel">nest start</span>
-              <span class="spacer"></span>
-              <span class="mem">92 MB</span>
-              <span class="chev">&#x276F;</span>
-            </div>
-            <div class="pop-proc-actions"><div><div style="display:flex;gap:8px;"><button class="pill-btn danger">Kill all</button><button class="pill-btn ghost">Copy PIDs</button></div></div></div>
-
-            <div class="pop-proc-group" onclick="toggleProcActions(this)">
+            <div class="pop-proc-group">
               <span class="count">3&times;</span>
               <span class="glabel">expo start</span>
               <span class="spacer"></span>
-              <span class="mem">88 MB</span>
-              <span class="chev">&#x276F;</span>
+              <span class="mem">92 MB</span>
+              <button class="pill-btn danger" style="margin-left:6px;" onclick="event.stopPropagation()">Kill group</button>
             </div>
-            <div class="pop-proc-actions"><div><div style="display:flex;gap:8px;"><button class="pill-btn danger">Kill all</button><button class="pill-btn ghost">Copy PIDs</button></div></div></div>
+            <div class="pop-proc-group">
+              <span class="count">3&times;</span>
+              <span class="glabel">npm</span>
+              <span class="spacer"></span>
+              <span class="mem">68 MB</span>
+              <button class="pill-btn danger" style="margin-left:6px;" onclick="event.stopPropagation()">Kill group</button>
+            </div>
           </div>
         </div>
 
         <div class="pop-divider"></div>
 
-        <!-- AI Tools -->
+        <!-- Section 4: AI tools / workspace cleanup -->
         <div class="pop-ai-row" onclick="toggleAI(this)">
           <span class="ai-icon">&#x2731;</span>
-          <span class="ai-label">Claude Code</span>
-          <span class="ai-meta">3 worktrees &middot; 8 sessions</span>
+          <span class="ai-label">AI tools</span>
+          <span class="ai-meta">3 worktrees &middot; 587 MB</span>
           <span class="spacer"></span>
-          <span class="ai-size">587 MB</span>
           <span class="chev">&#x276F;</span>
         </div>
         <div class="pop-ai-detail" id="ai-claude">
@@ -228,41 +235,6 @@
               <span class="wt-size">62 MB</span>
             </div>
           </div>
-        </div>
-
-        <div class="pop-ai-row" onclick="toggleAI(this)">
-          <span class="ai-icon">&#x2699;</span>
-          <span class="ai-label">Codex</span>
-          <span class="ai-meta">5 worktrees &middot; 42 sessions</span>
-          <span class="spacer"></span>
-          <span class="ai-size warn">2.5 GB</span>
-          <span class="chev">&#x276F;</span>
-        </div>
-        <div class="pop-ai-detail" id="ai-codex">
-          <div>
-            <div class="pop-ai-wt">
-              <span class="wt-name">a1b2</span>
-              <span class="spacer"></span>
-              <span class="wt-size">890 MB</span>
-            </div>
-            <div class="pop-ai-wt">
-              <span class="wt-name" style="color:var(--pop-secondary);">c3d4</span>
-              <span class="wt-age stale">4d</span>
-              <span class="spacer"></span>
-              <span class="wt-size">720 MB</span>
-            </div>
-            <div class="pop-ai-wt">
-              <span class="wt-name" style="color:var(--pop-secondary);">e5f6</span>
-              <span class="wt-age stale">7d</span>
-              <span class="spacer"></span>
-              <span class="wt-size">410 MB</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="pop-stale-bar">
-          <span class="stale-label">4 stale (3+ days)</span>
-          <button class="pill-btn danger">Clear stale</button>
         </div>
 
       </div>
@@ -306,51 +278,75 @@
     </div><!-- .demo-columns -->
   </section>
 
+  <!-- 6. Feature detail (port-ownership-first) -->
   <section class="features-section reveal">
     <div class="section-header">
-      <div class="section-label">What's in the mix</div>
-      <h2 class="section-title">Six ingredients for a cleaner dev setup</h2>
-      <p class="section-subtitle">Everything you need to understand your local dev environment at a glance.</p>
+      <div class="section-label">What it does</div>
+      <h2 class="section-title">Port ownership made obvious</h2>
+      <p class="section-subtitle">Everything you need to understand who owns your dev ports at a glance.</p>
     </div>
     <div class="feature-grid reveal-stagger">
       <div class="feature-card reveal">
-        <span class="fi-icon"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
-        <h3>Project-aware</h3>
-        <p>Maps processes to project roots. See "api on :3000" instead of cryptic PIDs.</p>
+        <span class="fi-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <h3>Know who owns :3000</h3>
+        <p>Watched ports show ownership at a glance. Green means your project, amber means blocked, red means conflict.</p>
       </div>
       <div class="feature-card reveal">
-        <span class="fi-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
-        <h3>Conflict detection</h3>
-        <p>Instantly know when your port is blocked by Docker, SSH, or another process.</p>
+        <span class="fi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+        <h3>Spot blockers instantly</h3>
+        <p>When Docker, SSH, or another process blocks your port, Portpourri names the blocker and shows the safe action.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="fi-icon"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+        <h3>One-click resolution</h3>
+        <p><strong>Stop server</strong>, <strong>Free port</strong>, <strong>Stop tunnel</strong>, or <strong>Kill group</strong> &mdash; labeled by what it actually does.</p>
       </div>
       <div class="feature-card reveal">
         <span class="fi-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
-        <h3>AI tool tracking</h3>
-        <p>Claude Code and Codex worktree counts, disk usage, and stale cleanup alerts.</p>
+        <h3>See projects, not PIDs</h3>
+        <p>Maps Node processes to project roots. See &ldquo;api on :3000&rdquo; instead of cryptic process IDs.</p>
       </div>
       <div class="feature-card reveal">
-        <span class="fi-icon"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
-        <h3>Dark mode</h3>
-        <p>Follows your system appearance automatically. Native on light and dark desktops.</p>
-      </div>
-      <div class="feature-card reveal">
-        <span class="fi-icon"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/></svg></span>
-        <h3>Global hotkey</h3>
-        <p>Toggle from anywhere with <code>Ctrl+Shift+P</code>. No need to hunt for the icon.</p>
+        <span class="fi-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+        <h3>Glanceable Dot Matrix</h3>
+        <p>A two-row dot glyph in your menu bar: top row for projects, bottom row for watched-port status. Conflicts turn red.</p>
       </div>
       <div class="feature-card reveal">
         <span class="fi-icon"><svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
-        <h3>CLI included</h3>
-        <p>Script it with <code>portpourri snapshot --json</code> for CI or custom tooling.</p>
+        <h3>Script it</h3>
+        <p><code>portpourri snapshot --json</code> for CI, custom tooling, or quick terminal checks.</p>
       </div>
     </div>
   </section>
 
+  <!-- 7. Local-first / Privacy / OSS trust -->
+  <section class="trust-section reveal">
+    <div class="section-header">
+      <div class="section-label">Your machine, your data</div>
+      <h2 class="section-title">Local-first, open source</h2>
+      <p class="section-subtitle">Portpourri runs entirely on your Mac. No accounts, no analytics, no network calls.</p>
+    </div>
+    <div class="trust-grid">
+      <div class="trust-card">
+        <h4>No telemetry</h4>
+        <p>Zero network requests. Your port data never leaves your machine.</p>
+      </div>
+      <div class="trust-card">
+        <h4>No privileged access</h4>
+        <p>Uses standard <code>lsof</code> and <code>ps</code>. No root, no kernel extensions, no SIP bypass.</p>
+      </div>
+      <div class="trust-card">
+        <h4>MIT licensed</h4>
+        <p>Fully open source. Read the code, build from source, fork it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Changelog -->
   <section class="changelog-section reveal">
     <div class="section-header">
-      <div class="section-label">Freshly picked</div>
-      <h2 class="section-title">The latest from the garden</h2>
-      <p class="section-subtitle">What's new in recent releases.</p>
+      <div class="section-label">Release notes</div>
+      <h2 class="section-title">Recent releases</h2>
     </div>
     <div class="changelog-timeline">
       <div class="cl-entry reveal">
@@ -376,10 +372,8 @@
           <h3>Dark Mode &amp; Dot Matrix</h3>
           <ul>
             <li><span class="cl-tag new">new</span>Dark mode support with automatic system appearance</li>
-            <li><span class="cl-tag new">new</span>Dot matrix menu bar mode with color-coded indicators</li>
+            <li><span class="cl-tag new">new</span>Dot matrix menu bar mode with color-coded port status</li>
             <li><span class="cl-tag new">new</span>AI tools section: Claude Code and Codex worktree visibility</li>
-            <li><span class="cl-tag new">new</span>Brand icons for Claude Code and Codex</li>
-            <li><span class="cl-tag improve">improve</span>Fully synthetic sample data for clean screenshots</li>
           </ul>
         </div>
       </div>
@@ -392,8 +386,7 @@
           <h3>Visual Polish &amp; Process Groups</h3>
           <ul>
             <li><span class="cl-tag improve">improve</span>Cleaner popover UI with better readability</li>
-            <li><span class="cl-tag new">new</span>Expandable process groups with Kill all + Copy PIDs</li>
-            <li><span class="cl-tag improve">improve</span>Merged header summary into title line for tighter layout</li>
+            <li><span class="cl-tag new">new</span>Expandable process groups with Kill group + Copy PIDs</li>
           </ul>
         </div>
       </div>
@@ -405,9 +398,13 @@
       <span class="footer-brand"><svg class="footer-logo" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16h20c-.5 5.5-4 10-10 10S6.5 21.5 6 16z"/><path d="M11 14c-1-3-4-5-6-4 .5 3 2.5 5 6 4z"/><path d="M16 12c0-4 1.5-7 3.5-8-.5 2.5-.5 5.5-3.5 8z"/><path d="M21 14c1-3 4-4.5 6-3.5-.5 3-2.5 4.5-6 3.5z"/></svg> Portpourri</span>
       <span class="footer-sep" style="opacity:0.3;">&middot;</span>
       <span class="footer-links">
-        <a href="https://x.com/jskoiz">@jskoiz</a>
-        <span class="footer-sep">&middot;</span>
         <a href="https://github.com/jskoiz/portpourri">GitHub</a>
+        <span class="footer-sep">&middot;</span>
+        <a href="https://github.com/jskoiz/portpourri/issues">Issues</a>
+        <span class="footer-sep">&middot;</span>
+        <a href="https://github.com/jskoiz/portpourri/releases">Releases</a>
+        <span class="footer-sep">&middot;</span>
+        <a href="https://x.com/jskoiz">@jskoiz</a>
         <span class="footer-sep">&middot;</span>
         <span>MIT License</span>
       </span>

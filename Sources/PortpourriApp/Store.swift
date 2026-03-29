@@ -26,6 +26,7 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
     case countOnly
     case memoryOnly
     case iconOnly
+    case dotMatrix
 
     var id: String { self.rawValue }
 
@@ -35,6 +36,7 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
         case .countOnly: "Project Count"
         case .memoryOnly: "Memory Usage"
         case .iconOnly: "Icon Only"
+        case .dotMatrix: "Dot Matrix"
         }
     }
 
@@ -44,6 +46,7 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
         case .countOnly: "3"
         case .memoryOnly: "2.1G"
         case .iconOnly: "N"
+        case .dotMatrix: "\u{25CF}\u{25CF}\u{25CB} port status"
         }
     }
 }
@@ -197,6 +200,7 @@ final class SettingsStore: ObservableObject {
 @MainActor
 final class PortpourriStore: ObservableObject {
     @Published var snapshot: AppSnapshot
+    @Published var aiSnapshot: AIToolSnapshot = .empty
     @Published var isRefreshing = false
     @Published var lastError: String?
     @Published var isPopoverPresented = false
@@ -206,7 +210,10 @@ final class PortpourriStore: ObservableObject {
     let useSampleData: Bool
 
     private let snapshotService = SnapshotService()
+    private let aiToolProbe = AIToolProbe()
     private var refreshTimer: Timer?
+    private var aiRefreshTask: Task<Void, Never>?
+    private var lastAIToolRefreshAt: Date?
     private var previousConflictPorts: Set<Int> = []
 
     init(useSampleData: Bool) {
@@ -223,11 +230,14 @@ final class PortpourriStore: ObservableObject {
         self.applyLaunchAtLogin()
         self.scheduleRefreshTimer()
         self.refreshNow()
+        self.refreshAITools(force: true)
     }
 
     func stop() {
         self.refreshTimer?.invalidate()
         self.refreshTimer = nil
+        self.aiRefreshTask?.cancel()
+        self.aiRefreshTask = nil
     }
 
     func refreshNow() {
@@ -265,6 +275,7 @@ final class PortpourriStore: ObservableObject {
         self.scheduleRefreshTimer()
         if presented {
             self.refreshNow()
+            self.refreshAITools(force: true)
         }
     }
 
@@ -439,6 +450,36 @@ final class PortpourriStore: ObservableObject {
         self.applyLaunchAtLogin()
         self.scheduleRefreshTimer()
         self.refreshNow()
+    }
+
+    private func refreshAITools(force: Bool = false) {
+        let refreshInterval: TimeInterval = 300
+        if !force,
+           let lastAIToolRefreshAt,
+           Date().timeIntervalSince(lastAIToolRefreshAt) < refreshInterval {
+            return
+        }
+
+        self.aiRefreshTask?.cancel()
+        let aiProbe = self.aiToolProbe
+        let useSampleData = self.useSampleData
+
+        self.aiRefreshTask = Task { @MainActor [weak self] in
+            let result = await Task.detached(priority: .utility) {
+                if useSampleData {
+                    return Result<AIToolSnapshot, Error>.success(.empty)
+                }
+                return Result<AIToolSnapshot, Error> {
+                    try aiProbe.scan()
+                }
+            }.value
+
+            guard let self, !Task.isCancelled else { return }
+            if case let .success(aiSnap) = result {
+                self.aiSnapshot = aiSnap
+                self.lastAIToolRefreshAt = Date()
+            }
+        }
     }
 
     private func scheduleRefreshTimer() {
