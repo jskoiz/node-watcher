@@ -100,7 +100,8 @@ struct PopoverRootView: View {
                     )
                     .padding()
                     .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(1.5))
                             self.store.clipboardNotice = nil
                         }
                     }
@@ -339,7 +340,7 @@ private struct NodeProcessDrawerToggle: View {
                     .fontWeight(.medium)
                     .foregroundStyle(Readability.secondaryText)
                 Spacer()
-                Image(systemName: self.isOpen ? "chevron.down" : "chevron.up")
+                Image(systemName: self.isOpen ? "chevron.up" : "chevron.down")
                     .font(.caption2)
                     .foregroundStyle(Readability.secondaryText)
             }
