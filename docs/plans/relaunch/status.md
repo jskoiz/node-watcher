@@ -1,23 +1,18 @@
 current_phase: phase-5-launch
-phase_state: in_progress
+phase_state: completed
 
 phase_owner:
   agent: codex
   human: jerry
 
 started_at: 2026-03-30
-completed_at:
+completed_at: 2026-03-31
 
-blockers:
-  - merge Phase 5 PR
-  - tag v0.4.0 from clean main
-  - verify GitHub Release workflow publishes Portpourri-0.4.0-mac.zip
-  - verify https://www.portpourri.com serves the 0.4.0 launch surfaces
+blockers: []
 
 exact_next_task: >
-  Finish the Phase 5 launch sweep on this branch: bump release metadata to
-  0.4.0, align changelog, manifest, README, and distribution docs, and leave
-  the branch ready for the final launch PR.
+  Relaunch complete. Use the changelog-driven release workflow and the existing
+  GitHub-first install path as the baseline for future releases.
 
 files_allowed_to_change:
   - README.md
@@ -60,7 +55,20 @@ stop_condition: >
   live site, README, changelog, release notes, and download/install paths all
   describe the same current 0.4.0 product.
 
-validation_results: {}
+validation_results:
+  swift_build: pass
+  swift_test: 23/23 pass
+  snapshot_json: pass
+  why_command: pass
+  list_watched: pass
+  doctor_command: pass
+  sample_mode_launch: pass
+  live_mode_launch: pass
+  release_workflow: pass — GitHub Actions Release run 23839249734 completed successfully for tag v0.4.0
+  github_release: pass — https://github.com/jskoiz/portpourri/releases/tag/v0.4.0 exists with asset Portpourri-0.4.0-mac.zip
+  live_site_manifest: pass — https://www.portpourri.com/data/release-manifest.json serves version 0.4.0
+  live_site_hero: pass — live site hero badge hydrates to v0.4.0 with the 0.4.0 highlight
+  release_download_surface: pass — releases/latest now resolves to v0.4.0
 
 noted_exceptions:
   - Per user direction, Phase 5 does not redesign the website; site changes are limited to manifest-driven versioning and small copy updates only
@@ -82,9 +90,7 @@ canonical_decisions:
   release_notes_source: "CHANGELOG.md"
 
 handoff_notes: >
-  Phase 5 is now the active release-prep pass. The branch should end with
-  0.4.0 metadata, a release workflow that uses CHANGELOG.md as the GitHub
-  Release body, and public docs that match the shipped CLI and install path.
-  Do not mark the phase complete until the PR is merged, tag v0.4.0 is cut,
-  the release asset exists, and https://www.portpourri.com reflects the
-  manifest-driven launch state.
+  Phase 5 is complete. v0.4.0 was tagged from merged main, the release
+  workflow published Portpourri-0.4.0-mac.zip successfully, the GitHub Release
+  body now comes from CHANGELOG.md, and the live site reflects the 0.4.0
+  manifest-driven launch state without a site redesign.

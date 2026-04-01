@@ -121,9 +121,23 @@ and uploads that markdown as the GitHub Release body.
 
 ## Handoff
 
-Phase 5 remains in progress until the launch PR merges, tag `v0.4.0` is cut
-from clean `main`, the release workflow publishes `Portpourri-0.4.0-mac.zip`,
-and the live site reflects the `0.4.0` manifest and links without a design change.
+Phase 5 is complete.
+
+Closeout verification:
+
+- PR #22 merged to `main`
+- tag `v0.4.0` cut from merged `main`
+- GitHub Actions Release run `23839249734` succeeded
+- GitHub Release `v0.4.0` exists with asset `Portpourri-0.4.0-mac.zip`
+- GitHub Release body is generated from the `0.4.0` section of `CHANGELOG.md`
+- `https://www.portpourri.com/data/release-manifest.json` serves `0.4.0`
+- the live site hero badge hydrates to `v0.4.0`
+
+Final launch state:
+
+- release target shipped: `0.4.0`
+- install path remains GitHub Releases first
+- no site redesign was made in Phase 5 per user direction
 
 ## Agent instruction block
 
