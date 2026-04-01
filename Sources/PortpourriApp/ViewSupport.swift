@@ -541,8 +541,11 @@ enum DisplayText {
         if lhs.isConflict != rhs.isConflict {
             return lhs.isConflict && !rhs.isConflict
         }
+        if lhs.isBusy != rhs.isBusy {
+            return lhs.isBusy && !rhs.isBusy
+        }
         if lhs.isNodeOwned != rhs.isNodeOwned {
-            return lhs.isNodeOwned && !rhs.isNodeOwned
+            return !lhs.isNodeOwned && rhs.isNodeOwned
         }
         return lhs.port < rhs.port
     }
@@ -553,6 +556,9 @@ enum DisplayText {
 
     static func watchedPortHeadline(_ status: WatchedPortStatus) -> String {
         let owner = self.watchedPortOwner(status)
+        if !status.isBusy {
+            return "Free"
+        }
         if status.isConflict {
             return "Blocked by \(owner)"
         }
