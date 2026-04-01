@@ -24,3 +24,21 @@ swift run portpourri list --watched
 swift run portpourri list --all
 swift run portpourri doctor
 ```
+
+## Manual stability checks
+
+After the standard checks, verify the shipped app path as well as the source path:
+
+```bash
+./Scripts/package_app.sh
+open .build/Portpourri.app
+```
+
+Checklist:
+
+- Launch `/Applications/Portpourri.app` from Finder and confirm the menu bar item appears without crashing.
+- Open Settings and cycle `Display -> Theme` through `System`, `Light`, and `Dark`.
+- Quit and relaunch, then confirm the selected theme persists and renders correctly.
+- Open About and confirm the app identity, version/build, website, GitHub, issues, and release links are canonical.
+- Confirm the popover still matches `docs/ui.md` for watched-port ordering, action labels, Process groups, and AI tools.
+- If preparing a release, run `./Scripts/verify_release_bundle.sh` against both the packaged `.app` and the final zip.

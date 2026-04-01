@@ -16,6 +16,10 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 cp "$BUILD_DIR/PortpourriApp" "$MACOS_DIR/PortpourriApp"
 
+swift Scripts/make_icns.swift \
+  Sources/PortpourriApp/Resources/MenuBarIcon.svg \
+  "$RESOURCES_DIR/AppIcon.icns"
+
 BUILD_TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M UTC')"
 
 cat > "$APP_DIR/Contents/Info.plist" <<PLIST
@@ -25,9 +29,13 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <dict>
   <key>CFBundleExecutable</key>
   <string>PortpourriApp</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>dev.portpourri.app</string>
   <key>CFBundleName</key>
+  <string>Portpourri</string>
+  <key>CFBundleDisplayName</key>
   <string>Portpourri</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
@@ -39,10 +47,14 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
   <true/>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>LSMinimumSystemVersion</key>
+  <string>14.0</string>
   <key>NWBuildTimestamp</key>
   <string>${BUILD_TIMESTAMP}</string>
 </dict>
 </plist>
 PLIST
+
+./Scripts/verify_release_bundle.sh "$APP_DIR" "$VERSION"
 
 echo "Packaged $APP_DIR (v$VERSION)"

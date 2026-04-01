@@ -92,6 +92,20 @@ jobs:
           </plist>
           PLIST
 
+      - name: Verify packaged app bundle metadata
+        run: |
+          ./Scripts/verify_release_bundle.sh ".build/${{ env.APP_NAME }}.app" "${{ steps.version.outputs.version }}"
+
+      - name: Record release provenance tuple
+        run: |
+          APP_DIR=".build/${{ env.APP_NAME }}.app"
+          BUILD_TIMESTAMP=$(/usr/libexec/PlistBuddy -c "Print :NWBuildTimestamp" "$APP_DIR/Contents/Info.plist")
+          echo "branch=${GITHUB_REF_NAME}"
+          echo "commit=${GITHUB_SHA}"
+          echo "tag=${GITHUB_REF_NAME}"
+          echo "version=${{ steps.version.outputs.version }}"
+          echo "build_timestamp=${BUILD_TIMESTAMP}"
+
       - name: Import signing certificate
         env:
           CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_CERTIFICATE_P12 }}
@@ -165,6 +179,10 @@ jobs:
         run: |
           cd .build
           ditto -c -k --keepParent "${{ env.APP_NAME }}.app" "${{ env.APP_NAME }}-${{ steps.version.outputs.version }}-mac.zip"
+
+      - name: Verify zipped release bundle metadata
+        run: |
+          ./Scripts/verify_release_bundle.sh ".build/${{ env.APP_NAME }}-${{ steps.version.outputs.version }}-mac.zip" "${{ steps.version.outputs.version }}"
 
       - name: Extract release notes from changelog
         run: python3 Scripts/extract_release_notes.py "${{ steps.version.outputs.version }}" CHANGELOG.md > .build/release-notes.md
