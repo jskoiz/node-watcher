@@ -53,7 +53,7 @@ The popover answers three questions in order:
 ### Section order
 
 1. **Header** — App title, sample/live indicator, summary line (conflict count + running count), last updated time.
-2. **Watched Ports** — All configured watched ports sorted conflicts-first, then blocked, then owned, then free. Each row shows a color-coded port badge (matching Dot Matrix states), an ownership headline, and an action button if applicable.
+2. **Watched Ports** — Conflicts, blockers, and owned/running watched ports are shown inline first. Free watched ports are summarized in a collapsed row by default and can be expanded on demand. Each visible row shows a color-coded port badge (matching Dot Matrix states), an ownership headline, and an action button if applicable.
 3. **Other listeners / Blockers** — Non-Node processes occupying ports. Collapsed by default with disclosure toggle.
 4. **Process groups** — Active-listener Node processes grouped within an explicit project ownership boundary, then by tool type (node, next dev, expo start, etc.). Each row shows count, project identity, watched-port summary, and Kill group. Groups are derived only from current active listeners and never merge unrelated projects that share a tool label.
 5. **AI tools** — Claude Code and Codex worktree summary with count and total size. Collapsed by default. Lists worktrees with name, project, size, and stale badge (3+ days untouched). Read-only display only; no cleanup action is exposed in Phase 2.5.
