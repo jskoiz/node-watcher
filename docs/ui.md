@@ -91,6 +91,7 @@ Five tabs:
 - Notifications: conflict notification toggle, sound toggle
 
 ### Display
+- Appearance picker: System / Light / Dark for the popover and settings window
 - Menu bar display mode picker with live preview
 - Dot Matrix legend (shown when Dot Matrix mode is selected)
 - Show conflict badge toggle

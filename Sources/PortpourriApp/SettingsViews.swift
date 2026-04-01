@@ -161,6 +161,17 @@ private struct DisplaySettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Appearance") {
+                Picker("Theme", selection: self.$settings.appearanceMode) {
+                    ForEach(AppearanceMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                Text("Use System to follow macOS, or force Light or Dark for the popover and settings window.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             if self.settings.menuBarDisplayMode == .dotMatrix {
                 Section("Dot Matrix Legend") {
                     HStack(spacing: 16) {

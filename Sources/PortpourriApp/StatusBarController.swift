@@ -31,6 +31,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
 
     func openSettings() {
         if let existing = self.settingsWindow, existing.isVisible {
+            self.applyAppearancePreference()
             existing.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -47,6 +48,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         window.level = .floating
 
         self.settingsWindow = window
+        self.applyAppearancePreference()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -68,14 +70,13 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         self.popover.behavior = .semitransient
         self.popover.delegate = self
         self.popover.animates = true
-        self.popover.appearance = NSAppearance(named: .aqua)
         self.popover.contentSize = NSSize(width: 400, height: 100)
         let rootView = PopoverRootView(store: self.store)
         let hostingController = NSHostingController(rootView: rootView)
-        hostingController.view.appearance = NSAppearance(named: .aqua)
         // Let the view size itself; cap at a max height
         hostingController.sizingOptions = [.preferredContentSize]
         self.popover.contentViewController = hostingController
+        self.applyAppearancePreference()
     }
 
     private func installOutsideClickMonitors() {
@@ -225,6 +226,12 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             }
             .store(in: &self.cancellables)
 
+        self.store.settings.$appearanceMode
+            .sink { [weak self] _ in
+                self?.applyAppearancePreference()
+            }
+            .store(in: &self.cancellables)
+
         self.store.settings.$hotkeyKey
             .sink { [weak self] _ in
                 self?.reinstallHotkey()
@@ -236,6 +243,16 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
                 self?.reinstallHotkey()
             }
             .store(in: &self.cancellables)
+    }
+
+    private func applyAppearancePreference() {
+        let appearance = self.store.settings.appearanceMode.nsAppearanceName.flatMap(NSAppearance.init(named:))
+
+        NSApp.appearance = appearance
+        self.popover.appearance = appearance
+        self.popover.contentViewController?.view.appearance = appearance
+        self.settingsWindow?.appearance = appearance
+        self.settingsWindow?.contentViewController?.view.appearance = appearance
     }
 
     private func updateStatusImage() {

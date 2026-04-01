@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import PortpourriCore
 
@@ -61,6 +62,33 @@ enum GroupMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { self.rawValue }
+
+    var label: String {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+
+    var nsAppearanceName: NSAppearance.Name? {
+        switch self {
+        case .system:
+            nil
+        case .light:
+            .aqua
+        case .dark:
+            .darkAqua
+        }
+    }
+}
+
 @MainActor
 final class SettingsStore: ObservableObject {
     static let defaultWatchedPortsText = SnapshotService.defaultWatchedPorts.map(String.init).joined(separator: ",")
@@ -112,6 +140,13 @@ final class SettingsStore: ObservableObject {
     @Published var menuBarDisplayMode: MenuBarDisplayMode {
         didSet {
             UserDefaults.standard.set(self.menuBarDisplayMode.rawValue, forKey: "menuBarDisplayMode")
+            self.onChange?()
+        }
+    }
+
+    @Published var appearanceMode: AppearanceMode {
+        didSet {
+            UserDefaults.standard.set(self.appearanceMode.rawValue, forKey: "appearanceMode")
             self.onChange?()
         }
     }
@@ -175,6 +210,7 @@ final class SettingsStore: ObservableObject {
         self.showNonNodeListeners = defaults.object(forKey: "showNonNodeListeners") as? Bool ?? false
         self.watchedPortsText = defaults.string(forKey: "watchedPortsText") ?? Self.defaultWatchedPortsText
         self.menuBarDisplayMode = MenuBarDisplayMode(rawValue: defaults.string(forKey: "menuBarDisplayMode") ?? "") ?? .countAndMemory
+        self.appearanceMode = AppearanceMode(rawValue: defaults.string(forKey: "appearanceMode") ?? "") ?? .system
         self.enableConflictNotifications = defaults.object(forKey: "enableConflictNotifications") as? Bool ?? true
         self.notificationSound = defaults.object(forKey: "notificationSound") as? Bool ?? true
         self.hideWhenIdle = defaults.object(forKey: "hideWhenIdle") as? Bool ?? false

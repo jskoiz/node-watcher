@@ -2,6 +2,16 @@ import AppKit
 import SwiftUI
 import UserNotifications
 
+enum NotificationAuthorizationCoordinator {
+    static let options: UNAuthorizationOptions = [.alert, .sound]
+
+    static func request(using block: @escaping @Sendable () async -> Void) {
+        Task {
+            await block()
+        }
+    }
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let store = PortpourriStore(
@@ -24,9 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func requestNotificationPermissions() {
         guard Bundle.main.bundleIdentifier != nil else { return }
-        Task {
+        NotificationAuthorizationCoordinator.request {
             _ = try? await UNUserNotificationCenter.current().requestAuthorization(
-                options: [.alert, .sound]
+                options: NotificationAuthorizationCoordinator.options
             )
         }
     }
